@@ -1,0 +1,47 @@
+{
+  "schema": "openclaw-frontier.security-governance-eval.v1",
+  "ok": true,
+  "laneId": "FR-SECURITY-GOV-001",
+  "generatedAt": "2026-05-17T20:07:34.193Z",
+  "externalEffects": false,
+  "artifacts": [
+    "docs/security-governance.md"
+  ],
+  "checks": {
+    "requiredPhrases": 8,
+    "deniedPatterns": [
+      "private-key-block",
+      "openai-or-generic-secret-key",
+      "anthropic-key",
+      "github-token",
+      "telegram-bot-token",
+      "google-api-key",
+      "slack-token",
+      "private-home-path",
+      "tailscale-ip",
+      "rfc1918-ip"
+    ],
+    "quorum": {
+      "ok": true,
+      "approvingAgents": 2,
+      "approvingHardware": 2
+    },
+    "approvalGates": {
+      "ok": true,
+      "missing": []
+    },
+    "incidentScore": {
+      "ok": true,
+      "blocked": false,
+      "score": 95,
+      "deductions": [
+        {
+          "id": "synthetic-low-doc-finding",
+          "points": 5,
+          "reason": "low-severity-incident"
+        }
+      ]
+    }
+  },
+  "findings": []
+}

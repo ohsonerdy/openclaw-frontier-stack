@@ -1,0 +1,75 @@
+{
+  "schema": "openclaw-frontier.graph.v1",
+  "generated_at": "YYYY-MM-DDTHH:MM:SSZ",
+  "nodes": [
+    {
+      "id": "release:v0",
+      "type": "release",
+      "label": "Initial public package",
+      "status": "packaged",
+      "risk_tier": "medium"
+    },
+    {
+      "id": "capability:signed-bus",
+      "type": "capability",
+      "label": "Signed Bus",
+      "status": "packaged",
+      "risk_tier": "medium"
+    },
+    {
+      "id": "capability:blackboard",
+      "type": "capability",
+      "label": "Blackboard",
+      "status": "packaged",
+      "risk_tier": "medium"
+    },
+    {
+      "id": "capability:communication-planes",
+      "type": "capability",
+      "label": "Communication Planes",
+      "status": "packaged",
+      "risk_tier": "medium"
+    },
+    {
+      "id": "artifact:docs/WIKI_INDEX.md",
+      "type": "artifact",
+      "label": "Wiki index",
+      "status": "packaged",
+      "risk_tier": "low"
+    },
+    {
+      "id": "review:required-reviewer-gate",
+      "type": "review",
+      "label": "Required reviewer gate",
+      "status": "blocked",
+      "risk_tier": "high"
+    }
+  ],
+  "edges": [
+    {
+      "from": "artifact:docs/WIKI_INDEX.md",
+      "to": "release:v0",
+      "type": "documents"
+    },
+    {
+      "from": "release:v0",
+      "to": "capability:signed-bus",
+      "type": "implements"
+    },
+    {
+      "from": "release:v0",
+      "to": "capability:blackboard",
+      "type": "implements"
+    },
+    {
+      "from": "release:v0",
+      "to": "capability:communication-planes",
+      "type": "documents"
+    },
+    {
+      "from": "review:required-reviewer-gate",
+      "to": "release:v0",
+      "type": "blocks"
+    }
+  ]
+}

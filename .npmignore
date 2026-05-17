@@ -1,0 +1,11 @@
+node_modules/
+.git/
+release-gate/artifacts/
+release-gate/exports/
+release-gate/reports/
+examples/*/out/
+*.pem
+*.key
+.env
+.env.*
+!.env.example

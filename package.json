@@ -1,0 +1,55 @@
+{
+  "name": "@openclaw/frontier-stack",
+  "version": "0.1.0",
+  "description": "Production-safe OpenClaw frontier coding swarm architecture package with runnable demos and verification gates.",
+  "license": "MIT",
+  "type": "commonjs",
+  "private": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "demo": "node scripts/run-demos.js",
+    "verify": "node scripts/verify-package.js",
+    "verify:history": "node scripts/verify-git-history-clean.js",
+    "verify:owner-approval": "node release-gate/scripts/verify-owner-upload-approval.js",
+    "test": "node scripts/verify-package.js",
+    "release:pack": "node scripts/package-release.js",
+    "install:check": "node scripts/check-environment.js",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "install-hooks": "git config core.hooksPath .githooks",
+    "verify:package": "node scripts/verify-package.js",
+    "verify:approval": "node release-gate/scripts/verify-owner-upload-approval.js"
+  },
+  "files": [
+    ".github/workflows/verify-package.yml",
+    ".gitignore",
+    ".githooks/",
+    ".npmignore",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md",
+    "docs/",
+    "examples/",
+    "release-gate/checklist.md",
+    "release-gate/release-notes/",
+    "release-gate/reviewer-decision.template.yaml",
+    "release-gate/reviewer-decision-schema.md",
+    "release-gate/scripts/",
+    "scripts/",
+    "src/",
+    "templates/",
+    "STATUS.md",
+    "docs/security/"
+  ],
+  "keywords": [
+    "openclaw",
+    "multi-agent",
+    "coding-swarm",
+    "orchestration",
+    "release-gates"
+  ],
+  "optionalDependencies": {
+    "nats": "^2.29.3"
+  }
+}

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+remote_url="${2:-}"
+if [[ "$remote_url" == *github.com* ]]; then
+  node release-gate/tests/sentinel-gate-fixtures.js
+  node release-gate/scripts/sentinel-gate.js >/dev/null
+  npm test >/dev/null
+fi

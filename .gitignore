@@ -1,0 +1,12 @@
+examples/demo-swarm/out/
+examples/memory-demo/out/
+release-gate/artifacts/
+*.bak
+*.bak-*
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+
+node_modules/

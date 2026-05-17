@@ -1,0 +1,28 @@
+{
+  "schema": "openclaw-frontier.agent-roster.v1",
+  "updated_at": "YYYY-MM-DDTHH:MM:SSZ",
+  "agents": [
+    {
+      "agent_id": "agent-alpha",
+      "display_name": "Agent Alpha",
+      "owner_host_label": "host-a",
+      "primary_roles": ["coordination", "docs"],
+      "capabilities": ["package-review", "status-summary", "safe-local-inspection"],
+      "coordination_channels": ["signed-bus", "taskflow"],
+      "risk_tier": "medium",
+      "approval_required_for": ["external-publish", "destructive-change", "credential-handling"],
+      "status_source": "status/agents/agent-alpha.latest.json"
+    },
+    {
+      "agent_id": "agent-beta",
+      "display_name": "Agent Beta",
+      "owner_host_label": "host-b",
+      "primary_roles": ["review", "ops-advisory"],
+      "capabilities": ["architecture-review", "incident-triage", "runbook-check"],
+      "coordination_channels": ["signed-bus"],
+      "risk_tier": "high",
+      "approval_required_for": ["service-restart", "network-exposure-change", "security-policy-change"],
+      "status_source": "status/agents/agent-beta.latest.json"
+    }
+  ]
+}

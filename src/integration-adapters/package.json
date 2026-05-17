@@ -1,0 +1,12 @@
+{
+  "name": "@openclaw-frontier/integration-adapters",
+  "version": "0.0.0-demo",
+  "private": true,
+  "description": "Production-safe external integration adapter examples for OpenClaw Frontier Stack.",
+  "type": "commonjs",
+  "main": "lib/mock-mcp-adapter.js",
+  "scripts": {
+    "test": "node test/mock-mcp-adapter.test.js"
+  },
+  "dependencies": {}
+}

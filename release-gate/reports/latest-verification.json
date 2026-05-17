@@ -1,0 +1,257 @@
+{
+  "schema": "openclaw-frontier.package-verifier.v1",
+  "verificationScope": "package-integrity-not-upload-approval",
+  "generatedAt": "2026-05-17T20:07:54.286Z",
+  "packageRoot": "this package root",
+  "externalEffects": false,
+  "checks": [
+    {
+      "name": "signed-bus-envelope-test",
+      "ok": true,
+      "ms": 34,
+      "stdout": "{\n  \"ok\": true,\n  \"signed\": true,\n  \"verified\": true,\n  \"tamperRejected\": true,\n  \"types\": [\n    \"TASK\",\n    \"RESULT\",\n    \"FACT\",\n    \"OBSERVATION\",\n    \"DECISION\",\n    \"ALERT\",\n    \"BANTER\",\n    \"HEARTBEAT\"\n  ]\n}"
+    },
+    {
+      "name": "blackboard-test",
+      "ok": true,
+      "ms": 71,
+      "stdout": "{\n  \"ok\": true,\n  \"records\": 7,\n  \"activePathClaims\": 1,\n  \"rejectedPaths\": 7,\n  \"kinds\": {\n    \"task-claim\": 1,\n    \"path-claim\": 2,\n    \"fact\": 1,\n    \"decision\": 1,\n    \"result\": 1,\n    \"path-release\": 1\n  }\n}"
+    },
+    {
+      "name": "taskflow-test",
+      "ok": true,
+      "ms": 30,
+      "stdout": "{\n  \"ok\": true,\n  \"tasks\": 1,\n  \"events\": 5,\n  \"state\": \"done\"\n}"
+    },
+    {
+      "name": "memory-adapters-test",
+      "ok": true,
+      "ms": 33,
+      "stdout": "{\n  \"ok\": true,\n  \"hits\": [\n    \"doc-memory\",\n    \"doc-bus\"\n  ],\n  \"cagHash\": \"3dd2ebb4a84a9199b2318b558283d52fc3e30e6df0fca358b2a754362291e2b1\",\n  \"compactedBytes\": 57\n}"
+    },
+    {
+      "name": "integration-adapters-test",
+      "ok": true,
+      "ms": 34,
+      "stdout": "{\n  \"ok\": true,\n  \"tools\": [\n    \"artifact.summarize\",\n    \"knowledge.search\"\n  ],\n  \"firstHit\": \"doc-blackboard\",\n  \"trajectoryRecords\": 4,\n  \"reliability\": \"low\"\n}"
+    },
+    {
+      "name": "remote-approval-test",
+      "ok": true,
+      "ms": 42,
+      "stdout": "{\n  \"ok\": true,\n  \"schema\": \"openclaw-frontier.remote-approval.v1.packet\",\n  \"hashesLinked\": true,\n  \"privateContentRejected\": true,\n  \"externalEffects\": false\n}"
+    },
+    {
+      "name": "skill-forge-test",
+      "ok": true,
+      "ms": 65,
+      "stdout": "{\n  \"ok\": true,\n  \"skills\": 1,\n  \"inspectedBytes\": 58\n}"
+    },
+    {
+      "name": "demo-swarm",
+      "ok": true,
+      "ms": 30,
+      "stdout": "{\n  \"ok\": true,\n  \"summary\": \"examples/demo-swarm/out/summary.md\",\n  \"trace\": \"examples/demo-swarm/out/trace.json\",\n  \"envelopes\": 12,\n  \"tasks\": 6,\n  \"pathClaims\": 1,\n  \"decision\": \"APPROVE_RELEASE_CANDIDATE\"\n}"
+    },
+    {
+      "name": "goal-loop-demo",
+      "ok": true,
+      "ms": 30,
+      "stdout": "{\n  \"ok\": true,\n  \"goalCard\": \"examples/goal-loop-demo/out/goal-card.verified.json\",\n  \"verificationReport\": \"examples/goal-loop-demo/out/verification-report.json\",\n  \"synthesis\": \"examples/goal-loop-demo/out/final-synthesis.md\",\n  \"checks\": [\n    {\n      \"name\": \"goal-card-parse\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"owner-is-orchestrator\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"cadence-30-minutes\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"lanes-present\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"receipt-exists:implementation\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"receipt-verdict:implementation\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"receipt-exists:documentation\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"receipt-verdict:documentation\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"receipt-exists:verification\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"receipt-verdict:verification\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"receipt-exists:release-packaging\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"receipt-verdict:release-packaging\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"receipt-exists:final-approval\",\n      \"ok\": true\n    },\n    {\n      \"name\": \"receipt-verdict:final-approval\",\n      \"ok\": true\n    }\n  ]\n}"
+    },
+    {
+      "name": "frontier-system-docs-test",
+      "ok": true,
+      "ms": 31,
+      "stdout": "{\n  \"ok\": true,\n  \"checks\": [\n    {\n      \"name\": \"file-exists:docs/goal-system.md\",\n      \"ok\": true,\n      \"detail\": \"docs/goal-system.md\"\n    },\n    {\n      \"name\": \"file-exists:docs/agent-system.md\",\n      \"ok\": true,\n      \"detail\": \"docs/agent-system.md\"\n    },\n    {\n      \"name\": \"file-exists:examples/goal-loop-demo/README.md\",\n      \"ok\": true,\n      \"detail\": \"examples/goal-loop-demo/README.md\"\n    },\n    {\n      \"name\": \"file-exists:examples/goal-loop-demo/run-goal-demo.js\",\n      \"ok\": true,\n      \"detail\": \"examples/goal-loop-demo/run-goal-demo.js\"\n    },\n    {\n      \"name\": \"file-exists:examples/demo-swarm/run-demo.js\",\n      \"ok\": true,\n      \"detail\": \"examples/demo-swarm/run-demo.js\"\n    },\n    {\n      \"name\": \"term:docs/goal-system.md:/goal\",\n      \"ok\": true,\n      \"detail\": \"/goal\"\n    },\n    {\n      \"name\": \"term:docs/goal-system.md:receipts\",\n      \"ok\": true,\n      \"detail\": \"receipts\"\n    },\n    {\n      \"name\": \"term:docs/goal-system.md:fail-closed\",\n      \"ok\": true,\n      \"detail\": \"fail-closed\"\n    },\n    {\n      \"name\": \"term:docs/goal-system.md:30-minute\",\n      \"ok\": true,\n      \"detail\": \"30-minute\"\n    },\n    {\n      \"name\": \"term:docs/agent-system.md:Orchestrator\",\n      \"ok\": true,\n      \"detail\": \"Orchestrator\"\n    },\n    {\n      \"name\": \"term:docs/agent-system.md:Coding-team execution path\",\n      \"ok\": true,\n      \"detail\": \"Coding-team execution path\"\n    },\n    {\n      \"name\": \"term:docs/agent-system.md:Production smoke/demo path\",\n      \"ok\": true,\n      \"detail\": \"Production smoke/demo path\"\n    },\n    {\n      \"name\": \"term:README.md:Orchestrator\",\n      \"ok\": true,\n      \"detail\": \"Orchestrator\"\n    },\n    {\n      \"name\": \"no-neo-master-role:README.md\",\n      \"ok\": true,\n      \"detail\": \"README.md\"\n    },\n    {\n      \"name\": \"no-neo-master-role:docs/demo-flow.md\",\n      \"ok\": true,\n      \"detail\": \"docs/demo-flow.md\"\n    },\n    {\n      \"name\": \"no-neo-master-role:docs/end-to-end-trace.md\",\n      \"ok\": true,\n      \"detail\": \"docs/end-to-end-trace.md\"\n    },\n    {\n      \"name\": \"no-neo-master-role:examples/demo-swarm/run-demo.js\",\n      \"ok\": true,\n      \"detail\": \"examples/demo-swarm/run-demo.js\"\n    },\n    {\n      \"name\": \"no-neo-master-role:examples/mission-control-demo/board.json\",\n      \"ok\": true,\n      \"detail\": \"examples/mission-control-demo/board.json\"\n    }\n  ]\n}"
+    },
+    {
+      "name": "frontier-orchestration-scale-eval",
+      "ok": true,
+      "ms": 15915,
+      "stdout": "{\n  \"ok\": true,\n  \"score\": 100,\n  \"agents\": 1000,\n  \"elapsedMs\": 15798,\n  \"signedEnvelopes\": 3001,\n  \"duplicateDrops\": 1,\n  \"report\": \"release-gate/reports/latest-frontier-orchestration-scale-eval.json\"\n}"
+    },
+    {
+      "name": "blackboard-contention-eval",
+      "ok": true,
+      "ms": 1064,
+      "stdout": "{\n  \"ok\": true,\n  \"score\": 100,\n  \"workers\": 64,\n  \"elapsedMs\": 1043,\n  \"contestedClaims\": 1,\n  \"contestedRejected\": 63,\n  \"report\": \"release-gate/reports/latest-blackboard-contention-eval.json\"\n}"
+    },
+    {
+      "name": "self-healing-recovery-eval",
+      "ok": true,
+      "ms": 51,
+      "stdout": "{\n  \"ok\": true,\n  \"score\": 100,\n  \"report\": \"release-gate/reports/latest-self-healing-recovery-eval.json\"\n}"
+    },
+    {
+      "name": "security-governance-eval",
+      "ok": true,
+      "ms": 19,
+      "stdout": "{\n  \"ok\": true,\n  \"laneId\": \"FR-SECURITY-GOV-001\",\n  \"externalEffects\": false,\n  \"findings\": 0,\n  \"report\": \"release-gate/reports/latest-security-governance-eval.json\"\n}"
+    },
+    {
+      "name": "memory-demo",
+      "ok": true,
+      "ms": 20,
+      "stdout": "{\n  \"ok\": true,\n  \"retrievalHits\": 1,\n  \"cagBytes\": 584,\n  \"compactionDropped\": 4,\n  \"acceptedPromotions\": 3,\n  \"output\": \"examples/memory-demo/out/memory-demo-result.json\"\n}"
+    },
+    {
+      "name": "remote-approval-demo",
+      "ok": true,
+      "ms": 20,
+      "stdout": "{\n  \"ok\": true,\n  \"externalEffects\": false,\n  \"packet\": {\n    \"schema\": \"openclaw-frontier.remote-approval.v1.packet\",\n    \"stateSnapshot\": {\n      \"schema\": \"openclaw-frontier.remote-approval.v1.state-snapshot\",\n      \"generatedAt\": \"2026-01-01T00:00:00.000Z\",\n      \"readOnly\": true,\n      \"tasks\": [\n        {\n          \"id\": \"goal-remote-approval\",\n          \"lane\": \"release\",\n          \"status\": \"awaiting-review\",\n          \"owner\": \"orchestrator\"\n        },\n        {\n          \"id\": \"verify-remote-approval\",\n          \"lane\": \"verification\",\n          \"status\": \"passed\",\n          \"owner\": \"verifier\"\n        }\n      ],\n      \"claims\": [\n        {\n          \"path\": \"docs/remote-approval-state-parity.md\",\n          \"owner\": \"docs\",\n          \"mode\": \"review\"\n        },\n        {\n          \"path\": \"src/remote-approval/lib/remote-approval.js\",\n          \"owner\": \"builder\",\n          \"mode\": \"review\"\n        }\n      ],\n      \"receipts\": [\n        {\n          \"id\": \"diff-1\",\n          \"kind\": \"diff\",\n          \"summary\": \"Schema, demo, and tests added.\"\n        },\n        {\n          \"id\": \"test-1\",\n          \"kind\": \"test\",\n          \"command\": \"node src/remote-approval/test/remote-approval-local.test.js\",\n          \"status\": \"PASS\"\n        }\n      ],\n      \"tests\": [\n        {\n          \"command\": \"npm run verify\",\n          \"status\": \"pending-in-demo\"\n        }\n      ],\n      \"snapshotHash\": \"94e31ac76d5b5d96859cca4bc52e41daa6bcbea79eaa62eac038fa2c93f5c609\"\n    },\n    \"diffReceipt\": {\n      \"schema\": \"openclaw-frontier.remote-approval.v1.diff-test-receipt\",\n      \"generatedAt\": \"2026-01-01T00:01:00.000Z\",\n      \"summary\": \"Add a read-only remote approval/state parity packet with linked snapshot and test receipt.\",\n      \"files\": [\n        {\n          \"path\": \"src/remote-approval/lib/remote-approval.js\",\n          \"change\": \"added\",\n          \"additions\": 150,\n          \"deletions\": 0\n        },\n        {\n          \"path\": \"docs/remote-approval-state-parity.md\",\n          \"change\": \"added\",\n          \"additions\": 80,\n          \"deletions\": 0\n        }\n      ],\n      \"tests\": {\n        \"command\": \"node src/remote-approval/test/remote-approval-local.test.js\",\n        \"status\": \"PASS\"\n      },\n      \"receiptHash\": \"b564c94f542ef43f97246d0b270fee3e216531126fe5b893208e0eb2b076b40b\"\n    },\n    \"approvalRequest\": {\n      \"schema\": \"openclaw-frontier.remote-approval.v1.approval-request\",\n      \"id\": \"remote-approval-demo-001\",\n      \"requester\": \"orchestrator\",\n      \"reviewer\": \"sentinel\",\n      \"action\": \"Review release candidate state and approve only if operator upload approval is present.\",\n      \"risk\": \"medium\",\n      \"mode\": \"read-only-parity-demo\",\n      \"requestedAt\": \"2026-01-01T00:00:00.000Z\",\n      \"expiresAt\": null,\n      \"stateSnapshotHash\": \"94e31ac76d5b5d96859cca4bc52e41daa6bcbea79eaa62eac038fa2c93f5c609\",\n      \"diffReceiptHash\": \"b564c94f542ef43f97246d0b270fee3e216531126fe5b893208e0eb2b076b40b\",\n      \"links\": {\n        \"stateSnapshot\": \"inline://state-snapshot\",\n        \"diffReceipt\": \"inline://diff-test-receipt\"\n      },\n      \"requestHash\": \"74aafd8fb3d5eed152ece08520f267dc72a99575e9ddd437416635df1a534ebe\"\n    },\n    \"reviewerDecision\": {\n      \"schema\": \"openclaw-frontier.remote-approval.v1.reviewer-decision\",\n      \"requestId\": \"remote-approval-demo-001\",\n      \"requestHash\": \"74aafd8fb3d5eed152ece08520f267dc72a99575e9ddd437416635df1a534ebe\",\n      \"reviewer\": \"sentinel\",\n      \"decision\": \"request_changes\",\n      \"decidedAt\": \"2026-01-01T00:05:00.000Z\",\n      \"rationale\": \"Demo proves read-only parity. External upload remains blocked until explicit operator approval.\",\n      \"conditions\": [\n        \"Attach latest verifier receipt\",\n        \"Bind decision to final artifact hash\"\n      ],\n      \"externalEffects\": false,\n      \"decisionHash\": \"2769183ff1524021b155f54b1d321833464d1b0d5cc23e5a5df0cdbda0be96cc\"\n    }\n  }\n}"
+    },
+    {
+      "name": "mission-control-board-json",
+      "ok": true,
+      "ms": 17,
+      "stdout": "{\"ok\":true}"
+    },
+    {
+      "name": "mission-control-writeback-json",
+      "ok": true,
+      "ms": 18,
+      "stdout": "{\"ok\":true}"
+    },
+    {
+      "name": "graph-system-test",
+      "ok": true,
+      "ms": 28,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.graph-system-verification.v1\",\n  \"ok\": true,\n  \"files\": [\n    \"docs/graph-system.md\",\n    \"templates/config/graph.example.json\"\n  ],\n  \"findings\": []\n}"
+    },
+    {
+      "name": "communication-planes-test",
+      "ok": true,
+      "ms": 29,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.communication-planes-verification.v1\",\n  \"ok\": true,\n  \"files\": [\n    \"docs/communication-planes.md\",\n    \"templates/config/communication-planes.example.json\"\n  ],\n  \"findings\": []\n}"
+    },
+    {
+      "name": "wiki-index-test",
+      "ok": true,
+      "ms": 38,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.wiki-index-verification.v1\",\n  \"ok\": true,\n  \"file\": \"docs/WIKI_INDEX.md\",\n  \"findings\": []\n}"
+    },
+    {
+      "name": "delegation-router-policy-test",
+      "ok": true,
+      "ms": 33,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.delegation-router-policy-verification.v1\",\n  \"ok\": true,\n  \"file\": \"docs/delegation-router-policy.md\",\n  \"findings\": []\n}"
+    },
+    {
+      "name": "agent-roster-manifest-test",
+      "ok": true,
+      "ms": 24,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.agent-roster-manifest-verification.v1\",\n  \"ok\": true,\n  \"files\": [\n    \"docs/agent-roster-manifest.md\",\n    \"templates/config/agent-roster.example.json\"\n  ],\n  \"findings\": []\n}"
+    },
+    {
+      "name": "public-release-boundaries-test",
+      "ok": true,
+      "ms": 20,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.public-release-boundaries-verification.v1\",\n  \"ok\": true,\n  \"file\": \"docs/public-release-boundaries.md\",\n  \"findings\": []\n}"
+    },
+    {
+      "name": "bus-connectivity-diagnostics-test",
+      "ok": true,
+      "ms": 20,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.bus-connectivity-diagnostics-verification.v1\",\n  \"ok\": true,\n  \"file\": \"docs/bus-connectivity-diagnostics.md\",\n  \"findings\": []\n}"
+    },
+    {
+      "name": "maintainer-handoff-test",
+      "ok": true,
+      "ms": 19,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.maintainer-handoff-verification.v1\",\n  \"ok\": true,\n  \"file\": \"docs/maintainer-handoff.md\",\n  \"findings\": []\n}"
+    },
+    {
+      "name": "ci-workflow-template-test",
+      "ok": true,
+      "ms": 19,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.ci-workflow-template-verification.v1\",\n  \"ok\": true,\n  \"file\": \"templates/github/workflows/verify-package.yml.template\",\n  \"findings\": []\n}"
+    },
+    {
+      "name": "repository-init-checklist-test",
+      "ok": true,
+      "ms": 18,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.repository-init-checklist-verification.v1\",\n  \"ok\": true,\n  \"file\": \"docs/repository-initialization-checklist.md\",\n  \"findings\": []\n}"
+    },
+    {
+      "name": "codeowners-template-test",
+      "ok": true,
+      "ms": 20,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.codeowners-template-verification.v1\",\n  \"ok\": true,\n  \"file\": \"templates/github/CODEOWNERS.template\",\n  \"findings\": []\n}"
+    },
+    {
+      "name": "supply-chain-policy-test",
+      "ok": true,
+      "ms": 21,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.supply-chain-policy-verification.v1\",\n  \"ok\": true,\n  \"file\": \"docs/supply-chain-security.md\",\n  \"findings\": []\n}"
+    },
+    {
+      "name": "changelog-test",
+      "ok": true,
+      "ms": 21,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.changelog-verification.v1\",\n  \"ok\": true,\n  \"file\": \"CHANGELOG.md\",\n  \"findings\": []\n}"
+    },
+    {
+      "name": "release-notes-test",
+      "ok": true,
+      "ms": 23,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.release-notes-verification.v1\",\n  \"ok\": true,\n  \"file\": \"release-gate/release-notes/DRAFT_RELEASE_NOTES.md\",\n  \"findings\": []\n}"
+    },
+    {
+      "name": "reviewer-decision-schema-test",
+      "ok": true,
+      "ms": 22,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.reviewer-decision-schema-verification.v1\",\n  \"ok\": true,\n  \"requiredFields\": [\n    \"reviewer\",\n    \"version\",\n    \"decision\",\n    \"reviewed_at\",\n    \"evidence\",\n    \"conditions\",\n    \"blockers\",\n    \"notes\"\n  ],\n  \"findings\": []\n}"
+    },
+    {
+      "name": "github-hygiene-test",
+      "ok": true,
+      "ms": 21,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.github-hygiene-verification.v1\",\n  \"ok\": true,\n  \"checkedFiles\": 7,\n  \"findings\": []\n}"
+    },
+    {
+      "name": "operator-materials-test",
+      "ok": true,
+      "ms": 25,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.operator-materials.v1\",\n  \"ok\": true,\n  \"findings\": []\n}"
+    },
+    {
+      "name": "owner-upload-approval-test",
+      "ok": true,
+      "ms": 36,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.owner-upload-approval.v1\",\n  \"ok\": true,\n  \"approvalPresent\": false,\n  \"readyForExternalUpload\": false,\n  \"note\": \"No owner approval file present; package verification may pass, but external upload/sign/deploy remains blocked until exact candidate approval exists.\"\n}"
+    },
+    {
+      "name": "git-history-private-scan",
+      "ok": false,
+      "ms": 1227,
+      "error": "Command failed: /Users/adam/.openclaw/tools/node-v22.22.0/bin/node /private/tmp/frontier-final-scrub.fF7NoD/repo/scripts/verify-git-history-clean.js",
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.git-history-clean.v1\",\n  \"ok\": false,\n  \"commits\": 1,\n  \"findings\": [\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"content-category-enumeration\",\n      \"file\": \"README.md\",\n      \"line\": 113,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"content-category-enumeration\",\n      \"file\": \"README.md\",\n      \"line\": 113,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"content-category-enumeration\",\n      \"file\": \"docs/artifact-catalog.md\",\n      \"line\": 52,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"package-blueprint-path\",\n      \"file\": \"docs/package-edit-claims.md\",\n      \"line\": 5,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"package-blueprint-path\",\n      \"file\": \"docs/package-edit-claims.md\",\n      \"line\": 9,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"package-blueprint-path\",\n      \"file\": \"docs/package-edit-claims.md\",\n      \"line\": 15,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"package-blueprint-path\",\n      \"file\": \"docs/package-edit-claims.md\",\n      \"line\": 19,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"package-blueprint-path\",\n      \"file\": \"docs/sentinel-release-gate.md\",\n      \"line\": 18,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"package-blueprint-path\",\n      \"file\": \"release-gate/checklist.md\",\n      \"line\": 29,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"package-blueprint-path\",\n      \"file\": \"release-gate/checklist.md\",\n      \"line\": 30,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"package-blueprint-path\",\n      \"file\": \"release-gate/checklist.md\",\n      \"line\": 31,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"package-blueprint-path\",\n      \"file\": \"release-gate/checklist.md\",\n      \"line\": 32,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"package-blueprint-path\",\n      \"file\": \"release-gate/checklist.md\",\n      \"line\": 33,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"content-category-enumeration\",\n      \"file\": \"release-gate/release-notes/DRAFT_RELEASE_NOTES.md\",\n      \"line\": 38,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"content-category-enumeration\",\n      \"file\": \"release-gate/reviewer-decision-schema.md\",\n      \"line\": 26,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"package-blueprint-path\",\n      \"file\": \"release-gate/reviewer-decision.template.yaml\",\n      \"line\": 5,\n      \"match\": \"[redacted]\"\n    },\n    {\n      \"commit\": \"269b4b00a154\",\n      \"pattern\": \"package-blueprint-path\",\n      \"file\": \"scripts/verify-package.js\",\n      \"line\": 140,\n      \"match\": \"[redacted]\"\n    }\n  ]\n}",
+      "stderr": ""
+    },
+    {
+      "name": "clean-export",
+      "ok": true,
+      "ms": 62,
+      "stdout": "{\n  \"ok\": true,\n  \"exportPath\": \"release-gate/exports/openclaw-frontier-stack-clean\",\n  \"fileCount\": 143,\n  \"totalBytes\": 355274,\n  \"sha256\": \"70a1854a88b29a3125f65687f41bb6149ab48dd7b67c3c659e191982ac7b0b75\"\n}"
+    },
+    {
+      "name": "clean-export-parity",
+      "ok": true,
+      "ms": 30,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.clean-export-parity.v1\",\n  \"ok\": true,\n  \"exportPath\": \"release-gate/exports/openclaw-frontier-stack-clean\",\n  \"fileCount\": 143,\n  \"findings\": []\n}"
+    },
+    {
+      "name": "fresh-export-test",
+      "ok": true,
+      "ms": 18226,
+      "stdout": "{\n  \"schema\": \"openclaw-frontier.fresh-export-verification.v1\",\n  \"ok\": true,\n  \"exportPath\": \"release-gate/exports/openclaw-frontier-stack-clean\",\n  \"nestedCheckCount\": 39,\n  \"findings\": []\n}"
+    },
+    {
+      "name": "private-content-scan",
+      "ok": true,
+      "findings": []
+    }
+  ],
+  "ok": false
+}
