@@ -10,6 +10,10 @@ OpenClaw Frontier Stack treats long-running agents, listeners, and control-plane
 - Write logs to operator-owned runtime directories, not into the package checkout.
 - Emit health artifacts that can be attached to RESULT envelopes.
 - Restart on crash with backoff; do not restart in tight failure loops.
+- Keep process-manager state meaningful. If PM2 or another supervisor is used
+  as the health source, run health checks through a persistent wrapper or use a
+  native external scheduler. Do not model a healthy one-shot check as a
+  permanently `stopped` service.
 - Keep public release templates synthetic and placeholder-based.
 
 ## Included templates
@@ -39,3 +43,21 @@ Health snapshots should be safe to publish after review:
 ```
 
 Do not include real hostnames, private IPs, user home paths, environment dumps, raw logs, tokens, or session identifiers.
+
+## One-shot Health Checks
+
+Some diagnostics are naturally one-shot commands: they run, emit a report, and
+exit with a status code. That is a good contract for CI and local verifiers, but
+it is easy to misrepresent in a runtime process manager.
+
+Use one of these patterns:
+
+- Native scheduler: cron, launchd, systemd timer, Task Scheduler, or a managed
+  job runner starts the one-shot command and stores the latest report.
+- Persistent wrapper: a long-running supervisor process runs the one-shot
+  command on an interval, writes the latest safe health artifact, and remains
+  `online` while the cadence is healthy.
+
+Avoid registering the one-shot command itself as a PM2 app when the dashboard is
+treated as runtime truth. A successful one-shot exits by design, which leaves the
+process manager showing `stopped` even when the last check passed.

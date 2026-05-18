@@ -1,5 +1,9 @@
 'use strict';
 
+// This example is for long-running listeners. If you supervise a one-shot
+// health check, wrap it in a small persistent interval runner or use a native
+// scheduler so PM2's process state remains meaningful.
+
 module.exports = {
   apps: [
     {

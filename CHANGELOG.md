@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-05-18 - runtime supervisor guidance
+
+### Changed
+
+- Clarified that one-shot health checks should use a native scheduler or a
+  persistent wrapper when process-manager state is treated as runtime health.
+- Added PM2 template guidance to keep public ops examples free of misleading
+  `stopped` service states.
+
 All notable public-package changes should be recorded here. This changelog is for the operator-safe OpenClaw Frontier Stack package only; it must not reference private runtimes, personal context, raw logs, credentials, private hosts, or external announcements.
 
 ## 2026-05-17 — production release
