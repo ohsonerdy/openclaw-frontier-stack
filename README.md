@@ -104,6 +104,13 @@ Skills look for `.agents/modern-ai-context.md` at the start of every invocation 
 - Eval dry-run: `npm run eval:dry` (validates eval file structure, no API calls)
 - Eval live mode: `npm run eval:live -- --model claude-sonnet-4-6` (requires `ANTHROPIC_API_KEY`)
 
+### Nightly scheduled evals
+
+A scheduled GitHub Actions workflow runs the live eval suite against every Modern Skill once per day, persists the JSON report as a workflow artifact, and opens (or updates) an issue under the `eval-regression` label when any assertion fails. Triggered nightly at 09:00 UTC and on-demand via `workflow_dispatch` with `model` and `skill` inputs. Configure with the `ANTHROPIC_API_KEY` repo secret; optional success-comment routing via the `EVAL_TRACKING_ISSUE` repo variable. Operator guide and triage decision tree:
+
+- Workflow: [.github/workflows/scheduled-evals.yml](.github/workflows/scheduled-evals.yml)
+- Operator doc: [docs/skill-eval-telemetry.md](docs/skill-eval-telemetry.md)
+
 ## Current status
 
 Published production source package with local verification gates. This repository is the canonical public source. New tagged releases, package-registry publishes, hosted deployments, external announcements, or customer-specific deployments require fresh target-bound release approval.

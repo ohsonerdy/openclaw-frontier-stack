@@ -1,0 +1,120 @@
+{
+  "skill_name": "referral-program-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm thinking about launching a referral program. Where do I start?",
+      "expected_output": "Pulls existing channel mix and cohort LTV to baseline current referral volume before designing a program. Walks through double-sided vs one-sided structural decision, reward shape options, eligibility windows, and trigger placement. Should not jump to a specific reward magnitude without baseline data.",
+      "assertions": [
+        "Calls modern.sales.by_channel to baseline current referral volume",
+        "Calls modern.retention.cohort_ltv to size LTV gap for referred customers",
+        "Walks through double-sided vs one-sided structural decision",
+        "Discusses reward shape options (cash, credit, product, percentage)",
+        "Discusses eligibility windows (order count, time, product usage, NPS)",
+        "Discusses trigger placement options",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Should I do double-sided rewards or just reward the referrer?",
+      "expected_output": "Walks through the double-sided vs one-sided math. Default to double-sided for typical DTC; one-sided sometimes outperforms for high-AOV considered-purchase categories. Cites typical participation lift (3% one-sided vs 9-14% double-sided). Asks about the catalog before defaulting.",
+      "assertions": [
+        "Defaults to double-sided for typical DTC ecomm",
+        "Names one-sided exception for high-AOV considered-purchase categories",
+        "Cites participation-rate lift of double-sided vs one-sided",
+        "Asks about the catalog and AOV before defaulting",
+        "Acknowledges per-acquisition cost is higher but volume difference compensates",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Should the referrer reward be cash, store credit, or a free product?",
+      "expected_output": "Walks through the reward shape framework. Default to store credit for ecomm; product reward for catalogs that support it; avoid cash. Notes that referrer-side and friend-side rewards do not need to match in shape. Recommends store credit + friend-side percentage as a common high-performance structure.",
+      "assertions": [
+        "Recommends store credit as the default ecomm referrer reward",
+        "Names product reward as the high-leverage move for catalogs that support it",
+        "Warns against cash unless the brand has a specific reason",
+        "Notes referrer-side and friend-side rewards can differ in shape",
+        "Recommends store-credit + friend-percentage as a common structure",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "How do I prevent people from referring themselves with a second email?",
+      "expected_output": "Walks through the fraud-resistance framework. Lists self-referral, address stuffing, credit stacking, code-marketplace leakage, and employee abuse. Recommends specific detection signals: shared payment method, shared device fingerprint, shared shipping address. Names the typical 15-30% fraud rate on poorly designed programs.",
+      "assertions": [
+        "Names self-referral as a primary fraud pattern",
+        "Lists detection signals (shared payment, device fingerprint, shipping address)",
+        "Names address-stuffing pattern",
+        "Names credit-stacking pattern with refund clawback recommendation",
+        "Names code-marketplace leakage as a separate risk",
+        "Cites the 15-30% fraud rate on poorly designed programs",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "When should I ask customers to refer? On the order confirmation page?",
+      "expected_output": "Walks through the post-purchase trigger placement framework. Order confirmation is the wrong primary trigger (customer has no verdict). Recommends post-validation window (day 7-21), post-second-order, and CS-resolved-positive interactions as higher-quality placements. Recommends multiple triggers rather than one.",
+      "assertions": [
+        "Identifies order confirmation as the wrong primary trigger",
+        "Recommends post-validation window (day 7-21) as a high-quality placement",
+        "Recommends post-second-order as the highest-intent placement",
+        "Names CS-resolved-positive interaction as a capture surface",
+        "Recommends multiple triggers rather than one",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "What's a good viral coefficient for an ecomm referral program?",
+      "expected_output": "Defines viral coefficient K = (% who refer) x (referrals per referrer) x (conversion of referrals). Notes typical DTC band is K = 0.05 to 0.25 and that K = 1.0 is essentially never reached in ecomm. Walks through the lever ordering (conversion-of-referrals first, participation second, referrals-per-referrer last).",
+      "assertions": [
+        "Defines viral coefficient K formula",
+        "Names typical DTC ecomm band of K = 0.05 to 0.25",
+        "Notes K = 1.0 is rarely reached in ecomm",
+        "Names conversion-of-referrals as highest-leverage component",
+        "Names participation rate as second-highest leverage component",
+        "Names referrals-per-referrer as smallest lever",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "How does the referrer's own LTV change when they refer someone?",
+      "expected_output": "Names the referrer-LTV uplift mechanism. Typical 15-35% repeat-rate uplift in referrers vs matched non-referrers. Explains the implication for design: maximize the number of one-time referrers rather than the average referrals per referrer. Pulls cohort LTV grouped by referrer status to validate.",
+      "assertions": [
+        "Names the referrer-LTV uplift mechanism",
+        "Cites typical 15-35% repeat-rate uplift",
+        "Explains the design implication (maximize one-time referrers)",
+        "Recommends low-friction first-referral prompts over high-payout repeat-incentive structures",
+        "Calls modern.retention.cohort_ltv grouped by referrer status to validate",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "I only have 600 active buyers. Can I run a referral program?",
+      "expected_output": "Notes that under 1,000 active buyers makes a broad program theoretical because the pool is too small for the math to work. Recommends shifting toward seeding a founding-cohort referral instead. Discusses high-touch referrer onboarding for the early-customer set rather than a generic program. References subscription-growth founding-cohort framework if applicable.",
+      "assertions": [
+        "Identifies under 1,000 active buyers as too small for a broad program",
+        "Recommends founding-cohort referral seeding instead",
+        "Recommends high-touch referrer onboarding for the early set",
+        "Does not recommend a standard double-sided program at this scale",
+        "References subscription-growth founding-cohort if applicable",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

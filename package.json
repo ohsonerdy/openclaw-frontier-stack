@@ -1,7 +1,7 @@
 {
   "name": "@openclaw/frontier-stack",
-  "version": "0.3.0",
-  "description": "Production-ready, drop-in OpenClaw frontier coding swarm orchestration stack with signed coordination, durable task ownership, memory, observability, fail-closed release gates, and Modern Skills — ecomm marketing skills integrated with the Modern AI MCP.",
+  "version": "0.4.0",
+  "description": "Production-ready, drop-in interoperable agent skills + hooks for Claude Code, Codex, Cursor, OpenCode, and any agent that supports the Agent Skills specification. Ships 13 ecomm marketing skills (Modern Skills, integrated with the Modern AI MCP) and 3 operator skills (release gate, durable task ledger, git history audit), plus the OpenClaw Frontier Stack production core: signed coordination, durable task ownership, memory, observability, and fail-closed release gates.",
   "license": "MIT",
   "type": "commonjs",
   "private": false,
@@ -28,6 +28,9 @@
   },
   "files": [
     ".claude-plugin/",
+    ".codex-plugin/",
+    ".cursor-plugin/",
+    ".opencode/",
     ".github/workflows/verify-package.yml",
     ".gitignore",
     ".githooks/",
@@ -37,6 +40,7 @@
     "README.md",
     "docs/",
     "examples/",
+    "hooks/",
     "release-gate/checklist.md",
     "release-gate/release-notes/",
     "release-gate/reviewer-decision.template.yaml",
@@ -60,7 +64,12 @@
     "agent-orchestration",
     "marketing-skills",
     "ecommerce",
-    "claude-code-plugin"
+    "claude-code-plugin",
+    "codex-plugin",
+    "cursor-plugin",
+    "opencode-plugin",
+    "agent-skills-spec",
+    "interoperable"
   ],
   "optionalDependencies": {
     "nats": "^2.29.3"

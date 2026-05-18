@@ -1,0 +1,119 @@
+{
+  "skill_name": "nps-and-detractor-handling",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We get NPS scores back every month but we're not really doing anything with them. Where do I start?",
+      "expected_output": "Pulls the distribution and existing flow performance. Identifies single-bucket treatment as the core problem. Recommends segmenting the response stream into promoter, passive, recoverable detractor, damage-control detractor, and cut-loose detractor with different treatment per segment.",
+      "assertions": [
+        "Calls modern.surveys.nps_distribution for the distribution",
+        "Calls modern.flows.revenue_by_flow filtered to NPS-triggered flows",
+        "Identifies single-bucket treatment as the core problem",
+        "Names the five segments (promoter, passive, recoverable, damage-control, cut-loose)",
+        "Recommends per-segment treatment design",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "What should I do when a customer gives me a 2 out of 10 with a complaint about late shipping?",
+      "expected_output": "Identifies this as a recoverable detractor scenario with a clear addressable complaint. Recovery rate 40-60% when handled well. Recommends direct outreach within 24 hours, ownership, a meaningful gesture (refund, replacement, credit), and explicit follow-up. Distinguishes this from damage-control and cut-loose detractor handling.",
+      "assertions": [
+        "Identifies this as a recoverable detractor scenario",
+        "Cites 40-60% recovery rate when handled well",
+        "Recommends direct outreach within 24 hours",
+        "Recommends a meaningful gesture (refund, replacement, credit)",
+        "Distinguishes from damage-control and cut-loose handling",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Should I send a winback offer to a customer who scored us a 3 last month?",
+      "expected_output": "Hard no unless the underlying complaint has been resolved. Names the do-not-contact rule for detractors with unresolved complaints. Walks through the resolution cycle (acknowledgment, action, follow-up confirmation) before any marketing send. Cross-references winback-flows do-not-contact set as mutually inclusive.",
+      "assertions": [
+        "Recommends not sending the winback offer",
+        "Names the do-not-contact rule for detractors with unresolved complaints",
+        "Walks through the resolution cycle (acknowledgment, action, follow-up)",
+        "Cross-references winback-flows do-not-contact set",
+        "Names the spam-complaint and inbox-placement consequences",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We have a lot of passives in the 7-8 range. They're not unhappy but they're not advocates. What do I do?",
+      "expected_output": "Walks through the passive activation framework. Brand-deepening content over generic discounts. Behind-the-scenes content, founder communication, product story, sourcing detail, community access. Discounts to passives are brand-flat. Names the 15-25 point passive-to-promoter shift target.",
+      "assertions": [
+        "Recommends brand-deepening content over generic discounts",
+        "Names specific content types (BTS, founder, product story, sourcing, community)",
+        "Warns against generic discount as a passive activation tool",
+        "Cites the 15-25 point passive-to-promoter conversion target",
+        "Distinguishes passive treatment from detractor recovery",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "A customer just scored us a 10. We send a thank you email. Is that enough?",
+      "expected_output": "Identifies promoters as the most under-leveraged segment. Recommends a stronger ask: referral trigger immediately (4-8x average referral conversion at this moment), UGC ask with specific concrete prompt, case-study or advocacy invitation for high-AOV categories. References referral-program-design for design detail.",
+      "assertions": [
+        "Identifies promoters as under-leveraged",
+        "Recommends referral trigger immediately on promoter response",
+        "Cites 4-8x average referral conversion at this moment",
+        "Recommends concrete UGC ask over generic thanks",
+        "Names case-study or advocacy path for high-AOV categories",
+        "References referral-program-design skill",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our overall NPS dropped from 42 to 36 last quarter. What does that mean?",
+      "expected_output": "Notes that aggregate NPS hides cohort-level shifts. Pulls cohort NPS drift by acquisition cohort and channel before interpreting. Walks through the three typical causes (acquisition channel shift, product or formulation change, onboarding or expectation change). Names the 60-90 day lead before LTV signal follows.",
+      "assertions": [
+        "Notes that aggregate NPS hides cohort-level shifts",
+        "Calls modern.surveys.nps_distribution grouped by cohort and channel",
+        "Walks through the three typical causes of drift",
+        "Names acquisition channel shift as the most frequent cause",
+        "Cites the 60-90 day lead before LTV signal follows",
+        "Recommends acting on cohort drift, not waiting for LTV deterioration",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "When should I send the NPS survey? Right after they get the product?",
+      "expected_output": "Walks through NPS collection timing framework. Day 0-3 is too early (no product experience). Day 14-30 is the right window for replenishment; day 30-60 for considered purchase. Day 90+ is too late. Recommends two-question form (score + open-text reason) as default.",
+      "assertions": [
+        "Identifies day 0-3 as too early",
+        "Names day 14-30 right window for replenishment",
+        "Names day 30-60 right window for considered purchase",
+        "Names day 90+ as too late (recall decay)",
+        "Recommends two-question form (score + open-text) as default",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Do detractors actually churn more than promoters? How tightly does NPS predict retention?",
+      "expected_output": "Pulls churn rate and repeat rate grouped by NPS segment. Confirms detractors churn at meaningfully higher rates than promoters almost universally; the gap is the leading-indicator value of NPS. Walks through using cohort NPS at week 2 as a leading indicator for 90-day retention.",
+      "assertions": [
+        "Calls modern.retention.churn_rate grouped by NPS segment",
+        "Calls modern.retention.repeat_rate grouped by NPS segment",
+        "Confirms detractors churn at higher rates",
+        "Names cohort NPS at week 2 as leading indicator for 90-day retention",
+        "Distinguishes leading-indicator use from lagging-indicator brand-health use",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

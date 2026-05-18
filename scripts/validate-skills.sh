@@ -158,20 +158,21 @@ for skill_path in "$SKILLS_DIR"/*/; do
     add_problem "description has only $total_cues trigger cues (need at least 3)"
   fi
 
-  # Scope cross-reference: "see X" or "for X, see Y"
-  if ! printf '%s' "$desc_val" | grep -Eiq '(for [^,]+, see |\bsee )'; then
-    add_problem "description missing scope cross-reference (e.g. 'For X, see Y')"
+  # Scope cross-reference: matches "see X", "for X, see Y", or "use <skill>"
+  # (the third form fits operator/release skills that don't have MCP backends).
+  if ! printf '%s' "$desc_val" | grep -Eiq '(for [^,]+, see |\bsee \w|\buse [a-z][a-z0-9-]+\b)'; then
+    add_problem "description missing scope cross-reference (e.g. 'For X, see Y' or 'use <skill>')"
   fi
 
   # metadata.version
   ver_val="$(get_metadata_version "$skill_md" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
   if [ -z "$ver_val" ]; then add_problem "metadata.version missing"; fi
 
-  # metadata.data_dependencies
+  # metadata.data_dependencies — OPTIONAL. Required only for skills that use the
+  # Modern AI MCP for live data. Operator-side skills (release-gate, history scan,
+  # task ledger) have no MCP backend and are allowed to omit it.
   deps_raw="$(get_data_deps_inline "$skill_md")"
-  if [ -z "$deps_raw" ]; then
-    add_problem "metadata.data_dependencies missing or not inline list"
-  else
+  if [ -n "$deps_raw" ]; then
     # Strip [ and ] and split on comma.
     inner="$(echo "$deps_raw" | sed -e 's/^\[//' -e 's/\][[:space:]]*$//')"
     IFS=',' read -ra dep_arr <<< "$inner"
@@ -187,10 +188,10 @@ for skill_path in "$SKILLS_DIR"/*/; do
     done
   fi
 
-  # evals.json existence and shape
-  if [ ! -f "$evals_json" ]; then
-    add_problem "missing evals/evals.json"
-  else
+  # evals.json — OPTIONAL. Marketing skills with frameworks benefit from evals;
+  # procedural operator skills (linear runbooks) don't. Skip the check if
+  # evals/evals.json is absent.
+  if [ -f "$evals_json" ]; then
     # JSON parse check via python (no external deps required).
     if ! python -c "import json,sys; data=json.load(open(sys.argv[1])); assert isinstance(data.get('evals'), list) and len(data['evals'])>=5, 'need >=5 evals'; [assert_keys(e) for e in data['evals']]" --version >/dev/null 2>&1; then
       # python not available with that syntax; fall back to a direct script

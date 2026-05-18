@@ -60,8 +60,15 @@ Modes:
   Dry-run (default):  validates eval-file structure, no API calls
   Live (--live):      calls Claude API with each eval, scores assertions
 
+Auth for --live (priority order):
+  ANTHROPIC_OAUTH_TOKEN    Preferred. Charges your Pro/Max subscription.
+  CLAUDE_CODE_OAUTH_TOKEN  Alias for ANTHROPIC_OAUTH_TOKEN.
+  ANTHROPIC_API_KEY        Fallback. Charges per-token via API billing.
+                           Opt in only if you want pay-per-token instead
+                           of subscription billing.
+
 Flags:
-  --live                 Enable live mode (requires ANTHROPIC_API_KEY)
+  --live                 Enable live mode
   --model <model-id>     Claude model id (live mode only)
                          Examples: claude-opus-4-7, claude-sonnet-4-6, claude-haiku-4-5-20251001
   --skill <skill-name>   Run only this skill (default: all)
@@ -71,7 +78,7 @@ Flags:
 Exit codes:
   0  All evals passed (live) or all eval files valid (dry-run)
   1  Any eval failed (live) or any eval file malformed (dry-run)
-  2  Bad CLI arguments
+  2  Bad CLI arguments or auth missing
 `);
 }
 
@@ -118,23 +125,29 @@ function validateEvalsFile(skillName, evalsObj) {
   return errors;
 }
 
-async function callClaude({ model, system, userPrompt, apiKey }) {
+async function callClaude({ model, system, userPrompt, auth }) {
   const body = JSON.stringify({
     model,
     max_tokens: 4096,
     system,
     messages: [{ role: 'user', content: userPrompt }],
   });
+  const headers = {
+    'Content-Type': 'application/json',
+    'Anthropic-Version': '2023-06-01',
+    'Content-Length': Buffer.byteLength(body),
+  };
+  // Auth: OAuth token preferred (charged to user's Pro/Max subscription); fall back to API key (charged per-token).
+  if (auth.kind === 'oauth') {
+    headers['Authorization'] = `Bearer ${auth.token}`;
+  } else {
+    headers['X-Api-Key'] = auth.token;
+  }
   const options = {
     hostname: 'api.anthropic.com',
     path: '/v1/messages',
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Api-Key': apiKey,
-      'Anthropic-Version': '2023-06-01',
-      'Content-Length': Buffer.byteLength(body),
-    },
+    headers,
   };
   return new Promise((resolve, reject) => {
     const req = https.request(options, (res) => {
@@ -173,10 +186,10 @@ function scoreAssertion(output, assertion) {
   return { pass, tokens, hits };
 }
 
-async function runLiveEval({ model, apiKey, skillName, systemPrompt, evalCase }) {
+async function runLiveEval({ model, auth, skillName, systemPrompt, evalCase }) {
   let output, usage, error;
   try {
-    const res = await callClaude({ model, system: systemPrompt, userPrompt: evalCase.prompt, apiKey });
+    const res = await callClaude({ model, system: systemPrompt, userPrompt: evalCase.prompt, auth });
     output = res.output;
     usage = res.usage;
   } catch (err) {
@@ -204,10 +217,31 @@ async function main() {
     process.stderr.write('--live requires --model <model-id>\n');
     process.exit(2);
   }
-  const apiKey = args.live ? process.env.ANTHROPIC_API_KEY : null;
-  if (args.live && !apiKey) {
-    process.stderr.write('ANTHROPIC_API_KEY env var required for --live mode\n');
-    process.exit(2);
+  // Auth resolution: OAuth token preferred (charged to user's Pro/Max
+  // subscription), API key as opt-in fallback (charged per-token).
+  // Priority: ANTHROPIC_OAUTH_TOKEN > ANTHROPIC_API_KEY.
+  let auth = null;
+  if (args.live) {
+    const oauthToken = process.env.ANTHROPIC_OAUTH_TOKEN || process.env.CLAUDE_CODE_OAUTH_TOKEN;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (oauthToken) {
+      auth = { kind: 'oauth', token: oauthToken };
+    } else if (apiKey) {
+      auth = { kind: 'api-key', token: apiKey };
+    } else {
+      process.stderr.write([
+        '--live mode requires one of:',
+        '  ANTHROPIC_OAUTH_TOKEN  (preferred — charged to your Pro/Max subscription)',
+        '  CLAUDE_CODE_OAUTH_TOKEN  (alias)',
+        '  ANTHROPIC_API_KEY      (fallback — charged per-token via API billing)',
+        '',
+        'Generate an OAuth token via Claude Code (`/login`) or export an existing',
+        'session token. Use ANTHROPIC_API_KEY only if you explicitly want API',
+        'billing instead of subscription billing.',
+        '',
+      ].join('\n'));
+      process.exit(2);
+    }
   }
 
   const skills = listSkillDirs(args.skill);
@@ -221,6 +255,7 @@ async function main() {
     generatedAt: new Date().toISOString(),
     mode: args.live ? 'live' : 'dry-run',
     model: args.model || null,
+    auth: args.live ? auth.kind : null,
     skillsScanned: skills.length,
     skills: [],
   };
@@ -230,10 +265,12 @@ async function main() {
     const skillReport = { name: skillName, ok: true };
     const evalsObj = readEvalsFile(skillName);
     if (!evalsObj) {
-      skillReport.ok = false;
-      skillReport.error = 'evals/evals.json missing';
+      // Skills without evals.json are procedural/runbook-shaped (release-gate,
+      // history scan, task ledger). They have no harness-testable assertions.
+      // Report as skipped, not as a failure.
+      skillReport.skipped = true;
+      skillReport.reason = 'no-evals-file (procedural skill)';
       report.skills.push(skillReport);
-      anyError = true;
       continue;
     }
     const structuralErrors = validateEvalsFile(skillName, evalsObj);
@@ -254,7 +291,7 @@ async function main() {
       const queue = [...evalsObj.evals];
       while (queue.length) {
         const batch = queue.splice(0, args.maxParallel);
-        const results = await Promise.all(batch.map((e) => runLiveEval({ model: args.model, apiKey, skillName, systemPrompt, evalCase: e })));
+        const results = await Promise.all(batch.map((e) => runLiveEval({ model: args.model, auth, skillName, systemPrompt, evalCase: e })));
         skillReport.evals.push(...results);
       }
       const fails = skillReport.evals.filter((e) => !e.ok);

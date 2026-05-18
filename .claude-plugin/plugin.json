@@ -1,12 +1,13 @@
 {
-  "name": "modern-skills",
-  "displayName": "Modern Skills",
-  "description": "Modern Skills — marketing skills for ecomm operators, powered by Modern AI. Subscription growth, repeat purchase, paid LTV optimization, cart recovery, churn, bundles, cohort retention, winback. Integrates with the Modern AI MCP for live data.",
-  "version": "0.1.0",
+  "name": "openclaw-frontier-stack",
+  "displayName": "OpenClaw Frontier Stack",
+  "description": "Interoperable agent skills + hooks: 13 ecomm marketing skills (Modern Skills, integrated with the Modern AI MCP) + 3 operator skills (release-gate, durable task coordination, git history audit). Compatible with any agent that supports the Agent Skills specification (agentskills.io).",
+  "version": "0.4.0",
   "author": {
-    "name": "Modern AI",
-    "url": "https://modern.ai"
+    "name": "OpenClaw",
+    "url": "https://github.com/ohsonerdy/openclaw-frontier-stack"
   },
   "license": "MIT",
-  "skills": "./skills"
+  "skills": "./skills",
+  "hooks": "./hooks/hooks.json"
 }

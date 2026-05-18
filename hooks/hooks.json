@@ -1,0 +1,16 @@
+{
+  "Stop": [
+    {
+      "script": "private-content-scan.js",
+      "description": "Scan working tree changes for private content before user sees the turn"
+    }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "Bash",
+      "match_args": "git push",
+      "script": "git-push-gate.js",
+      "description": "Block git push to public remotes if scanner finds private content"
+    }
+  ]
+}

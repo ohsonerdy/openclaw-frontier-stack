@@ -1,0 +1,119 @@
+{
+  "skill_name": "dunning-deep-dive",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our involuntary churn is 4% per month. Is dunning the problem and where do I start?",
+      "expected_output": "Pulls current recovery rates by attempt and reason code before answering. Splits churn into voluntary and involuntary to confirm the framing. Identifies dunning as a high-leverage lever; cites that involuntary often represents 25-40% of total churn for subscription brands. Walks through the diagnostic and the canonical retry sequence.",
+      "assertions": [
+        "Calls modern.subscriptions.dunning_recovery to baseline recovery",
+        "Calls modern.subscriptions.churn_rate split voluntary vs involuntary",
+        "Cites that involuntary often represents 25-40% of total churn",
+        "Identifies dunning as a high-leverage lever for the diagnosis",
+        "Walks through the canonical retry sequence",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Right now we retry the card 5 times in 24 hours and then cancel. Is that aggressive?",
+      "expected_output": "Identifies the 5-in-24h pattern as wrong. The right schedule is sparser and stretches over 14 days: immediate, +24h, +72h, +7d, +14d. Rapid back-to-back retries on the same day rarely recover NSF cases (account hasn't been replenished) and trigger more bank-side flags. Walks through the recommended schedule.",
+      "assertions": [
+        "Identifies the 5-in-24h pattern as wrong",
+        "Recommends the +24h / +72h / +7d / +14d spacing",
+        "Names that rapid retries rarely recover NSF",
+        "Names the bank-side flag risk of rapid retries",
+        "Recommends silent attempt 1",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "How do I tell the difference between a customer whose card expired vs one whose account was overdrawn?",
+      "expected_output": "Names the importance of reason-code segmentation. Walks through the main categories (NSF, expired card, network decline, blocked/fraud, lost/stolen, limit exceeded) and the different intervention per code. Notes that a reason-aware sequence outperforms a unified sequence by 20-40% in recovered revenue.",
+      "assertions": [
+        "Calls modern.subscriptions.dunning_recovery grouped by reason_code",
+        "Walks through the main reason-code categories",
+        "Names different intervention per code",
+        "Names that NSF responds to retry; expired card requires update prompt",
+        "Cites the 20-40% reason-aware vs unified gap",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We send the same payment-failed email at retry 1, retry 2, and retry 3. Is that wrong?",
+      "expected_output": "Identifies the single-template approach as wrong. Recommends silent attempt 1, operational copy at attempt 2, SMS+email at attempt 3, and 'last attempt' framing at attempt 4. Walks through the payment-method-update prompt design (operational language, low friction, magic-link tap-to-update). Cites SMS 3-5x conversion lift on opted-in customers.",
+      "assertions": [
+        "Identifies single-template approach as wrong",
+        "Recommends silent attempt 1, escalating channel at each step",
+        "Recommends SMS at attempt 3",
+        "Cites SMS 3-5x conversion lift on opted-in customers",
+        "Recommends operational copy over apologetic or promotional",
+        "Recommends magic-link or tap-to-update over multi-step forms",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Can I prevent payment failures before they happen?",
+      "expected_output": "Walks through pre-failure prevention framework. Expiration warning at 30/14/3 days before expiration. Card-updater services (VAU, ABU) auto-refresh replaced card numbers at processor level. Pre-failure prevention is structurally the highest-leverage move. Recommends checking whether card-updater is enabled and adding the expiration-warning sequence.",
+      "assertions": [
+        "Recommends expiration warning at 30/14/3 days before expiration",
+        "Names card-updater services (VAU, ABU)",
+        "Names pre-failure prevention as structurally highest-leverage",
+        "Recommends verifying card-updater is enabled",
+        "Cites the 5-10% of involuntary churn recoverable with no customer involvement",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "When should we just give up and cancel a subscription after failed payments?",
+      "expected_output": "Recommends hard stop at attempt 4 (+7 days) for most categories. Names pause-do-not-cancel as the right transition. Walks through reactivation flow at days 14/30/60 post-pause as separate from dunning copy. Names suppression criteria for customers with hostile feedback or repeat failed cycles, cross-referencing winback-flows and nps-and-detractor-handling do-not-contact rules.",
+      "assertions": [
+        "Recommends hard stop at attempt 4 (+7 days) for most categories",
+        "Recommends pausing the subscription rather than cancelling",
+        "Names the reactivation flow as separate from dunning flow",
+        "Names suppression criteria for hostile/repeat-failure customers",
+        "Cross-references winback-flows do-not-contact rules",
+        "Cross-references nps-and-detractor-handling do-not-contact rules",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Should I let customers add a backup payment method like ACH?",
+      "expected_output": "Strongly recommends adding secondary-method backup capture. Cites typical 15-30% involuntary churn reduction. Walks through capture timing: at subscription start, at first card update, at pause/skip events. Explains the mechanic of friction reduction at the worst moment for the customer.",
+      "assertions": [
+        "Strongly recommends adding secondary-method backup",
+        "Cites the 15-30% involuntary churn reduction",
+        "Names capture timing (subscription start, first card update, pause/skip)",
+        "Explains the friction-reduction mechanic",
+        "Names ACH, SEPA, or second credit card as options",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "We retry every 12 hours regardless of day. Does retry timing within the week matter?",
+      "expected_output": "Walks through smart-retry timing. End-of-month (28th-31st) has highest decline rate; retries scheduled for 1st-3rd of next month recover more. Avoid weekend-night settlement windows; avoid bank holidays. Recommends verifying whether the brand's processor has smart-retry features enabled (Stripe smart retries, Recharge intelligent retry).",
+      "assertions": [
+        "Names end-of-month (28th-31st) as highest decline rate window",
+        "Recommends retry scheduled for 1st-3rd of next month for NSF",
+        "Names weekend-night settlement window avoidance",
+        "Names holiday/bank-closure avoidance",
+        "Recommends verifying processor smart-retry is enabled",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

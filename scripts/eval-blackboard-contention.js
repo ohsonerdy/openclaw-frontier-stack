@@ -61,6 +61,17 @@ function workerMain() {
     result.error = err && err.stack ? err.stack : String(err);
   }
 
+  // Prefer the IPC channel: process.send() is delivered reliably to the
+  // parent and is not subject to the stdout drain race that bites slow CI
+  // runners. Fall back to stdout for safety (e.g. if the IPC channel ever
+  // disappears) so the parent's existing stdout parsing still works.
+  if (typeof process.send === 'function') {
+    try {
+      process.send({ openclawContentionResult: result });
+    } catch (_) {
+      // ignore — fall through to stdout
+    }
+  }
   process.stdout.write(JSON.stringify(result) + '\n');
 }
 
@@ -82,16 +93,38 @@ function runWorker(scriptPath, ledgerPath, index) {
     );
     let stdout = '';
     let stderr = '';
+    let exitCode = null;
+    let ipcResult = null;
     child.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
     child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
-    child.on('exit', (code) => {
-      let parsed = null;
-      try {
-        parsed = JSON.parse(stdout.trim().split(/\r?\n/).filter(Boolean).pop() || '{}');
-      } catch (err) {
-        parsed = { agent, taskId, error: `invalid-json:${err.message}` };
+    // The worker sends its structured result over the IPC channel first
+    // (reliable FIFO, not subject to the stdout drain race) and also writes
+    // the same payload to stdout as a fallback.
+    child.on('message', (msg) => {
+      if (msg && typeof msg === 'object' && msg.openclawContentionResult) {
+        ipcResult = msg.openclawContentionResult;
       }
-      resolve({ code, stdout: stdout.trim(), stderr: stderr.trim(), parsed });
+    });
+    // Use 'exit' only to capture the exit code; resolve on 'close' so that
+    // any stdout data still in the pipe (e.g. the worker's JSON result line)
+    // has been fully drained into our buffer. Listening to 'exit' alone
+    // races with stdout drain on slow CI runners and can deliver an empty
+    // string here, yielding a "ghost" worker that did all of its on-disk
+    // work but whose result counts get dropped.
+    child.on('exit', (code) => { exitCode = code; });
+    child.on('close', (code) => {
+      const finalCode = exitCode != null ? exitCode : code;
+      let parsed = null;
+      if (ipcResult) {
+        parsed = ipcResult;
+      } else {
+        try {
+          parsed = JSON.parse(stdout.trim().split(/\r?\n/).filter(Boolean).pop() || '{}');
+        } catch (err) {
+          parsed = { agent, taskId, error: `invalid-json:${err.message}` };
+        }
+      }
+      resolve({ code: finalCode, stdout: stdout.trim(), stderr: stderr.trim(), parsed });
     });
   });
 }

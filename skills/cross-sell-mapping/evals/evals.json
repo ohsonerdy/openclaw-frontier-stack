@@ -1,0 +1,119 @@
+{
+  "skill_name": "cross-sell-mapping",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "70% of my orders are single-item. What should I cross-sell and where?",
+      "expected_output": "Identifies the single-item share as the addressable cross-sell surface. Pulls SKU affinity and order-composition mix before recommending specific cross-sells. Walks through the three placement options (in-cart, post-purchase one-click, delayed email) and matches SKU selection rules to each. Should not jump to a single SKU recommendation without pulling affinity first.",
+      "assertions": [
+        "Identifies single-item share as the addressable surface",
+        "Calls modern.sales.sku_affinity for affinity matrix",
+        "Calls modern.sales.aov grouped by item_count",
+        "Walks through in-cart vs post-purchase one-click vs delayed email placements",
+        "Names the post-purchase one-click moment as the highest-conversion placement",
+        "Recommends different SKU selection rules per placement",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "My top seller is a $58 moisturizer. What should I cross-sell after it?",
+      "expected_output": "Pulls SKU affinity for the moisturizer specifically, distinguishes co-purchase from sequential affinity, and applies the margin-weighted selection rule. Walks through which SKU goes in-cart vs post-purchase one-click vs delayed email. Discusses cross-sell creative angle and warns against hard discounts on cross-sell SKUs.",
+      "assertions": [
+        "Calls modern.sales.sku_affinity with the moisturizer as the anchor",
+        "Distinguishes co-purchase affinity from sequential affinity",
+        "Applies margin-weighted vs revenue-weighted selection rule",
+        "Maps different SKUs to different placements",
+        "Recommends continuity language over acquisition language for cross-sell creative",
+        "Warns against hard discounts on cross-sell SKUs",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Should I send a cross-sell email day 3 after purchase or day 14?",
+      "expected_output": "Walks through the timing-after-first-purchase windows. Day 3-7 is the receipt-and-impression window suitable only for items that do not depend on first-product validation. Day 7-21 is the usage-and-validation window, the high-conversion window for value-extension cross-sells. Calibrates the window to the first SKU consumption cycle.",
+      "assertions": [
+        "Walks through the timing windows (0-2, 3-7, 7-21, 21-45, 45+)",
+        "Names day 7-21 as the high-conversion usage-and-validation window",
+        "Calibrates the window to consumption cycle of the first SKU",
+        "Distinguishes value-extension cross-sells from gifting/accessory cross-sells",
+        "Does not recommend a fixed calendar day without calibration",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Customers who buy product A often buy product B too. Should I bundle them or cross-sell them?",
+      "expected_output": "Walks through the cross-sell vs bundle decision tree. Bundles compress the buying decision; cross-sells extend it. Bundles when both have above-baseline solo purchase rates and the discount preserves price floor; cross-sells when one is hero and one is supporting. Discusses cannibalization risk if running both simultaneously.",
+      "assertions": [
+        "Walks through the cross-sell vs bundle decision tree",
+        "Names when to bundle (both above baseline, discount preserves floor)",
+        "Names when to cross-sell (hero plus supporting, value depends on primary)",
+        "Discusses cannibalization risk of running both simultaneously",
+        "References bundle-pricing skill for the bundle path",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our post-purchase thank you page just says thanks. We're not cross-selling there. Big deal?",
+      "expected_output": "Identifies the post-purchase one-click placement as the highest-conversion cross-sell moment in ecomm, typically 8-18%. Pulls affinity data to recommend the best margin-per-impression SKU. Warns against surfacing high-consideration items here. Names this as a single highest-leverage move for most brands without it.",
+      "assertions": [
+        "Identifies post-purchase one-click as highest-conversion placement",
+        "Cites typical 8-18% conversion band",
+        "Pulls modern.sales.sku_affinity to identify the right SKU",
+        "Recommends the highest-margin affinity candidate",
+        "Names this as a single highest-leverage move",
+        "Warns against surfacing high-consideration items in this slot",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We sell one-time. Can a cross-sell turn the customer into a subscriber?",
+      "expected_output": "Identifies the subscription cross-sell as the highest-LTV cross-sell move in ecomm. Recommends placing the subscription commitment in the post-purchase one-click slot when the original was one-time. Connects the move to LTV economics and references paid-ltv-optimization for the deeper analysis. Pulls repeat rate to identify which first-SKUs are best subscription cross-sell candidates.",
+      "assertions": [
+        "Names subscription cross-sell as highest-LTV cross-sell move",
+        "Recommends post-purchase one-click placement for the subscription offer",
+        "Calls modern.retention.repeat_rate grouped by first_sku",
+        "Connects to LTV economics",
+        "Distinguishes subscription-friendly first SKUs from one-and-done first SKUs",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our cross-sell on the cart page has 6 different options. Is that too many?",
+      "expected_output": "Identifies the decision cost of comparison as a cross-sell killer. Pre-curating to 1-2 options per primary SKU outperforms 6-option presentations. Walks through reduced-friction copy, single image, single CTA template, and explains why cross-sell creative differs from main-line creative.",
+      "assertions": [
+        "Identifies 6 options as too many",
+        "Recommends pre-curating to 1-2 options per primary SKU",
+        "Explains decision cost of comparison as a cross-sell killer",
+        "Recommends short copy, single image, single CTA template",
+        "Distinguishes cross-sell creative from main-line creative",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Our cross-sell post-purchase flow is generating $0.22 per recipient. Is that good?",
+      "expected_output": "Identifies $0.22 as below the typical band (under $0.40 per recipient is underperforming). Pulls flow performance and affinity data to diagnose. Likely causes: wrong SKU selected for placement, hard discount eroding margin, too many options, or creative tuned to acquisition rather than continuity. Walks through specific diagnostic checks before recommending fixes.",
+      "assertions": [
+        "Identifies $0.22 as below the typical $0.40+ band",
+        "Calls modern.flows.revenue_by_flow filtered to post-purchase",
+        "Lists likely causes (wrong SKU, hard discount, too many options, wrong creative)",
+        "Walks diagnostic before recommending fixes",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

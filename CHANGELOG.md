@@ -2,6 +2,43 @@
 
 All notable public-package changes should be recorded here. This changelog is for the operator-safe OpenClaw Frontier Stack package only; it must not reference private runtimes, personal context, raw logs, credentials, private hosts, or external announcements.
 
+## 2026-05-18 — v0.4.0 — Interoperability + skill expansion
+
+Status: published.
+
+### Added
+
+- **5 new ecomm marketing skills** under `skills/`, bringing Modern Skills to 13 total:
+  - `cross-sell-mapping` — SKU-affinity-driven cross-sell sequencing.
+  - `pricing-discipline` — when to discount and when not to.
+  - `referral-program-design` — double-sided rewards, fraud-resistance, viral coefficient math.
+  - `nps-and-detractor-handling` — detractor recovery, promoter activation, do-not-contact rules.
+  - `dunning-deep-dive` — retry schedule design, reason-code segmentation, recovery flow length.
+- **3 operator skills** under `skills/`, folded in from the frontier-skills companion plugin:
+  - `safe-public-release` — gate before pushing to a public remote (history scan + owner-upload-approval).
+  - `durable-task-ledger` — coordinate multi-step work across subagents via the JSONL blackboard ledger.
+  - `verified-history-scan` — audit full git history for leaks across every commit's tree.
+- **Hooks** under `hooks/`:
+  - `private-content-scan.js` (Stop) — scan working-tree changes for private content before user sees the turn.
+  - `git-push-gate.js` (PreToolUse:Bash) — block pushes to public remotes that fail the verifier.
+- **Multi-platform plugin manifests** at `.codex-plugin/`, `.cursor-plugin/`, `.opencode/` (joining the existing `.claude-plugin/`). Each declares the same `skills/` + `hooks/` surface for its respective agent host. Same content, multiple front doors.
+- **OAuth-first eval auth** in `scripts/run-skill-evals.js`. Live mode now prefers `ANTHROPIC_OAUTH_TOKEN` (charged to the user's Pro/Max subscription) and falls back to `ANTHROPIC_API_KEY` (per-token API billing) only when the OAuth token is absent. Scheduled-evals workflow updated to accept either secret.
+- **blackboard-contention-eval flake fix.** Root cause: parent listened on `child.on('exit')` which fires before stdio pipes drain on slow CI runners. Fix: use the already-declared `'ipc'` channel as the primary delivery path; resolve on `'close'` not `'exit'`; keep stdout-write as fallback. 10/10 local stability runs.
+
+### Changed
+
+- `scripts/validate-skills.sh` — `metadata.data_dependencies` is now OPTIONAL (operator skills don't have MCP backends); scope cross-reference detection accepts "use <skill>" in addition to "see X" / "for X, see Y".
+- `scripts/run-skill-evals.js` — skills without `evals/evals.json` (procedural runbooks) are reported as skipped, not failed.
+- Release-tarball builder — added `.codex-plugin/`, `.cursor-plugin/`, `.opencode/`, and `hooks/` to the include list so they ship in the public-release tarball.
+- `package.json` — `files` includes the four manifest dirs + `hooks/`; `keywords` adds the interoperability keywords.
+- Skill phrasing pass — operator skills now read as agent-host-neutral ("agent-1" as example identifier, "your agent host's plugins directory (Claude Code, Codex, Cursor, OpenCode)" instead of "Claude Code plugins directory").
+
+### Notes
+
+- 16 skills total. 13 marketing (Modern Skills) + 3 operator. All pass `npm run verify:skills` and `npm run eval:dry`.
+- The skills follow the Agent Skills specification at agentskills.io. They install in any agent host that reads `.<host>-plugin/plugin.json` and the standard `skills/` layout.
+- The Modern AI MCP integration is unchanged from v0.2.0: skills name their tools by literal `modern.<domain>.<tool>` identifier and fall back to asking the user when the MCP is not connected.
+
 ## 2026-05-18 — v0.3.0 — Distribution + automation polish
 
 Status: published.
