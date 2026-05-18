@@ -108,6 +108,8 @@ const terminologyChecks = [
   { issue: 'reference-positioning-on-public-surface', regex: /\b(?:reference implementation|reference package|reference-only|demo-only)\b/i, guidance: 'Do not frame the product as reference/demo-only when release intent is production drop-in ready.' },
   { issue: 'sanitized-residue-on-public-surface', regex: /\b(?:sanitized|clean export|clean-export|scrubbed)\b/i, guidance: 'Do not expose internal sanitization/release-scrub terminology on public product surfaces.' },
   { issue: 'toy-sample-language-on-public-surface', regex: /\b(?:toy|sample)\b/i, guidance: 'Use production fixture, quickstart, or integration template where accurate.' },
+  { issue: 'broken-command-name-on-public-surface', regex: /npm run acceptance scenario/i, guidance: 'Use the real package script name: npm run smoke.' },
+  { issue: 'broken-example-path-on-public-surface', regex: /(?:`examples\/[^`]*acceptance scenario[^`]*`|node\s+\S*examples\/[^\n]*acceptance scenario)/i, guidance: 'Public docs must reference real example paths.' },
 ];
 
 for (const rel of walk(root)) {

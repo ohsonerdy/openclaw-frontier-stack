@@ -27,9 +27,9 @@ This catalog helps reviewers and maintainers find the clean package surfaces wit
 
 ## Acceptance scenarios and templates
 
-- `examples/acceptance scenario-swarm/` — synthetic orchestration acceptance scenario.
-- `examples/memory-acceptance scenario/` — synthetic memory acceptance scenario.
-- `examples/mission-control-acceptance scenario/` — sidecar board and dry-run writeback data.
+- `examples/demo-swarm/` — synthetic orchestration acceptance scenario.
+- `examples/memory-demo/` — synthetic memory acceptance scenario.
+- `examples/mission-control-demo/` — sidecar board and dry-run writeback data.
 - `templates/agents/` — role-agent and fleet templates.
 - `templates/config/` — fake local bus config.
 - `templates/ops/` — production-safe supervisor/health templates.

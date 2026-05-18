@@ -52,7 +52,7 @@ Run:
 
 ```bash
 node src/remote-approval/test/remote-approval-local.test.js
-node examples/remote-approval-acceptance scenario/run-remote-approval-acceptance scenario.js
+node examples/remote-approval-demo/run-remote-approval-demo.js
 ```
 
 The test asserts:

@@ -95,7 +95,7 @@ A promotion must include source id, timestamp, and confidence. If the source con
 
 ## Acceptance scenario mapping
 
-The package includes `examples/memory-acceptance scenario/run-memory-acceptance scenario.js`, which acceptance scenarionstrates:
+The package includes `examples/memory-demo/run-memory-demo.js`, which demonstrates:
 
 - synthetic durable memory corpus;
 - minimal deterministic semantic scoring;

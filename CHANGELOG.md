@@ -26,7 +26,7 @@ Status: published production release after verification, reviewer approvals, lic
 
 ### Verification
 
-- Run `node examples/goal-loop-acceptance scenario/run-goal-acceptance scenario.js` from the package root.
+- Run `node examples/goal-loop-demo/run-goal-demo.js` from the package root.
 - Run `node scripts/verify-package.js` from the package root.
 - Run `node scripts/verify-package.js` before any future release decision.
 - Current expected release status is published for the production release; future release candidates must pass reviewer, license, and owner upload gates before publication.

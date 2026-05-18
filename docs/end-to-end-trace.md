@@ -57,15 +57,15 @@ Use this for reference-package evidence such as: "the acceptance scenario adapte
 
 ## Acceptance scenario artifacts
 
-`examples/acceptance scenario-swarm/run-acceptance scenario.js` produces:
+`examples/demo-swarm/run-demo.js` produces:
 
 - `out/trace.json` — envelope + blackboard trace;
 - `out/summary.md` — human-readable summary;
 - `out/acceptance scenario-health-endpoint.patch` — synthetic patch artifact.
 
-`examples/memory-acceptance scenario/run-memory-acceptance scenario.js` produces:
+`examples/memory-demo/run-memory-demo.js` produces:
 
-- `out/memory-acceptance scenario-result.json` — retrieval/CAG/compaction result;
+- `out/memory-demo-result.json` — retrieval/CAG/compaction result;
 - `out/CAG-PRELOAD.example.md` — synthetic CAG preload;
 - `out/summary.md` — memory-layer summary.
 

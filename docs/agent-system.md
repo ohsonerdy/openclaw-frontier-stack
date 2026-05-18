@@ -21,16 +21,16 @@ OpenClaw Frontier Stack models an engineering squad as role agents coordinated b
 3. Run the production smoke path:
 
 ```bash
-node examples/goal-loop-acceptance scenario/run-goal-acceptance scenario.js
-node examples/acceptance scenario-swarm/run-acceptance scenario.js
+node examples/goal-loop-demo/run-goal-demo.js
+node examples/demo-swarm/run-demo.js
 node scripts/verify-package.js
 ```
 
 4. Inspect generated reports:
 
 ```text
-examples/goal-loop-acceptance scenario/out/verification-report.json
-examples/goal-loop-acceptance scenario/out/final-synthesis.md
+examples/goal-loop-demo/out/verification-report.json
+examples/goal-loop-demo/out/final-synthesis.md
 release-gate/reports/latest-verification.json
 ```
 
@@ -74,7 +74,7 @@ Verifier must fail closed on:
 
 The release ships two local-only smoke paths:
 
-- `examples/goal-loop-acceptance scenario/run-goal-acceptance scenario.js` proves `/goal` card → receipts → verifier → synthesis.
-- `examples/acceptance scenario-swarm/run-acceptance scenario.js` proves Orchestrator → Architect/Scout/Builder/Reviewer/Sentinel coordination.
+- `examples/goal-loop-demo/run-goal-demo.js` proves `/goal` card → receipts → verifier → synthesis.
+- `examples/demo-swarm/run-demo.js` proves Orchestrator → Architect/Scout/Builder/Reviewer/Sentinel coordination.
 
 Both are synthetic and local-only. They do not require credentials or external services.

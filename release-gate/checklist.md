@@ -26,18 +26,18 @@ Status: draft checklist for future release candidate. This is not an approval.
 Run from package root or workspace root:
 
 ```bash
-node ./examples/swarm acceptance scenario/run-demo.js
+node ./examples/demo-swarm/run-demo.js
 node ./src/blackboard/test/blackboard-local.test.js
-node ./examples/memory acceptance scenario/run-memory acceptance scenario.js
+node ./examples/memory-demo/run-memory-demo.js
 python3 -m json.tool ./examples/mission-control-demo/board.json >/tmp/board.pretty.json
 python3 -m json.tool ./examples/mission-control-demo/writeback-intent.example.json >/tmp/intent.pretty.json
 ```
 
 Expected minimum:
 
-- swarm acceptance scenario: `ok: true`, 12 envelopes, 6 tasks, 1 path claim, `APPROVE_RELEASE_CANDIDATE`.
+- swarm scenario: `ok: true`, 12 envelopes, 6 tasks, 1 path claim, `APPROVE_RELEASE_CANDIDATE`.
 - blackboard ledger: `ok: true`, collision rejected, unsafe paths rejected, JSONL parsed.
-- memory acceptance scenario: `ok: true`, synthetic retrieval hit(s), CAG hash, compaction summary, accepted promotions.
+- memory scenario: `ok: true`, synthetic retrieval hit(s), CAG hash, compaction summary, accepted promotions.
 - Mission Control JSON validates.
 
 ## Exclusion scan

@@ -17,7 +17,7 @@ The Security reviewer is the security/reputation reviewer for OpenClaw Frontier 
 1. **No external publish** — no GitHub push, package upload, remote announce, or tag creation during preparation.
 2. **Clean package only** — package source comes from `./` or later clean-room export, not live runtime roots.
 3. **Scanner pass** — pattern scan finds no credentials, private paths, hostnames, personal identifiers, client context, raw logs, session DBs, vector stores, backups, or excluded agent domains.
-4. **Acceptance scenario pass** — acceptance scenario-swarm and memory-acceptance scenario run locally using synthetic data only.
+4. **Acceptance scenario pass** — swarm and memory acceptance scenarios run locally using synthetic data only.
 5. **Mission Control operator-safe** — board acceptance scenario uses fake tasks, fake agents, fake artifacts, dry-run writeback only.
 6. **Docs complete** — README, release scope, bus/blackboard, memory, TaskFlow, trace, Mission Control, and release gate docs exist.
 7. **4/4 review** — Architecture, Security, Operations, and Release each record APPROVE/BLOCK/MISSING.

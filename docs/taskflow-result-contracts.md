@@ -58,7 +58,7 @@ Every non-trivial TASK must end with a RESULT or an explicit blocker.
   ],
   "verification": [
     {
-      "command": "node examples/acceptance scenario-swarm/run-acceptance scenario.js",
+      "command": "node examples/demo-swarm/run-demo.js",
       "ok": true,
       "summary": "12 envelopes, 6 tasks, 1 path claim"
     }
@@ -124,4 +124,4 @@ The GitHub-ready package must include at least one runnable flow that acceptance
 - Sentinel decision;
 - final Orchestrator synthesis.
 
-The acceptance scenario-swarm example currently satisfies the first runnable version of this requirement.
+The swarm acceptance scenario currently satisfies the first runnable version of this requirement.

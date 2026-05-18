@@ -125,7 +125,7 @@ This is what makes the framework suitable for coding swarms instead of independe
 
 | Acceptance scenario component | Production equivalent |
 | --- | --- |
-| `examples/acceptance scenario-swarm/run-acceptance scenario.js` in-memory bus | NATS/squad-bus transport |
+| `examples/demo-swarm/run-demo.js` in-memory bus | NATS/squad-bus transport |
 | fake HMAC signature | agent Ed25519 signature |
 | in-memory blackboard object | `src/blackboard` JSONL ledger or SQLite-backed equivalent |
 | synthetic memory array | RAG/vector/session memory index |

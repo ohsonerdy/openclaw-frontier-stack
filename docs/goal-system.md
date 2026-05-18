@@ -91,7 +91,7 @@ If no external chat integration is configured, the same update is written as a l
 Run:
 
 ```bash
-node examples/goal-loop-acceptance scenario/run-goal-acceptance scenario.js
+node examples/goal-loop-demo/run-goal-demo.js
 ```
 
-The acceptance scenario creates a synthetic goal card, lane receipts, fail-closed verification report, and final synthesis under `examples/goal-loop-acceptance scenario/out/`.
+The acceptance scenario creates a synthetic goal card, lane receipts, fail-closed verification report, and final synthesis under `examples/goal-loop-demo/out/`.

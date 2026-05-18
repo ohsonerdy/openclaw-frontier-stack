@@ -27,7 +27,7 @@ jobs:
       - name: Install package metadata
         run: npm install --ignore-scripts
       - name: Run acceptance scenarios
-        run: npm run acceptance scenario
+        run: npm run smoke
       - name: Run package verifier
         run: npm run verify
       - name: Run full git history private-content scan

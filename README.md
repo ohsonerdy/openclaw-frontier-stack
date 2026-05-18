@@ -51,18 +51,18 @@ git clone <repository-url> openclaw-frontier-stack
 cd openclaw-frontier-stack
 npm install --ignore-scripts
 node scripts/check-environment.js
-npm run acceptance scenario
+npm run smoke
 npm run verify
 npm run release:pack
 ```
 
 Expected result:
 
-- `npm run acceptance scenario` runs the goal-loop, coding-swarm, memory, and remote approval/state parity acceptance scenarios.
+- `npm run smoke` runs the goal-loop, coding-swarm, memory, and remote approval/state parity acceptance scenarios.
 - `npm run verify` runs the production verifier and writes `release-gate/reports/latest-verification.json`.
 - `npm run release:pack` creates a downloadable npm tarball under `release-gate/artifacts/`.
 
-If you are running from a downloaded tarball instead of Git, unpack it, enter the package directory, and run the same `npm run acceptance scenario` and `npm run verify` commands.
+If you are running from a downloaded tarball instead of Git, unpack it, enter the package directory, and run the same `npm run smoke` and `npm run verify` commands.
 
 ## License
 
@@ -83,17 +83,17 @@ Engineers should be able to inspect and run local acceptance scenarios showing h
 ## Quick smoke path
 
 ```bash
-npm run acceptance scenario
+npm run smoke
 npm run verify
 ```
 
 Equivalent direct commands:
 
 ```bash
-node examples/goal-loop-acceptance scenario/run-goal-acceptance scenario.js
-node examples/acceptance scenario-swarm/run-acceptance scenario.js
-node examples/memory-acceptance scenario/run-memory-acceptance scenario.js
-node examples/remote-approval-acceptance scenario/run-remote-approval-acceptance scenario.js
+node examples/goal-loop-demo/run-goal-demo.js
+node examples/demo-swarm/run-demo.js
+node examples/memory-demo/run-memory-demo.js
+node examples/remote-approval-demo/run-remote-approval-demo.js
 node scripts/eval-self-healing-recovery.js
 node scripts/eval-security-governance.js
 node scripts/verify-package.js
