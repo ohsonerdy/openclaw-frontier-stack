@@ -11,6 +11,45 @@
 
 All notable public-package changes should be recorded here. This changelog is for the operator-safe OpenClaw Frontier Stack package only; it must not reference private runtimes, personal context, raw logs, credentials, private hosts, or external announcements.
 
+## 2026-05-18 — v0.2.0 — Modern Skills integration
+
+Status: published.
+
+### Added
+
+- **Modern Skills plugin** — eight ecomm-shaped marketing skills authored by Modern AI, integrated into this repository's Claude Code plugin surface:
+  - `subscription-growth` — acquisition and trial-to-paid mechanics for subscription brands.
+  - `repeat-purchase` — second-purchase conversion and replenishment timing.
+  - `paid-ltv-optimization` — channel-by-channel paid acquisition grounded in cohort LTV and payback period.
+  - `cart-abandonment-recovery` — checkout friction taxonomy and multi-channel recovery flow design.
+  - `subscription-churn` — voluntary and involuntary churn diagnosis, save flow design, dunning hardening.
+  - `bundle-pricing` — SKU affinity, anchor pricing, good-better-best tiering for AOV and margin lift.
+  - `cohort-retention` — survival curve interpretation, cohort-of-acquisition impact on LTV, test design.
+  - `winback-flows` — lapse-segment taxonomy, recency-based offer ladders, do-not-contact rules.
+- `.claude-plugin/plugin.json` — plugin manifest.
+- `scripts/validate-skills.sh` — skill validator enforcing frontmatter shape, trigger phrase density, scope cross-references, line limits, and per-skill eval coverage.
+- `docs/skills-integration-spec.md` — engineering integration spec for skills ↔ Modern AI MCP wiring.
+- 5–8 evaluation cases per skill at `skills/<name>/evals/evals.json`.
+- Skill validation wired into `npm run verify` and into the pre-push hook.
+
+### Notes
+
+- Skills look for `.agents/modern-ai-context.md` at the start of every invocation and read brand, ICP, and KPI context from it when present.
+- Every skill works without the Modern AI MCP connected — falls back to asking the user. With the MCP connected, pulls data directly via `modern.<domain>.<tool>` calls.
+- Plugin and skills are MIT-licensed and original to this repository.
+
+## 2026-05-17 — v0.1.1 — Audit hardening
+
+Status: published.
+
+### Added
+
+- H2 audit regression test at `src/signed-bus/test/nested-signature-tamper.test.js` covering the nested-signature canonicalisation fix. Wired into `npm run verify`.
+
+### Notes
+
+- v0.1.1 closes the 2026-05-17 audit cycle: C5 nats optional + lazy-load, H1 install lifecycle removed, H2 envelope depth-zero canonicalize + regression test, H4 IPv4 deny narrowed to RFC1918+CGNAT, H5 mock-mcp URL deny narrowed to private targets, pre-push hook, owner-upload-approval verifier, centralized private-patterns scanner.
+
 ## 2026-05-17 — production release
 
 Status: published production release after verification, reviewer approvals, license selection, and explicit owner upload approval.

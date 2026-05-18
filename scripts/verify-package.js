@@ -85,6 +85,7 @@ function removeGeneratedDemoOutputs() {
 const checks = [];
 checks.push(run('signed-bus-envelope-test', process.execPath, [path.join(root, 'src', 'signed-bus', 'test', 'envelope-local.test.js')]));
 checks.push(run('signed-bus-h2-regression-test', process.execPath, [path.join(root, 'src', 'signed-bus', 'test', 'nested-signature-tamper.test.js')]));
+checks.push(run('modern-skills-validator', 'bash', [path.join(root, 'scripts', 'validate-skills.sh')]));
 checks.push(run('blackboard-test', process.execPath, [path.join(root, 'src', 'blackboard', 'test', 'blackboard-local.test.js')]));
 checks.push(run('taskflow-test', process.execPath, [path.join(root, 'src', 'taskflow', 'test', 'taskflow-local.test.js')]));
 checks.push(run('memory-adapters-test', process.execPath, [path.join(root, 'src', 'memory-adapters', 'test', 'memory-adapters-local.test.js')]));

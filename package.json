@@ -1,7 +1,7 @@
 {
   "name": "@openclaw/frontier-stack",
-  "version": "0.1.0",
-  "description": "Production-ready, drop-in OpenClaw frontier coding swarm orchestration stack with signed coordination, durable task ownership, memory, observability, and fail-closed release gates.",
+  "version": "0.2.0",
+  "description": "Production-ready, drop-in OpenClaw frontier coding swarm orchestration stack with signed coordination, durable task ownership, memory, observability, fail-closed release gates, and Modern Skills — ecomm marketing skills integrated with the Modern AI MCP.",
   "license": "MIT",
   "type": "commonjs",
   "private": false,
@@ -12,6 +12,7 @@
     "verify": "node scripts/verify-package.js",
     "verify:history": "node scripts/verify-git-history-clean.js",
     "verify:owner-approval": "node release-gate/scripts/verify-owner-upload-approval.js",
+    "verify:skills": "bash scripts/validate-skills.sh",
     "test": "node scripts/verify-package.js",
     "release:pack": "node scripts/package-release.js",
     "install:check": "node scripts/check-environment.js",
@@ -24,6 +25,7 @@
     "smoke": "node scripts/run-demos.js"
   },
   "files": [
+    ".claude-plugin/",
     ".github/workflows/verify-package.yml",
     ".gitignore",
     ".githooks/",
@@ -39,6 +41,7 @@
     "release-gate/reviewer-decision-schema.md",
     "release-gate/scripts/",
     "scripts/",
+    "skills/",
     "src/",
     "templates/",
     "STATUS.md",
@@ -52,7 +55,10 @@
     "release-gates",
     "production-ready",
     "drop-in",
-    "agent-orchestration"
+    "agent-orchestration",
+    "marketing-skills",
+    "ecommerce",
+    "claude-code-plugin"
   ],
   "optionalDependencies": {
     "nats": "^2.29.3"

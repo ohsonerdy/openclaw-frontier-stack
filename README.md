@@ -28,6 +28,7 @@ Included capabilities:
 - MCP/external integration adapter contract with local test adapter
 - Fleet parity and agent-baseline checklist
 - Mermaid architecture diagrams
+- **Modern Skills plugin** — ecomm marketing skills (CRO-shaped, subscription growth, paid LTV optimization, etc.) authored by Modern AI and integrated with the Modern AI MCP. See [Modern Skills](#modern-skills) below.
 - TaskFlow/result-contract documentation for durable orchestration
 - GitHub repository hygiene docs and community-template pack
 - Security/governance lane (`FR-SECURITY-GOV-001`) for production-safe vault policy, no-public-secrets checks, quorum, approval gates, and incident deductions
@@ -35,6 +36,28 @@ Included capabilities:
 - Agent operating system: documented roles, launch path, coding-team execution path, cross-agent coordination model, and smoke commands
 - Remote approval/state parity: read-only approval requests, state snapshots, diff/test receipts, and reviewer decisions
 - Self-healing recovery eval: stale blocker detection, owner/action classification, unsafe auto-fix refusal, and safe receipt-path retry loop
+
+## Modern Skills
+
+This repository ships **Modern Skills** — a Claude Code / Codex / Cursor plugin with eight ecomm-shaped marketing skills authored by Modern AI:
+
+| Skill | Use |
+|---|---|
+| `subscription-growth` | Acquisition and trial-to-paid mechanics for subscription brands |
+| `repeat-purchase` | Second-purchase conversion and replenishment timing for catalog brands |
+| `paid-ltv-optimization` | Channel-by-channel paid decisions grounded in cohort LTV and payback |
+| `cart-abandonment-recovery` | Checkout friction taxonomy and multi-channel recovery flow design |
+| `subscription-churn` | Voluntary and involuntary churn diagnosis, save flows, dunning hardening |
+| `bundle-pricing` | SKU affinity, anchor pricing, good-better-best tiering for AOV and margin lift |
+| `cohort-retention` | Survival curve interpretation, cohort impact on LTV, intervention test design |
+| `winback-flows` | Lapse-segment taxonomy, recency-based offer ladders, do-not-contact rules |
+
+Each skill ships with 5–8 eval cases, an opinionated framework, and explicit MCP tool dependencies. With the [Modern AI MCP](https://platform.modern.ai/help-center/how-to/connect-claude-desktop) connected, skills pull live data (sales, ad spend, attribution, retention) automatically; without it, they fall back to asking the user.
+
+- Plugin manifest: [.claude-plugin/plugin.json](.claude-plugin/plugin.json)
+- Skills: [skills/](skills/)
+- Engineering integration spec: [docs/skills-integration-spec.md](docs/skills-integration-spec.md)
+- Validate skills: `bash scripts/validate-skills.sh`
 
 ## Current status
 

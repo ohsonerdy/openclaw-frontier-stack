@@ -19,6 +19,7 @@ const include = [
   '.npmignore',
   '.github',
   '.githooks',
+  '.claude-plugin',
   'STATUS.md',
   'docs',
   'EVIDENCE',
@@ -34,6 +35,7 @@ const include = [
   'release-gate/lib',
   'release-gate/scripts',
   'scripts',
+  'skills',
   'src',
   'templates',
 ];

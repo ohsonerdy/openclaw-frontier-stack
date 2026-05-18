@@ -1,0 +1,12 @@
+{
+  "name": "modern-skills",
+  "displayName": "Modern Skills",
+  "description": "Modern Skills — marketing skills for ecomm operators, powered by Modern AI. Subscription growth, repeat purchase, paid LTV optimization, cart recovery, churn, bundles, cohort retention, winback. Integrates with the Modern AI MCP for live data.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Modern AI",
+    "url": "https://modern.ai"
+  },
+  "license": "MIT",
+  "skills": "./skills"
+}

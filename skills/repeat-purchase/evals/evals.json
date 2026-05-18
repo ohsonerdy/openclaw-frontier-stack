@@ -1,0 +1,100 @@
+{
+  "skill_name": "repeat-purchase",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "My repeat rate at 90 days is 22%. Is that bad? What do I do?",
+      "expected_output": "Diagnosis that depends on category — 22% at 90d is poor for a replenishment category but normal for a durable goods category. The response should ask about category and use-up cycle if not known, pull the full repeat-rate curve at 30/60/90/180 to identify the shape, and then route to the appropriate framework branch. Should not give an answer without category context.",
+      "assertions": [
+        "Asks for product category if not in context",
+        "Calls modern.retention.repeat_rate at 30/60/90/180 day windows",
+        "Identifies the repeat-rate curve shape (sharp/gradual/flat)",
+        "Notes that 22% means different things by category",
+        "Routes recommendations to the matching framework branch",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I sell coffee subscriptions and one-time bags. My one-time bag repeat rate is bad. How do I get those customers back ordering?",
+      "expected_output": "Replenishment-category diagnosis. Should pull repeat rates and time-to-second-purchase, apply the coffee replenishment-timing window (first reminder day 18, second day 30, third day 50), and recommend a subscribe-and-save offer at the second purchase to lock in the reorder loop. Should compare current flow timing against the recommended schedule.",
+      "assertions": [
+        "Identifies coffee as a 21-28 day use-up cycle replenishment category",
+        "Recommends specific reminder timing (day 18/30/50)",
+        "Recommends a subscribe-and-save offer at second purchase",
+        "Calls modern.flows.revenue_by_flow to check current flow performance",
+        "Distinguishes replenishment from cross-sell logic at the second purchase",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "What should my post-purchase email sequence look like?",
+      "expected_output": "Walks through the post-purchase email/SMS sequencing framework: day 0 transactional, day 1-3 reassurance, day 4-6 activation, day 7-14 early opinion, day 15-30 review + education, day 30+ replenishment or cross-sell. Should emphasize that day 4-6 (delivery moment activation) is the single highest-impact email. Should not collapse jobs into one email.",
+      "assertions": [
+        "Walks through the six-stage post-purchase sequence by day band",
+        "Identifies day 4-6 activation as the highest-impact email",
+        "Distinguishes the jobs of each email (transactional / reassurance / activation / opinion / review / replenishment)",
+        "Warns against collapsing multiple jobs into one email",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I sell a $180 face cream. Customers buy once and disappear.",
+      "expected_output": "Diagnosis of a considered-purchase or gradual curve shape, not a replenishment-cycle problem. Should apply the product education sequence framework (founder story day 7, use-case tutorial day 14, customer feature day 21) and explain that product education drives more repeats than discount at this AOV. Should ask about activation rate before recommending tests.",
+      "assertions": [
+        "Diagnoses considered-purchase shape, not replenishment",
+        "Applies the product education sequence framework",
+        "Recommends founder story / tutorial / customer feature spotlight as separate emails",
+        "Notes that product education beats discount at this AOV",
+        "Asks about activation rate as the leading indicator",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "When a customer makes their second purchase, should I push them to subscribe?",
+      "expected_output": "Walks through the subscribe-and-save offer placement framework. Should recommend post-second-purchase email placement as the default (15-25% conversion without first-purchase risk) over checkout placement or reminder placement. Should also distinguish whether the second purchase was the same SKU (subscription is appropriate) or a different SKU (different decision).",
+      "assertions": [
+        "Walks through the three subscribe-and-save placement options",
+        "Recommends post-second-purchase email as the default placement",
+        "Distinguishes same-SKU vs different-SKU second purchases for the decision",
+        "Names the expected conversion band (15-25%)",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We're a beauty brand with 8 SKUs. Should the second purchase be replenishment of the same product or cross-sell into the catalog?",
+      "expected_output": "Applies the replenishment-vs-cross-sell-at-the-second-purchase framework. Should ask about the use-up cycle of the first-purchase SKU, then route the decision. For most beauty products under 60d use-up, recommends pushing replenishment first to lock the loop, then cross-sell at the third purchase. References bundle-pricing for the second-purchase bundle structure question.",
+      "assertions": [
+        "Asks about the use-up cycle of the first-purchase SKU",
+        "Routes to replenishment for use-up cycles under 60 days",
+        "Routes to cross-sell for longer use-up cycles or post-replenishment",
+        "Notes the compounding effect of same-SKU second purchases on third-purchase rate",
+        "References bundle-pricing for bundle structure question",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our second-purchase AOV is lower than our first-purchase AOV. Why?",
+      "expected_output": "Diagnosis that lower second-purchase AOV usually signals one of three things: customers are returning for replenishment of a single item rather than the original multi-item order, the second purchase is a smaller test-of-the-catalog purchase, or the brand is leading with a discount on the second purchase. Should pull AOV by purchase number and ask about current second-purchase incentive structure.",
+      "assertions": [
+        "Calls modern.sales.aov grouped by purchase_number",
+        "Names the three likely causes of declining second-purchase AOV",
+        "Asks about current second-purchase incentive structure",
+        "Distinguishes replenishment-driven AOV drop from discount-driven AOV drop",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}
