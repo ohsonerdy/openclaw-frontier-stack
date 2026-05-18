@@ -1,6 +1,6 @@
 {
   "name": "@openclaw/frontier-stack",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Production-ready, drop-in OpenClaw frontier coding swarm orchestration stack with signed coordination, durable task ownership, memory, observability, fail-closed release gates, and Modern Skills — ecomm marketing skills integrated with the Modern AI MCP.",
   "license": "MIT",
   "type": "commonjs",
@@ -22,7 +22,9 @@
     "verify:approval": "node release-gate/scripts/verify-owner-upload-approval.js",
     "verify:public-surface": "node release-gate/scripts/verify-public-surface-harness.js",
     "verify:github-readback": "node release-gate/scripts/verify-github-public-readback.js",
-    "smoke": "node scripts/run-demos.js"
+    "smoke": "node scripts/run-demos.js",
+    "eval:dry": "node scripts/run-skill-evals.js",
+    "eval:live": "node scripts/run-skill-evals.js --live"
   },
   "files": [
     ".claude-plugin/",

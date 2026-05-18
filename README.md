@@ -1,7 +1,14 @@
 # OpenClaw Frontier Stack
+
+[![Verify package](https://github.com/ohsonerdy/openclaw-frontier-stack/actions/workflows/verify-package.yml/badge.svg?branch=main)](https://github.com/ohsonerdy/openclaw-frontier-stack/actions/workflows/verify-package.yml)
+[![Release](https://img.shields.io/github/v/release/ohsonerdy/openclaw-frontier-stack?logo=github)](https://github.com/ohsonerdy/openclaw-frontier-stack/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node ≥20](https://img.shields.io/badge/node-%E2%89%A520-43853d?logo=node.js&logoColor=white)](package.json)
+[![Agent Skills spec](https://img.shields.io/badge/Agent_Skills-spec_v1-7c3aed)](https://agentskills.io/specification.md)
+
 > Current release status: see [STATUS.md](STATUS.md).
 
-OpenClaw Frontier Stack is a **production-ready, drop-in multi-agent coding orchestration stack** for shared state, signed coordination, durable task ownership, memory, observability, and fail-closed release gates.
+OpenClaw Frontier Stack is a **production-ready, drop-in multi-agent coding orchestration stack** for shared state, signed coordination, durable task ownership, memory, observability, and fail-closed release gates. It also ships **Modern Skills** — ecomm marketing skills for AI agents, integrated with the Modern AI MCP.
 
 This repository is the public source package. It ships production core modules, operator-ready templates, local acceptance scenarios, and release harnesses that can be installed and verified from a fresh checkout. Private runtime state is intentionally excluded: operators provide their own credentials, hosts, policy bindings, and deployment configuration.
 
@@ -54,10 +61,48 @@ This repository ships **Modern Skills** — a Claude Code / Codex / Cursor plugi
 
 Each skill ships with 5–8 eval cases, an opinionated framework, and explicit MCP tool dependencies. With the [Modern AI MCP](https://platform.modern.ai/help-center/how-to/connect-claude-desktop) connected, skills pull live data (sales, ad spend, attribution, retention) automatically; without it, they fall back to asking the user.
 
+### Install Modern Skills as a Claude Code plugin
+
+Inside Claude Code:
+
+```
+/plugin install ohsonerdy/openclaw-frontier-stack
+```
+
+In Codex / Cursor / any agent that supports the [Agent Skills specification](https://agentskills.io/specification.md): point the plugin loader at this repository or vendor the `skills/` directory directly. See [docs/skills-integration-spec.md](docs/skills-integration-spec.md) for details.
+
+### Connect the Modern AI MCP (recommended)
+
+For live sales / ad spend / attribution / retention data, connect the Modern AI MCP. Generate an API key at [Account → API Keys](https://platform.modern.ai/account/api-keys), then add to your agent's MCP config:
+
+```json
+{
+  "mcpServers": {
+    "modern-mcp": {
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote", "https://mcp.modern.ai/mcp",
+        "--header", "Authorization: Bearer <your-api-key>"
+      ]
+    }
+  }
+}
+```
+
+Full setup for each agent: [How to Connect Claude Desktop](https://platform.modern.ai/help-center/how-to/connect-claude-desktop).
+
+### Tenant context file
+
+Skills look for `.agents/modern-ai-context.md` at the start of every invocation — your brand voice, ICP, product catalog, ad channels, KPI targets. A populated template lives at [templates/agents/modern-ai-context.example.md](templates/agents/modern-ai-context.example.md). Copy it into your project root and fill in the placeholders.
+
+### Skill development
+
 - Plugin manifest: [.claude-plugin/plugin.json](.claude-plugin/plugin.json)
 - Skills: [skills/](skills/)
 - Engineering integration spec: [docs/skills-integration-spec.md](docs/skills-integration-spec.md)
-- Validate skills: `bash scripts/validate-skills.sh`
+- Validate skill structure: `bash scripts/validate-skills.sh` (or `npm run verify:skills`)
+- Eval dry-run: `npm run eval:dry` (validates eval file structure, no API calls)
+- Eval live mode: `npm run eval:live -- --model claude-sonnet-4-6` (requires `ANTHROPIC_API_KEY`)
 
 ## Current status
 

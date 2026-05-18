@@ -1,5 +1,24 @@
 # Changelog
 
+All notable public-package changes should be recorded here. This changelog is for the operator-safe OpenClaw Frontier Stack package only; it must not reference private runtimes, personal context, raw logs, credentials, private hosts, or external announcements.
+
+## 2026-05-18 — v0.3.0 — Distribution + automation polish
+
+Status: published.
+
+### Added
+
+- **GitHub Release automation** — new workflow at `.github/workflows/release.yml` triggers on `v*.*.*` tag push. Runs full verifier + history scan + skill validator, builds the release tarball, extracts release notes from `CHANGELOG.md`, and creates / updates the GitHub Release with the tarball attached.
+- **Tenant context template** at `templates/agents/modern-ai-context.example.md`. Drop-in template for the `.agents/modern-ai-context.md` file every Modern Skill reads. Documents the brand voice, ICP, product catalog, channels, KPI, do-not-contact, and notes sections. Onboarding flow can populate it automatically; this is the manual fallback.
+- **Skill eval runner** at `scripts/run-skill-evals.js`. Two modes:
+  - Dry-run (default): validates `evals.json` file structure across all skills, no API calls. Wired as `npm run eval:dry`.
+  - Live (`--live --model <model-id>`): calls the Claude API with each eval's prompt against the skill's `SKILL.md` as system prompt, scores assertions via key-phrase substring matching. Requires `ANTHROPIC_API_KEY`. Wired as `npm run eval:live`.
+- **README polish** — badges (build status, latest release, license, Node version, Agent Skills spec), inline plugin install command, full Modern AI MCP connect snippet, eval-runner section, link to the tenant context template.
+
+### Changed
+
+- CHANGELOG header restored to the canonical location (the change-summary line was displaced by an earlier commit).
+
 ## 2026-05-18 - runtime supervisor guidance
 
 ### Changed
@@ -8,8 +27,6 @@
   persistent wrapper when process-manager state is treated as runtime health.
 - Added PM2 template guidance to keep public ops examples free of misleading
   `stopped` service states.
-
-All notable public-package changes should be recorded here. This changelog is for the operator-safe OpenClaw Frontier Stack package only; it must not reference private runtimes, personal context, raw logs, credentials, private hosts, or external announcements.
 
 ## 2026-05-18 — v0.2.0 — Modern Skills integration
 
