@@ -8,7 +8,7 @@ const { scan } = require('../lib/private-patterns');
 
 const root = path.resolve(__dirname, '..', '..');
 const outRoot = path.join(root, 'release-gate', 'exports', 'openclaw-frontier-stack-clean');
-const manifestPath = path.join(root, 'release-gate', 'exports', 'clean-export-manifest.json');
+const manifestPath = path.join(root, 'release-gate', 'exports', 'release-manifest-manifest.json');
 
 const include = [
   'README.md',
@@ -80,7 +80,7 @@ for (const rel of include) {
 }
 files.sort((a, b) => a.path.localeCompare(b.path));
 const manifest = {
-  schema: 'openclaw-frontier.clean-export-manifest.v1',
+  schema: 'openclaw-frontier.release-manifest-manifest.v1',
   generatedAt: new Date().toISOString(),
   exportPath: 'release-gate/exports/openclaw-frontier-stack-clean',
   fileCount: files.length,

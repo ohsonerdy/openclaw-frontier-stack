@@ -19,7 +19,7 @@ const requiredTerms = [
   ['docs/goal-system.md', '30-minute'],
   ['docs/agent-system.md', 'Orchestrator'],
   ['docs/agent-system.md', 'Coding-team execution path'],
-  ['docs/agent-system.md', 'Production smoke/demo path'],
+  ['docs/agent-system.md', 'Production smoke/acceptance scenario path'],
   ['README.md', 'Orchestrator'],
 ];
 
@@ -37,7 +37,7 @@ for (const [rel, term] of requiredTerms) {
 
 const architectureTexts = [
   'README.md',
-  'docs/demo-flow.md',
+  'docs/verification-flow.md',
   'docs/end-to-end-trace.md',
   'examples/demo-swarm/run-demo.js',
   'examples/mission-control-demo/board.json',

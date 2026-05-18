@@ -9,9 +9,9 @@ const rel = 'docs/maintainer-handoff.md';
 const full = path.join(root, rel);
 const requiredPhrases = [
   'This is not publication approval',
-  'Synthetic demo data only',
+  'Local fixture data only',
   'What maintainers must not import',
-  'Work only from `release-gate/exports/openclaw-frontier-stack-clean`',
+  'Work only from a freshly generated release artifact or source checkout that passes `npm run verify`',
   'readyForGithubUpload',
   'may not publish, upload, create releases, enable CI, or invite contributors',
 ];

@@ -1,6 +1,6 @@
 # GitHub repository hygiene
 
-Status: SHIP as sanitized templates only.
+Status: SHIP as operator-safe deployable templates with operator-supplied configuration.
 
 This package can be prepared as a public repository only after the release gate passes and the human upload approval file is satisfied. Repository metadata must be generated from clean templates, not copied from a live private workspace.
 
@@ -17,15 +17,15 @@ This package can be prepared as a public repository only after the release gate 
 ## Metadata rules
 
 1. Do not copy private repository settings, teams, remotes, secrets, Actions variables, or deployment keys.
-2. Use synthetic examples only; no real hostnames, IPs, chat IDs, customer names, local paths, logs, memory dumps, transcripts, vector stores, or backups.
-3. Keep GitHub Actions disabled or placeholder-only until the clean export has passed scanners in the target repository.
+2. Use local acceptance scenarios only; no real hostnames, IPs, chat IDs, customer names, local paths, logs, memory dumps, transcripts, vector stores, or backups.
+3. Keep GitHub Actions disabled or placeholder-only until the release manifest has passed scanners in the target repository.
 4. Treat screenshots as release artifacts: scan them the same way as text for private paths, handles, and host details.
 5. Require reviewer decision records and explicit human upload approval before any external publication.
 
 ## Suggested first public branch protection
 
 - Require pull request review before merge.
-- Require status checks for the package verifier and clean-export script.
+- Require status checks for the package verifier and release-manifest script.
 - Block force pushes to the default branch.
 - Require signed commits or signed tags when available.
 - Restrict who can create releases until the package has a mature release process.

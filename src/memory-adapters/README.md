@@ -42,7 +42,7 @@ node src/memory-adapters/test/memory-adapters-local.test.js
 
 The test exercises retrieval ranking, CAG hash stability, compaction byte budget, the three promotion-filter paths (accept / not-durable / sensitive-shape), and the production-safety scanner (the home-path rejection case is asserted).
 
-## Replacing the reference implementation
+## Replacing the production implementation
 
 Production swarms should keep this package boundary and swap the internals:
 

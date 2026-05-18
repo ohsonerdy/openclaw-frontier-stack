@@ -4,13 +4,13 @@ This is the production-safe specification and runnable prototype for **FR-REMOTE
 
 ## Goal
 
-Expose the same review primitives a remote coding UI needs while preserving the package boundary: reviewers can inspect state, diffs, test receipts, and decisions, but the demo cannot publish, deploy, message external systems, or mutate a live private runtime.
+Expose the same review primitives a remote coding UI needs while preserving the package boundary: reviewers can inspect state, diffs, test receipts, and decisions, but the acceptance scenario cannot publish, deploy, message external systems, or mutate a live private runtime.
 
 ## Flow
 
 1. **State snapshot** captures tasks, path claims, receipts, and test state with `readOnly: true`.
 2. **Diff/test receipt** summarizes changed files and the relevant verification command/status.
-3. **Approval request** links the state snapshot hash and diff receipt hash, names requester/reviewer/action/risk, and declares `mode: read-only-parity-demo`.
+3. **Approval request** links the state snapshot hash and diff receipt hash, names requester/reviewer/action/risk, and declares `mode: read-only-parity-acceptance scenario`.
 4. **Reviewer decision** records `approve`, `request_changes`, or `reject`, binds to the request hash, and declares `externalEffects: false`.
 
 ## Schema summary
@@ -40,7 +40,7 @@ Required decision fields:
 
 ## Privacy and safety rules
 
-- Payloads are sanitized before hashes are produced.
+- Payloads are operator-safe before hashes are produced.
 - Common secret/token shapes, private user paths, and private overlay addresses are redacted.
 - Reviewer identity must match the approval request reviewer.
 - Unknown decision values fail closed.
@@ -52,7 +52,7 @@ Run:
 
 ```bash
 node src/remote-approval/test/remote-approval-local.test.js
-node examples/remote-approval-demo/run-remote-approval-demo.js
+node examples/remote-approval-acceptance scenario/run-remote-approval-acceptance scenario.js
 ```
 
 The test asserts:
@@ -65,4 +65,4 @@ The test asserts:
 
 ## Frontier gap closed
 
-This closes the local-package slice of the remote steering gap: a reviewer can see the same sanitized state/diff/test/decision objects that a mobile or web approval UI would need. It does not claim live mobile UI, push notifications, or external publication; those remain operator-approved integration work.
+This closes the local-package slice of the remote steering gap: a reviewer can see the same operator-safe state/diff/test/decision objects that a mobile or web approval UI would need. It does not claim live mobile UI, push notifications, or external publication; those remain operator-approved integration work.

@@ -27,7 +27,7 @@ Minimal example:
   "status": "active",
   "owner": "Orchestrator",
   "source": "operator-chat:/goal",
-  "definitionOfDone": "Fresh clone can run the goal loop demo and verifier fails closed.",
+  "definitionOfDone": "Fresh clone can run the goal loop acceptance scenario and verifier fails closed.",
   "cadence": { "operatorUpdateMinutes": 30, "channel": "operator-chat" },
   "lanes": ["implementation", "documentation", "verification", "release-packaging", "final-approval"],
   "receipts": ["receipts/implementation.md", "receipts/verification.md"],
@@ -59,7 +59,7 @@ The verifier loop is fail-closed:
 2. Confirm every required lane has a receipt path.
 3. Confirm every receipt file exists.
 4. Confirm every receipt has a verdict.
-5. Run required smoke/demo commands.
+5. Run required smoke/smoke commands.
 6. Mark missing files, missing commands, parse errors, stale exports, or failed checks as RED.
 7. Emit a verification report.
 
@@ -86,12 +86,12 @@ When a goal declares `operatorUpdateMinutes: 30`, the Orchestrator posts concise
 
 If no external chat integration is configured, the same update is written as a local receipt or status artifact so another surface can relay it.
 
-## Demo
+## Acceptance scenario
 
 Run:
 
 ```bash
-node examples/goal-loop-demo/run-goal-demo.js
+node examples/goal-loop-acceptance scenario/run-goal-acceptance scenario.js
 ```
 
-The demo creates a synthetic goal card, lane receipts, fail-closed verification report, and final synthesis under `examples/goal-loop-demo/out/`.
+The acceptance scenario creates a synthetic goal card, lane receipts, fail-closed verification report, and final synthesis under `examples/goal-loop-acceptance scenario/out/`.

@@ -19,7 +19,7 @@ const board = new BlackboardLedger({ ledgerPath });
 board.claimTask({
   agent: 'builder',
   taskId: 'task-001',
-  summary: 'Create a synthetic demo artifact.',
+  summary: 'Create a local acceptance scenario artifact.',
 });
 board.claimPath({
   agent: 'builder',

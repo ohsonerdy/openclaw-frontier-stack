@@ -17,13 +17,13 @@ A frontier agent framework must prove what happened. This trace model connects t
 
 ```json
 {
-  "traceId": "trace-demo-001",
+  "traceId": "trace-acceptance scenario-001",
   "rootTaskId": "task-1",
-  "userRequest": "Add a visible health endpoint to the demo app.",
+  "userRequest": "Add a visible health endpoint to the acceptance scenario app.",
   "envelopes": ["task-1", "task-2", "result-3"],
   "blackboardEvents": ["task-claim", "path-claim", "task-done"],
   "memoryHits": ["mem-001"],
-  "artifacts": ["out/demo-health-endpoint.patch"],
+  "artifacts": ["out/acceptance scenario-health-endpoint.patch"],
   "reviews": ["review-pass"],
   "decisions": ["APPROVE_RELEASE_CANDIDATE"],
   "finalSummary": "Synthetic coding swarm completed with traceable artifacts."
@@ -38,7 +38,7 @@ A frontier agent framework must prove what happened. This trace model connects t
 - Which artifacts were produced.
 - Which command or check verified the artifact.
 - Which reviewer/gate approved or blocked.
-- Whether any public upload occurred. For demos, this must be `false`.
+- Whether any public upload occurred. For acceptance scenarios, this must be `false`.
 
 ## What must not be included
 
@@ -51,32 +51,32 @@ A frontier agent framework must prove what happened. This trace model connects t
 
 ## MCP/tool-call trajectories
 
-MCP-shaped integrations add a narrower trajectory beneath the end-to-end trace. `src/integration-adapters/lib/mock-mcp-adapter.js` includes a production-safe `ToolTrajectoryLog` that records tool-call sequence, status, latency, sanitized artifact references, and a reliability score. It stores input/result shapes plus SHA-256 digests instead of raw payloads, and rejects URLs, IPs, home paths, private keys, and common token formats before exporting trajectory data.
+MCP-shaped integrations add a narrower trajectory beneath the end-to-end trace. `src/integration-adapters/lib/mock-mcp-adapter.js` includes a production-safe `ToolTrajectoryLog` that records tool-call sequence, status, latency, operator-safe artifact references, and a reliability score. It stores input/result shapes plus SHA-256 digests instead of raw payloads, and rejects URLs, IPs, home paths, private keys, and common token formats before exporting trajectory data.
 
-Use this for reference-package evidence such as: "the demo adapter called `knowledge.search`, then `artifact.summarize`, both succeeded, both returned synthetic artifacts, reliability scored high." Do not use it as a raw production transcript dump.
+Use this for reference-package evidence such as: "the acceptance scenario adapter called `knowledge.search`, then `artifact.summarize`, both succeeded, both returned synthetic artifacts, reliability scored high." Do not use it as a raw production transcript dump.
 
-## Demo artifacts
+## Acceptance scenario artifacts
 
-`examples/demo-swarm/run-demo.js` produces:
+`examples/acceptance scenario-swarm/run-acceptance scenario.js` produces:
 
 - `out/trace.json` — envelope + blackboard trace;
 - `out/summary.md` — human-readable summary;
-- `out/demo-health-endpoint.patch` — synthetic patch artifact.
+- `out/acceptance scenario-health-endpoint.patch` — synthetic patch artifact.
 
-`examples/memory-demo/run-memory-demo.js` produces:
+`examples/memory-acceptance scenario/run-memory-acceptance scenario.js` produces:
 
-- `out/memory-demo-result.json` — retrieval/CAG/compaction result;
+- `out/memory-acceptance scenario-result.json` — retrieval/CAG/compaction result;
 - `out/CAG-PRELOAD.example.md` — synthetic CAG preload;
 - `out/summary.md` — memory-layer summary.
 
-Generated `out/` directories are intentionally ignored by git. Reviewers should run the demos locally and inspect generated artifacts.
+Generated `out/` directories are intentionally ignored by git. Reviewers should run the acceptance scenarios locally and inspect generated artifacts.
 
 ## GitHub readiness gate
 
 Before public upload, the release packet must include:
 
-- trace demo verification output;
-- memory demo verification output;
+- trace acceptance scenario verification output;
+- memory acceptance scenario verification output;
 - scanner output;
 - 4/4 review decisions;
 - explicit owner upload approval.

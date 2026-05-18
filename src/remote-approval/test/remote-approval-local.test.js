@@ -14,7 +14,7 @@ const packet = approval.buildApprovalPacket({
     tests: [{ command: 'npm run verify', status: 'PASS' }],
   },
   diff: {
-    summary: 'Read-only approval packet for sanitized release candidate.',
+    summary: 'Read-only approval packet for operator-safe release candidate.',
     files: [{ path: 'src/demo-app.js', change: 'modified', additions: 12, deletions: 2 }],
     testCommand: 'npm run verify',
     testStatus: 'PASS',
@@ -23,14 +23,14 @@ const packet = approval.buildApprovalPacket({
     id: 'approval-demo-1',
     requester: 'orchestrator',
     reviewer: 'sentinel',
-    action: 'Approve sanitized package upload after operator confirmation.',
+    action: 'Approve operator-safe package upload after operator confirmation.',
     risk: 'medium',
   },
   decision: {
     reviewer: 'sentinel',
     decision: 'request_changes',
     rationale: 'Require explicit operator upload approval before any external effect.',
-    conditions: ['No publish from demo flow', 'Attach verifier receipt'],
+    conditions: ['No publish from verification flow', 'Attach verifier receipt'],
   },
 });
 

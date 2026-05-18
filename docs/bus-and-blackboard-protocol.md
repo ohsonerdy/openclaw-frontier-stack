@@ -1,6 +1,6 @@
 ﻿# Bus and blackboard protocol
 
-This document maps the runnable synthetic demo to the production-grade architecture pattern without exposing any live private runtime data.
+This document maps the runnable local acceptance scenario to the production-grade architecture pattern without exposing any live private runtime data.
 
 ## Design goal
 
@@ -18,7 +18,7 @@ Together they prevent isolated chatbot behavior and file-stomping during paralle
 
 The public framework defines these minimal envelope types (envelope schema `openclaw-frontier.envelope.v1`):
 
-| Type | Purpose | Demo example |
+| Type | Purpose | Acceptance scenario example |
 | --- | --- | --- |
 | `TASK` | Delegate work with a result contract. | Orchestrator asks Builder to create a patch artifact. |
 | `RESULT` | Return completed work and artifacts. | Builder returns patch path and digest. |
@@ -53,11 +53,11 @@ This is the closed set. Adding a new envelope type is a breaking change to
     "summary": "Create synthetic patch artifact",
     "expectedResult": ["artifact path", "digest", "notes"]
   },
-  "signature": "demo-signature"
+  "signature": "acceptance scenario-signature"
 }
 ```
 
-Production implementations should sign the canonical payload with an agent-specific key. The demo uses a fake local HMAC key only to show the shape.
+Production implementations should sign the canonical payload with an agent-specific key. The acceptance scenario uses a fake local HMAC key only to show the shape.
 
 ## Blackboard records
 
@@ -82,7 +82,7 @@ The blackboard must track at least:
   "kind": "path-claim",
   "agent": "builder",
   "taskId": "task-6",
-  "path": "src/demo-app.js",
+  "path": "src/acceptance scenario-app.js",
   "claimedAt": "2026-01-01T00:00:00.000Z"
 }
 ```
@@ -93,14 +93,14 @@ The blackboard must track at least:
 {
   "kind": "task-done",
   "taskId": "task-6",
-  "artifact": "out/demo-health-endpoint.patch",
+  "artifact": "out/acceptance scenario-health-endpoint.patch",
   "finishedAt": "2026-01-01T00:00:00.000Z"
 }
 ```
 
 ## JSONL ledger API
 
-The package includes a production-safe reference implementation at `src/blackboard/`.
+The package includes a production-safe production implementation at `src/blackboard/`.
 
 The ledger is append-only JSONL and records:
 
@@ -121,11 +121,11 @@ Before modifying a shared file, an agent must claim the path. A second agent att
 
 This is what makes the framework suitable for coding swarms instead of independent coding bots.
 
-## Demo-to-production mapping
+## Acceptance scenario-to-production mapping
 
-| Demo component | Production equivalent |
+| Acceptance scenario component | Production equivalent |
 | --- | --- |
-| `examples/demo-swarm/run-demo.js` in-memory bus | NATS/squad-bus transport |
+| `examples/acceptance scenario-swarm/run-acceptance scenario.js` in-memory bus | NATS/squad-bus transport |
 | fake HMAC signature | agent Ed25519 signature |
 | in-memory blackboard object | `src/blackboard` JSONL ledger or SQLite-backed equivalent |
 | synthetic memory array | RAG/vector/session memory index |
@@ -138,11 +138,11 @@ This is what makes the framework suitable for coding swarms instead of independe
 - Never include raw private transcripts or memory dumps in bus payloads.
 - Use artifact references instead of large payload bodies.
 - Human-facing alerts must summarize impact and action; do not dump raw JSON into chat.
-- Release decisions must distinguish demo approval from public upload approval.
+- Release decisions must distinguish acceptance scenario approval from public upload approval.
 
 ## Verification checklist
 
-A GitHub-ready package should demonstrate:
+A GitHub-ready package should acceptance scenarionstrate:
 
 - at least one TASKâ†’RESULT chain;
 - at least one path claim before a patch artifact;

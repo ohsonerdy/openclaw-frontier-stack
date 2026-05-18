@@ -7,7 +7,7 @@ const crypto = require('crypto');
 
 const root = path.resolve(__dirname, '..');
 const approvalPath = path.join(root, 'release-gate', 'owner-upload-approval.json');
-const manifestPath = path.join(root, 'release-gate', 'exports', 'clean-export-manifest.json');
+const manifestPath = path.join(root, 'release-gate', 'exports', 'release-manifest-manifest.json');
 
 function sha256(buf) { return crypto.createHash('sha256').update(buf).digest('hex'); }
 function readJson(p) { return JSON.parse(fs.readFileSync(p, 'utf8')); }

@@ -2,7 +2,7 @@
 
 Status: SHIP as a production-safe checklist. This is not an instruction to publish.
 
-Use this checklist only after the clean export has passed verification and the repository owner is ready to initialize a public repository. Do not copy live private repository configuration.
+Use this checklist only after the release manifest has passed verification and the repository owner is ready to initialize a public repository. Do not copy live private repository configuration.
 
 ## Before creating a repository
 
@@ -24,4 +24,4 @@ Use this checklist only after the clean export has passed verification and the r
 
 ## First public verification
 
-After repository initialization, rerun package verification from the fresh repository clone. Treat any difference from the clean export manifest as a release blocker.
+After repository initialization, rerun package verification from the fresh repository clone. Treat any difference from the release manifest manifest as a release blocker.

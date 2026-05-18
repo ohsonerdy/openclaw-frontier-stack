@@ -1,6 +1,6 @@
 # Security Policy
 
-OpenClaw Frontier Stack is designed around sanitized examples and explicit release gates.
+OpenClaw Frontier Stack is designed around operator-safe examples and explicit release gates.
 
 ## Reporting
 

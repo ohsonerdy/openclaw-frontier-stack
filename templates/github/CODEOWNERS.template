@@ -13,6 +13,6 @@
 /docs/ @OWNER_HANDLE @DOCS_REVIEWER_HANDLE
 /templates/ @OWNER_HANDLE @DOCS_REVIEWER_HANDLE
 
-# Reference implementations require architecture and security review.
+# Production implementations require architecture and security review.
 /src/ @OWNER_HANDLE @ARCHITECT_REVIEWER_HANDLE @SECURITY_REVIEWER_HANDLE
 /examples/ @OWNER_HANDLE @ARCHITECT_REVIEWER_HANDLE

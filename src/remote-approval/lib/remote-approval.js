@@ -51,7 +51,7 @@ function assertNoPrivateContent(value) {
   const text = stableStringify(value);
   for (const pattern of [...SECRET_PATTERNS, ...PRIVATE_PATH_PATTERNS]) {
     pattern.lastIndex = 0;
-    if (pattern.test(text)) throw new Error('remote approval payload contains unsanitized private content');
+    if (pattern.test(text)) throw new Error('remote approval payload contains unoperator-safe private content');
   }
 }
 

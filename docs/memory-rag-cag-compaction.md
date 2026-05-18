@@ -1,6 +1,6 @@
 # Memory, RAG, CAG, and compaction architecture
 
-This document describes the production-safe memory architecture for OpenClaw Frontier Stack. It uses synthetic examples only.
+This document describes the production-safe memory architecture for OpenClaw Frontier Stack. It uses local acceptance scenarios only.
 
 ## Design goal
 
@@ -11,11 +11,11 @@ Coding swarms need durable memory without dumping every prior turn into every pr
 | Layer | Purpose | Public package shape |
 | --- | --- | --- |
 | Session trace | Raw turn/tool history for debugging. | Synthetic trace examples only; no live transcripts. |
-| Working memory | Current task state and recent decisions. | Demo JSON/Markdown artifacts. |
+| Working memory | Current task state and recent decisions. | Acceptance scenario JSON/Markdown artifacts. |
 | Durable memory | Stable facts, decisions, patterns, and runbooks. | Synthetic Markdown corpus. |
-| Vector/RAG index | Semantic retrieval over durable docs. | Local toy index in demo script. |
+| Vector/RAG index | Semantic retrieval over durable docs. | Local deterministic local index in acceptance scenario script. |
 | CAG preload | Compiled high-value context loaded in stable order. | Synthetic `CAG-PRELOAD.example.md`. |
-| Compaction summary | Lossy summary that preserves decisions/artifacts. | Demo compaction output; no private text. |
+| Compaction summary | Lossy summary that preserves decisions/artifacts. | Acceptance scenario compaction output; no private text. |
 
 ## RAG retrieval contract
 
@@ -48,7 +48,7 @@ Rules:
 - bounded size;
 - no raw private transcripts;
 - no tool-output spam;
-- regenerated from sanitized durable memory;
+- regenerated from operator-safe durable memory;
 - versioned with a hash.
 
 Example:
@@ -91,16 +91,16 @@ Raw events become durable memory only if they pass at least one of:
 - validated architecture fact;
 - release/security constraint.
 
-A promotion must include source id, timestamp, and confidence. If the source contains private data, promote only the sanitized claim, not the raw source.
+A promotion must include source id, timestamp, and confidence. If the source contains private data, promote only the operator-safe claim, not the raw source.
 
-## Demo mapping
+## Acceptance scenario mapping
 
-The package includes `examples/memory-demo/run-memory-demo.js`, which demonstrates:
+The package includes `examples/memory-acceptance scenario/run-memory-acceptance scenario.js`, which acceptance scenarionstrates:
 
 - synthetic durable memory corpus;
-- toy semantic scoring;
+- minimal deterministic semantic scoring;
 - CAG preload generation;
 - compaction of a noisy task trace;
 - promotion filter that accepts durable claims and rejects chat filler.
 
-This is intentionally lightweight; production systems can replace the toy scorer with sqlite-vec, pgvector, local embeddings, or a managed vector database.
+This is intentionally lightweight; production systems can replace the deterministic scorer with sqlite-vec, pgvector, local embeddings, or a managed vector database.

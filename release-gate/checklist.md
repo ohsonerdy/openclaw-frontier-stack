@@ -4,7 +4,7 @@ Status: draft checklist for future release candidate. This is not an approval.
 
 ## Package evidence
 
-- [ ] Package root is clean-room/sanitized, not live runtime dump.
+- [ ] Package root is clean-room/operator-safe, not live runtime dump.
 - [ ] README explains OpenClaw Frontier Stack professionally.
 - [ ] Architecture docs present:
   - [ ] release scope
@@ -14,30 +14,30 @@ Status: draft checklist for future release candidate. This is not an approval.
   - [ ] end-to-end trace model
   - [ ] Mission Control control plane
   - [ ] Sentinel release gate
-- [ ] Synthetic demos present:
-  - [ ] demo-swarm
-  - [ ] memory-demo
-  - [ ] Mission Control demo board
+- [ ] Local acceptance scenarios present:
+  - [ ] swarm acceptance scenario
+  - [ ] memory acceptance scenario
+  - [ ] Mission Control local board fixture
 - [ ] JSONL blackboard ledger test passes.
-- [ ] Generated demo outputs are gitignored or regenerated during verification.
+- [ ] Generated scenario outputs are gitignored or regenerated during verification.
 
 ## Verification commands
 
 Run from package root or workspace root:
 
 ```bash
-node ./examples/demo-swarm/run-demo.js
+node ./examples/swarm acceptance scenario/run-demo.js
 node ./src/blackboard/test/blackboard-local.test.js
-node ./examples/memory-demo/run-memory-demo.js
+node ./examples/memory acceptance scenario/run-memory acceptance scenario.js
 python3 -m json.tool ./examples/mission-control-demo/board.json >/tmp/board.pretty.json
 python3 -m json.tool ./examples/mission-control-demo/writeback-intent.example.json >/tmp/intent.pretty.json
 ```
 
 Expected minimum:
 
-- demo-swarm: `ok: true`, 12 envelopes, 6 tasks, 1 path claim, `APPROVE_RELEASE_CANDIDATE`.
+- swarm acceptance scenario: `ok: true`, 12 envelopes, 6 tasks, 1 path claim, `APPROVE_RELEASE_CANDIDATE`.
 - blackboard ledger: `ok: true`, collision rejected, unsafe paths rejected, JSONL parsed.
-- memory-demo: `ok: true`, synthetic retrieval hit(s), CAG hash, compaction summary, accepted promotions.
+- memory acceptance scenario: `ok: true`, synthetic retrieval hit(s), CAG hash, compaction summary, accepted promotions.
 - Mission Control JSON validates.
 
 ## Exclusion scan

@@ -29,7 +29,7 @@ A task can wait on a person, child agent, external system, or release gate. Wait
   "owner": "builder",
   "parentTaskId": "task-root-001",
   "status": "running",
-  "summary": "Implement demo health endpoint",
+  "summary": "Implement acceptance scenario health endpoint",
   "resultContract": {
     "required": ["summary", "artifact", "verification", "blockers"],
     "artifactTypes": ["patch", "test-output", "trace"]
@@ -51,14 +51,14 @@ Every non-trivial TASK must end with a RESULT or an explicit blocker.
   "summary": "Added synthetic health endpoint patch.",
   "artifacts": [
     {
-      "path": "out/demo-health-endpoint.patch",
+      "path": "out/acceptance scenario-health-endpoint.patch",
       "sha256": "...",
       "kind": "patch"
     }
   ],
   "verification": [
     {
-      "command": "node examples/demo-swarm/run-demo.js",
+      "command": "node examples/acceptance scenario-swarm/run-acceptance scenario.js",
       "ok": true,
       "summary": "12 envelopes, 6 tasks, 1 path claim"
     }
@@ -79,7 +79,7 @@ A blocker must be exact and actionable.
   "blockedOn": "missing-reviewer-approval",
   "neededFrom": "reviewer",
   "safeToRetry": true,
-  "details": "Reviewer RESULT is missing for artifact out/demo-health-endpoint.patch."
+  "details": "Reviewer RESULT is missing for artifact out/acceptance scenario-health-endpoint.patch."
 }
 ```
 
@@ -113,7 +113,7 @@ Tasks should be safe to retry when possible. Result artifacts need stable ids or
 
 ## Public package requirement
 
-The GitHub-ready package must include at least one runnable flow that demonstrates:
+The GitHub-ready package must include at least one runnable flow that acceptance scenarionstrates:
 
 - parent task;
 - child tasks;
@@ -124,4 +124,4 @@ The GitHub-ready package must include at least one runnable flow that demonstrat
 - Sentinel decision;
 - final Orchestrator synthesis.
 
-The demo-swarm example currently satisfies the first runnable version of this requirement.
+The acceptance scenario-swarm example currently satisfies the first runnable version of this requirement.

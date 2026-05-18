@@ -47,9 +47,9 @@ Skill Forge uses a registry to make skills discoverable without loading every sk
   "skills": [
     {
       "name": "inspect-artifact",
-      "path": "demo-skills/inspect-artifact/SKILL.md",
+      "path": "acceptance scenario-skills/inspect-artifact/SKILL.md",
       "description": "Inspect a local artifact and produce a safe summary.",
-      "safety": "local-only synthetic demo"
+      "safety": "local-only local acceptance scenario"
     }
   ]
 }
@@ -63,13 +63,13 @@ Skill Forge uses a registry to make skills discoverable without loading every sk
 - Skills should state whether they are read-only, local-only, or capable of mutation.
 - Skills that can mutate files must require path claims or explicit approval in the orchestration layer.
 
-## Demo skill
+## Acceptance scenario skill
 
-The package includes a safe demo skill:
+The package includes a safe acceptance scenario skill:
 
-`src/skill-forge/demo-skills/inspect-artifact/`
+`src/skill-forge/acceptance scenario-skills/inspect-artifact/`
 
-It demonstrates:
+It acceptance scenarionstrates:
 
 - minimal `SKILL.md` metadata;
 - a deterministic helper script;

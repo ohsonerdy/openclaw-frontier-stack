@@ -24,7 +24,7 @@ SHIP/SANITIZE:
 - synthetic board data;
 - adapter docs for converting bus/blackboard state into cards;
 - dry-run writeback intent shape;
-- demo card set for Orchestrator, Architect, Scout, Builder, Reviewer, Sentinel.
+- acceptance scenario card set for Orchestrator, Architect, Scout, Builder, Reviewer, Sentinel.
 
 EXCLUDE:
 
@@ -53,11 +53,11 @@ EXCLUDE:
     {
       "id": "card-builder-health-endpoint",
       "lane": "active",
-      "title": "Builder: demo health endpoint",
+      "title": "Builder: acceptance scenario health endpoint",
       "owner": "builder",
       "taskId": "task-6",
-      "claims": ["src/demo-app.js"],
-      "artifacts": ["out/demo-health-endpoint.patch"],
+      "claims": ["src/acceptance scenario-app.js"],
+      "artifacts": ["out/acceptance scenario-health-endpoint.patch"],
       "status": "done"
     }
   ]
@@ -86,7 +86,7 @@ Mission Control may produce an intent object instead of directly mutating the bu
 }
 ```
 
-## Demo story
+## Acceptance scenario story
 
 1. Orchestrator decomposes the request.
 2. Architect, Scout, Builder, Reviewer, and Sentinel cards appear on the board.
@@ -98,4 +98,4 @@ Mission Control may produce an intent object instead of directly mutating the bu
 
 ## GitHub readiness requirement
 
-Before public release, Mission Control materials must use only synthetic demo data and pass the release gate. Any real board export must be rejected unless it is transformed and scanned into this schema with private fields removed.
+Before public release, Mission Control materials must use only local acceptance scenario data and pass the release gate. Any real board export must be rejected unless it is transformed and scanned into this schema with private fields removed.

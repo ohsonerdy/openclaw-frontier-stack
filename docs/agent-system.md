@@ -10,9 +10,9 @@ OpenClaw Frontier Stack models an engineering squad as role agents coordinated b
 | Architect | Designs boundaries, plans task decomposition, identifies risks. | Docs/plans. | Architecture receipt. |
 | Builder | Implements code/config/docs changes inside claimed paths. | Yes, internal reversible writes. | Implementation receipt. |
 | Docs | Produces engineer-facing setup, operation, and smoke-path docs. | Docs. | Documentation receipt. |
-| Verifier | Runs tests, smoke demos, and fail-closed file checks. | Reports only. | Verification receipt. |
+| Verifier | Runs tests, smoke acceptance scenarios, and fail-closed file checks. | Reports only. | Verification receipt. |
 | Sentinel | Reviews privacy, safety, secrets, and release authority. | Reports/gates only. | Security/release gate receipt. |
-| Release Manager | Builds clean export, manifest, release notes, and packaging packet. | Release artifacts. | Packaging receipt. |
+| Release Manager | Builds release manifest, manifest, release notes, and packaging packet. | Release artifacts. | Packaging receipt. |
 
 ## Launch/setup instructions
 
@@ -21,16 +21,16 @@ OpenClaw Frontier Stack models an engineering squad as role agents coordinated b
 3. Run the production smoke path:
 
 ```bash
-node examples/goal-loop-demo/run-goal-demo.js
-node examples/demo-swarm/run-demo.js
+node examples/goal-loop-acceptance scenario/run-goal-acceptance scenario.js
+node examples/acceptance scenario-swarm/run-acceptance scenario.js
 node scripts/verify-package.js
 ```
 
 4. Inspect generated reports:
 
 ```text
-examples/goal-loop-demo/out/verification-report.json
-examples/goal-loop-demo/out/final-synthesis.md
+examples/goal-loop-acceptance scenario/out/verification-report.json
+examples/goal-loop-acceptance scenario/out/final-synthesis.md
 release-gate/reports/latest-verification.json
 ```
 
@@ -43,7 +43,7 @@ release-gate/reports/latest-verification.json
 5. Docs updates setup and usage docs.
 6. Verifier runs smoke and package checks.
 7. Sentinel reviews release safety and publication authority.
-8. Release Manager creates clean export / release packet.
+8. Release Manager creates release manifest / release packet.
 9. Orchestrator synthesizes exactly what shipped, what was verified, and what remains red.
 
 ## Cross-agent coordination model
@@ -65,16 +65,16 @@ Verifier must fail closed on:
 - missing receipt path
 - missing receipt file
 - missing verdict
-- stale or ungenerated clean export
-- failed smoke/demo command
+- stale or ungenerated release manifest
+- failed smoke/acceptance scenario command
 - private-content scanner hit
 - unbound final approval for external/public release
 
-## Production smoke/demo path
+## Production smoke/acceptance scenario path
 
 The release ships two local-only smoke paths:
 
-- `examples/goal-loop-demo/run-goal-demo.js` proves `/goal` card → receipts → verifier → synthesis.
-- `examples/demo-swarm/run-demo.js` proves Orchestrator → Architect/Scout/Builder/Reviewer/Sentinel coordination.
+- `examples/goal-loop-acceptance scenario/run-goal-acceptance scenario.js` proves `/goal` card → receipts → verifier → synthesis.
+- `examples/acceptance scenario-swarm/run-acceptance scenario.js` proves Orchestrator → Architect/Scout/Builder/Reviewer/Sentinel coordination.
 
 Both are synthetic and local-only. They do not require credentials or external services.

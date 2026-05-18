@@ -38,7 +38,7 @@ if (!fs.existsSync(full)) {
 const ok = findings.length === 0;
 
 // Demo outputs are allowed to exist locally only if git itself ignores them.
-// .gitignore and create-clean-export.js own export filtering; this verifier only catches unignored local outputs.
+// .gitignore and create-release-manifest.js own export filtering; this verifier only catches unignored local outputs.
 for (const out of ['examples/demo-swarm/out', 'examples/memory-demo/out', 'examples/goal-loop-demo/out']) {
   if (fs.existsSync(path.join(root, out))) {
     try {

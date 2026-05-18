@@ -1,15 +1,19 @@
 # OpenClaw Frontier Stack Status
 
-Status: published production release.
+Status: published production source package.
 
-Current public package state is defined by this file. Other release records are historical unless they explicitly say they are current.
+This repository is the canonical public source for the OpenClaw Frontier Stack. New tagged releases, package-registry publishes, hosted deployments, external announcements, or customer-specific deployments require fresh target-bound approval and readback.
 
 ## Current gates
 
-- Package verification: `npm test` / `npm run verify` checks package integrity only.
-- Private-content gate: `release-gate/scripts/sentinel-gate.js` must pass before public release work.
-- Upload/owner approval: separate from package verification; see `npm run verify:owner-approval` when an external upload approval packet is being prepared.
+- Local package verifier: `npm run verify`
+- Public-surface harness: `npm run verify:public-surface`
+- GitHub API readback: `npm run verify:github-readback`
+- Private content scan: included in `npm run verify`
+- Git history scan: `npm run verify:history`
 
 ## Public-surface rule
 
-This repository is product documentation and source, not an incident archive. Internal incident receipts, reviewer chatter, stale packets, generated reports, scratch exports, and private operational evidence belong outside the public tree.
+The public tree must look like a product source repository, not an incident archive. Internal receipts, reviewer chatter, stale packets, generated reports, scratch exports, and private operational evidence belong outside the public tree.
+
+Public release approval requires both API readback and browser readback because GitHub's sidebar contributor cache can diverge from the commit/contributors APIs.

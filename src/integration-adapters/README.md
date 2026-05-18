@@ -2,7 +2,7 @@
 
 Production-safe external integration examples for OpenClaw Frontier Stack.
 
-The package ships a single reference implementation: a mock MCP-style adapter that demonstrates controlled tool discovery and tool calls without real endpoints, credentials, network access, or private service names. No live integrations (Slack, Telegram, Notion, GitHub, etc.) are shipped or wired in this package; this surface exists so consumers can build their own adapters against a stable contract.
+The package ships a single production implementation: a MCP-compatible local test-style adapter that demonstrates controlled tool discovery and tool calls without real endpoints, credentials, network access, or private service names. No live integrations (Slack, Telegram, Notion, GitHub, etc.) are shipped or wired in this package; this surface exists so consumers can build their own adapters against a stable contract.
 
 ## Run test
 
@@ -18,7 +18,7 @@ The reference adapter exports the following surface from `lib/mock-mcp-adapter.j
 - `MockMcpAdapter` — class with `registerTool(name, handler)`, `listTools()`, `callTool(name, input)`, and `getToolTrajectory()`.
 - `ToolTrajectoryLog` — production-safe MCP/tool-call trajectory recorder.
 - `scoreToolTrajectory(records)` — deterministic reliability scorer for recorded tool-call trajectories.
-- `createDemoAdapter()` — factory wiring two synthetic demo tools.
+- `createDemoAdapter()` — factory wiring two local acceptance scenario tools.
 - `IntegrationAdapterError` — thrown for validation, unknown-tool, and production-safety violations. Carries `code = 'INTEGRATION_ADAPTER_VALIDATION'` and a `details` object.
 
 Tool names must match `/^[a-z][a-z0-9_.-]*$/` (lowercase, simple). Input is shallow-frozen before being passed to handlers.
@@ -42,7 +42,7 @@ Every `MockMcpAdapter` instance owns a `ToolTrajectoryLog` unless a caller passe
 - result status (`ok` or `error`);
 - latency in milliseconds;
 - input and result *shapes* plus SHA-256 digests, not raw payload text;
-- sanitized artifact references returned from `result.artifacts`;
+- operator-safe artifact references returned from `result.artifacts`;
 - a reliability score derived from success rate, latency health, artifact coverage, and sequence integrity.
 
 Example:

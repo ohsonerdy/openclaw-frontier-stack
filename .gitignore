@@ -10,3 +10,5 @@ release-gate/artifacts/
 !.env.example
 
 node_modules/
+release-gate/exports/
+release-gate/reports/

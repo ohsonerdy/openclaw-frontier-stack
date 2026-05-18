@@ -1,4 +1,4 @@
-# Demo flow: coding swarm with shared state
+# Verification flow: coding swarm with shared state
 
 This synthetic flow is the first runnable story the package should support.
 
@@ -13,7 +13,7 @@ This synthetic flow is the first runnable story the package should support.
 
 ## Flow
 
-1. User asks Orchestrator to add a small feature to the demo app.
+1. User asks Orchestrator to add a small feature to the acceptance scenario app.
 2. Orchestrator writes a TASK envelope for Architect.
 3. Architect returns a plan RESULT with file targets.
 4. Orchestrator creates Builder and Scout tasks.
@@ -39,4 +39,4 @@ This synthetic flow is the first runnable story the package should support.
 - No real user data.
 - No real external service credentials.
 - No live private workspace paths.
-- No public push from the demo itself.
+- No public push from the acceptance scenario itself.

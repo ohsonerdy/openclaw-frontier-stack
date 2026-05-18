@@ -3,7 +3,7 @@
 const fs=require('fs'); const cp=require('child_process'); const crypto=require('crypto'); const path=require('path');
 function sh(cmd){return cp.execSync(cmd,{encoding:'utf8'}).trim()}
 const root=process.cwd();
-const manifestPath=path.join(root,'release-gate','exports','clean-export-manifest.json');
+const manifestPath=path.join(root,'release-gate','exports','release-manifest-manifest.json');
 const reportPath=path.join(root,'release-gate','reports','latest-verification.json');
 const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));
 const report=JSON.parse(fs.readFileSync(reportPath,'utf8'));
@@ -24,7 +24,7 @@ const pkt={
   verifier:{path:'release-gate/reports/latest-verification.json',ok:failed.length===0,checks:(report.checks||[]).length,failed:failed.map(c=>c.name),privateContentFindings:((report.checks||[]).find(c=>c.name==='private-content-scan')||{}).findings},
   preflight:{path:'scripts/release-preflight.js',configurablePrivateDenylist:'PRIVATE_DENYLIST_CSV'},
   forbiddenActions:'No credential mutation, service restart, purge/delete, force push, or public publish performed by packet generation.',
-  next:'Run release preflight on exact clean export, stage exact export in temp repo, verify git identity, push only if public readback matches.'
+  next:'Run release preflight on exact release manifest, stage exact export in temp repo, verify git identity, push only if public readback matches.'
 };
 fs.mkdirSync(path.join(root,'release-gate','evidence'),{recursive:true});
 fs.writeFileSync(path.join(root,'release-gate','evidence','github-ship-packet.current.json'),JSON.stringify(pkt,null,2)+'\n');

@@ -13,4 +13,4 @@ labels: bug
 
 ## Verification output
 
-Paste sanitized output from local package commands only. Do not include credentials, private hostnames/IPs, private paths, logs, memories, transcripts, vector stores, backups, or chat IDs.
+Paste operator-safe output from local package commands only. Do not include credentials, private hostnames/IPs, private paths, logs, memories, transcripts, vector stores, backups, or chat IDs.

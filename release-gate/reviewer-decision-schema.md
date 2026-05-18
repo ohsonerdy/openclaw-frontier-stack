@@ -7,7 +7,7 @@ Reviewer decision records are YAML files stored under `release-gate/reviewer-dec
 ## Required top-level fields
 
 - `reviewer` — one of `Architecture`, `Security`, `Operations`, or `Release`.
-- `version` — clean export candidate version under review.
+- `version` — release manifest candidate version under review.
 - `decision` — one of `APPROVE_RELEASE_CANDIDATE`, `APPROVE_RELEASE_CANDIDATE`, or `BLOCK`.
 - `reviewed_at` — UTC timestamp for the decision.
 - `evidence` — one or more package-relative evidence paths with notes.
@@ -18,7 +18,7 @@ Reviewer decision records are YAML files stored under `release-gate/reviewer-dec
 ## Decision meaning
 
 - `APPROVE_RELEASE_CANDIDATE`: reviewer accepts the candidate for owner upload approval, subject to all other gates.
-- `APPROVE_RELEASE_CANDIDATE`: reviewer accepts the candidate as a sanitized production/reference package only.
+- `APPROVE_RELEASE_CANDIDATE`: reviewer accepts the candidate as a operator-safe production/production package only.
 - `BLOCK`: reviewer found a release blocker that must be resolved and re-reviewed.
 
 ## Privacy constraints

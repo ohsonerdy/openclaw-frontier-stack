@@ -1,11 +1,11 @@
 id: orchestrator
 role: orchestrator
 model: example/provider-model
-workspace: ./workspace/demo
+workspace: ./workspace/prod
 permissions:
   tools:
     - read
-    - write_demo_artifact
+    - write_prod_artifact
     - bus_send
     - blackboard_claim
     - memory_search
@@ -18,4 +18,4 @@ responsibilities:
   - synthesize traceable outcomes
 privacy:
   live_memory: false
-  synthetic_demo_data_only: true
+  synthetic_prod_data_only: true

@@ -10,7 +10,7 @@ const artifactsDir = path.join(root, 'release-gate', 'artifacts');
 const cleanExportRoot = path.join(root, 'release-gate', 'exports', 'openclaw-frontier-stack-clean');
 fs.mkdirSync(artifactsDir, { recursive: true });
 
-execFileSync(process.execPath, [path.join(root, 'release-gate', 'scripts', 'create-clean-export.js')], {
+execFileSync(process.execPath, [path.join(root, 'release-gate', 'scripts', 'create-release-manifest.js')], {
   cwd: root,
   stdio: ['ignore', 'ignore', 'pipe'],
   timeout: 60000,

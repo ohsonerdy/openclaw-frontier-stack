@@ -4,7 +4,7 @@ Status: draft only. Do not publish these notes until all release gates pass and 
 
 ## OpenClaw Frontier Stack clean architecture package
 
-This candidate packages a sanitized OpenClaw full-stack architecture reference for multi-agent coding swarms:
+This candidate packages a operator-safe OpenClaw full-stack architecture reference for multi-agent coding swarms:
 
 - Orchestrator-led with role-specialized agents.
 - Signed bus envelopes and production-safe NATS/JetStream reference boundary.
@@ -12,8 +12,8 @@ This candidate packages a sanitized OpenClaw full-stack architecture reference f
 - TaskFlow runtime patterns for detached/resumable work.
 - RAG/CAG/compaction memory adapters using synthetic data only.
 - Skill Forge and mock integration adapter examples.
-- Mission Control sidecar/control-plane demo with dry-run writeback only.
-- Release gates, reviewer matrix, clean export, GitHub hygiene templates, evidence index, export parity, and MIT license (root `LICENSE` committed).
+- Mission Control sidecar/control-plane acceptance scenario with dry-run writeback only.
+- Release gates, reviewer matrix, release manifest, GitHub hygiene templates, evidence index, export parity, and MIT license (root `LICENSE` committed).
 
 ## Verification summary
 
@@ -27,9 +27,9 @@ node scripts/verify-package.js
 The current expected state is blocked, not publishable:
 
 - Package verifier: expected to pass.
-- Clean export: expected to pass.
+- Release manifest: expected to pass.
 - Private-content scan: expected zero findings.
-- Reviewer gate: cleared (Architecture, Security, Operations, and Release all APPROVE_RELEASE_CANDIDATE at v20260512-0203-clean-export).
+- Reviewer gate: cleared (Architecture, Security, Operations, and Release all APPROVE_RELEASE_CANDIDATE at v20260512-0203-release-manifest).
 - License gate: cleared (MIT, root `LICENSE` present).
 - Upload gate: blocked until the owner explicitly approves publication.
 

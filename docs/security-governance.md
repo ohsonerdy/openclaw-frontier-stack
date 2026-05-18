@@ -1,6 +1,6 @@
 # Security and governance lane
 
-Status: SHIP as a production-safe eval, demo, and policy lane.
+Status: SHIP as a production-safe eval, acceptance scenario, and policy lane.
 
 Lane id: `FR-SECURITY-GOV-001`
 
@@ -19,10 +19,10 @@ The lane proves that a maintainer can reason about four governance surfaces with
 
 The package must document secret handling as policy, not as data. Acceptable examples include:
 
-- placeholder vault references such as `vault://frontier-demo/signing-key`;
+- operator-supplied signing references such as `SecretRef: FRONTIER_SIGNING_KEY`;
 - fake bus endpoints such as `nats://bus.example.invalid:4222`;
 - synthetic fingerprints such as `SHA256:placeholder`;
-- local-only demo keys that are clearly marked as non-production fixtures.
+- local-only acceptance scenario keys that are clearly marked as non-production fixtures.
 
 The package must not include live credentials, private key blocks, OAuth files, registry tokens, personal paths, private hostnames, private IP addresses, raw logs, or runtime databases. Any real vault lookup, credential movement, or key rotation must stay outside this package and require operator action in the private runtime.
 
@@ -46,7 +46,7 @@ High-risk operations require both role separation and hardware separation before
 - no approval from a denied role;
 - an approval reason bound to the candidate action.
 
-Public demo examples should use generic identities such as `sentinel-reviewer` on `host-a` and `release-reviewer` on `host-b`. They must not name private machines, accounts, or chat channels.
+Public acceptance scenario examples should use generic identities such as `sentinel-reviewer` on `host-a` and `release-reviewer` on `host-b`. They must not name private machines, accounts, or chat channels.
 
 ## Approval gates
 
@@ -63,7 +63,7 @@ The release path remains fail-closed. Passing automated checks does not authoriz
 
 ## Incident deductions
 
-Security incidents reduce the maturity score even when the package remains demo-safe. The local eval models deductions without using real incidents:
+Security incidents reduce the maturity score even when the package remains acceptance scenario-safe. The local eval models deductions without using real incidents:
 
 - critical open incident: block release;
 - high-severity resolved incident: subtract 20 points;
@@ -73,7 +73,7 @@ Security incidents reduce the maturity score even when the package remains demo-
 
 The score is a release-readiness signal, not an authorization. Publication still requires the approval gates above.
 
-## Demo command
+## Acceptance scenario command
 
 Run from the package root:
 

@@ -26,8 +26,8 @@ jobs:
           node-version: "22"
       - name: Install package metadata
         run: npm install --ignore-scripts
-      - name: Run demos
-        run: npm run demo
+      - name: Run acceptance scenarios
+        run: npm run acceptance scenario
       - name: Run package verifier
         run: npm run verify
       - name: Run full git history private-content scan

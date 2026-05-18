@@ -19,7 +19,7 @@ const requiredPhrases = new Map([
   ['docs/github-repository-hygiene.md', ['human upload approval', 'readyForGithubUpload', 'Do not copy private repository settings']],
   ['templates/github/CONTRIBUTING.md', ['node scripts/verify-package.js', 'Keep examples synthetic', 'Do not include credentials']],
   ['templates/github/SECURITY.md', ['Never open an issue or pull request containing live credentials', 'rotate it outside this repository']],
-  ['templates/github/pull_request_template.md', ['No credentials', 'Examples are synthetic and local-only', 'clean-export scope']],
+  ['templates/github/pull_request_template.md', ['No credentials', 'Examples are synthetic and local-only', 'release-manifest scope']],
   ['templates/github/ISSUE_TEMPLATE/bug_report.md', ['Do not include credentials', 'private hostnames/IPs']],
 ]);
 

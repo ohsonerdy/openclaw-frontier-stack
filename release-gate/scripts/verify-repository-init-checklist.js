@@ -13,7 +13,7 @@ const requiredPhrases = [
   '`readyForGithubUpload` is `true`',
   'owner has explicitly approved upload/publication',
   'Initialize from `release-gate/exports/openclaw-frontier-stack-clean`',
-  'Treat any difference from the clean export manifest as a release blocker',
+  'Treat any difference from the release manifest manifest as a release blocker',
 ];
 const deniedPatterns = [
   ['home-path', /\/Users\/[A-Za-z0-9._-]+|[A-Za-z]:\\Users\\[A-Za-z0-9._-]+/],

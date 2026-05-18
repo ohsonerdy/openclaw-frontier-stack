@@ -21,7 +21,7 @@ This spec is synthetic and portable. It must not include private hostnames, IP a
 | `agent` | A synthetic or live agent identity. |
 | `capability` | A reusable subsystem such as signed bus, blackboard, taskflow, memory, integration adapter, skill forge, communication plane, or graph. |
 | `task` | A unit of work or backlog item. |
-| `artifact` | A doc, template, report, demo, verifier, or release evidence file. |
+| `artifact` | A doc, template, report, acceptance scenario, verifier, or release evidence file. |
 | `review` | Reviewer decision or approval packet. |
 | `channel` | Human-facing or machine-facing communication plane. |
 | `release` | A package/export/release candidate. |

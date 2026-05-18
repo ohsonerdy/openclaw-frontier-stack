@@ -12,7 +12,7 @@ const requiredHeadings = [
   '## Start here',
   '## Architecture',
   '## Runtime subsystems',
-  '## Demos and examples',
+  '## Acceptance scenarios and examples',
   '## Release gate',
   '## Upload blockers',
   '## Maintenance rule',

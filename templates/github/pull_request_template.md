@@ -12,7 +12,7 @@
 
 - [ ] No credentials, OAuth state, tokens, private hostnames/IPs, private paths, chat IDs, logs, memories, transcripts, vector stores, backups, client context, or personal context.
 - [ ] Examples are synthetic and local-only.
-- [ ] Any new exportable files are covered by clean-export scope or intentionally excluded.
+- [ ] Any new exportable files are covered by release-manifest scope or intentionally excluded.
 
 ## Remaining blocker
 

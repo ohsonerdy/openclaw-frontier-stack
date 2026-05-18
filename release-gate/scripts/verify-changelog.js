@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, '..', '..');
 const rel = 'CHANGELOG.md';
 const full = path.join(root, rel);
 const requiredPhrases = [
-  'sanitized OpenClaw Frontier Stack package only',
+  'operator-safe OpenClaw Frontier Stack package only',
   'Status: published production release',
   'Run `node scripts/verify-package.js`',
   'Current expected release status is published',

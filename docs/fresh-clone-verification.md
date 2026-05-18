@@ -2,7 +2,7 @@
 
 Status: SHIP as production-safe verification guidance.
 
-Before any GitHub publication, reviewers should verify the clean export as if it were a fresh repository clone. This catches hidden dependencies on the private workspace and confirms the package can stand alone.
+Before any GitHub publication, reviewers should verify the release manifest as if it were a fresh repository clone. This catches hidden dependencies on the private workspace and confirms the package can stand alone.
 
 ## Procedure
 

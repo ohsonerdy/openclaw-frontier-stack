@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..', '..');
 const exportRoot = path.join(root, 'release-gate', 'exports', 'openclaw-frontier-stack-clean');
 const findings = [];
 
-if (!fs.existsSync(exportRoot)) findings.push({ issue: 'missing-clean-export', path: 'release-gate/exports/openclaw-frontier-stack-clean' });
+if (!fs.existsSync(exportRoot)) findings.push({ issue: 'missing-release-manifest', path: 'release-gate/exports/openclaw-frontier-stack-clean' });
 
 let tempRoot = null;
 let verification = null;

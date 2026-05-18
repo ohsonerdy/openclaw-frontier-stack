@@ -7,7 +7,7 @@ const crypto = require('crypto');
 
 const root = path.resolve(__dirname, '..', '..');
 const exportRoot = path.join(root, 'release-gate', 'exports', 'openclaw-frontier-stack-clean');
-const manifestPath = path.join(root, 'release-gate', 'exports', 'clean-export-manifest.json');
+const manifestPath = path.join(root, 'release-gate', 'exports', 'release-manifest-manifest.json');
 
 function sha256(buf) {
   return crypto.createHash('sha256').update(buf).digest('hex');
@@ -27,7 +27,7 @@ function walk(dir, base = dir) {
 }
 
 const findings = [];
-if (!fs.existsSync(manifestPath)) findings.push({ issue: 'missing-manifest', path: 'release-gate/exports/clean-export-manifest.json' });
+if (!fs.existsSync(manifestPath)) findings.push({ issue: 'missing-manifest', path: 'release-gate/exports/release-manifest-manifest.json' });
 if (!fs.existsSync(exportRoot)) findings.push({ issue: 'missing-export-root', path: 'release-gate/exports/openclaw-frontier-stack-clean' });
 
 let manifest = null;
@@ -82,7 +82,7 @@ if (findings.length === 0) {
 
 const ok = findings.length === 0;
 console.log(JSON.stringify({
-  schema: 'openclaw-frontier.clean-export-parity.v1',
+  schema: 'openclaw-frontier.release-manifest-parity.v1',
   ok,
   exportPath: 'release-gate/exports/openclaw-frontier-stack-clean',
   fileCount: manifest ? manifest.fileCount : 0,

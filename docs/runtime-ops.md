@@ -1,6 +1,6 @@
 # Runtime operations templates
 
-OpenClaw Frontier Stack treats long-running agents, listeners, and control-plane adapters as supervised services. The package ships templates only: operators must replace placeholder paths, users, ports, and environment files before use.
+OpenClaw Frontier Stack treats long-running agents, listeners, and control-plane adapters as supervised services. The package ships deployable templates with operator-supplied configuration: operators must replace placeholder paths, users, ports, and environment files before use.
 
 ## Principles
 

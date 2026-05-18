@@ -1,6 +1,6 @@
-# Signed bus reference implementation
+# Signed bus production implementation
 
-This is the sanitized NATS/JetStream signed-envelope bus from the OpenClaw Frontier Stack.
+This is the operator-safe NATS/JetStream signed-envelope bus from the OpenClaw Frontier Stack.
 
 It provides:
 

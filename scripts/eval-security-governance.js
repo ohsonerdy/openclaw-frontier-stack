@@ -15,7 +15,7 @@ const artifacts = [
 
 const requiredPhrases = [
   'FR-SECURITY-GOV-001',
-  'vault://frontier-demo/signing-key',
+  'SecretRef: FRONTIER_SIGNING_KEY',
   'No-public-secrets guard',
   'two-agent/two-hardware',
   'Approval gates',

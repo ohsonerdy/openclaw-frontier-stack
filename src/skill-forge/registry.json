@@ -5,7 +5,7 @@
     {
       "name": "inspect-artifact",
       "path": "demo-skills/inspect-artifact/SKILL.md",
-      "description": "Inspect a local artifact and report size, hash, and a safe text preview for synthetic demo files.",
+      "description": "Inspect a local artifact and report size, hash, and a safe text preview for local acceptance scenario files.",
       "safety": "read-only local demo; no network; no private paths"
     }
   ]

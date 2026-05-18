@@ -12,8 +12,8 @@
 
 ## SANITIZE before shipping
 
-- Mission Control UI: ship shell + synthetic board/demo data + dry-run writeback only.
-- Skill Forge/tool backends: ship pluggable interface and safe demo tools; no private model assets or personal prompts.
+- Mission Control UI: ship shell + synthetic board/acceptance scenario data + dry-run writeback only.
+- Skill Forge/tool backends: ship pluggable interface and safe acceptance scenario tools; no private model assets or personal prompts.
 - Runtime durability examples: generic PM2/LaunchAgent/system-service patterns, no workstation-specific paths.
 - MCP/integration examples: mock endpoints and fake credentials only.
 

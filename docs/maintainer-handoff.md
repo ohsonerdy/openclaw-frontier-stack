@@ -6,9 +6,9 @@ Use this document when a maintainer reviews or receives the clean OpenClaw Front
 
 ## What maintainers receive
 
-- A clean export generated from `release-gate/scripts/create-clean-export.js`.
-- Package docs, examples, templates, reference implementations, and release-gate scripts.
-- Synthetic demo data only.
+- A release manifest generated from `release-gate/scripts/create-release-manifest.js`.
+- Package docs, examples, templates, production implementations, and release-gate scripts.
+- Local fixture data only.
 - Reviewer, license, evidence, release-note, repository, CI, and supply-chain gate artifacts.
 
 ## What maintainers must not import
@@ -20,11 +20,11 @@ Use this document when a maintainer reviews or receives the clean OpenClaw Front
 
 ## Handoff checks
 
-1. Work only from `release-gate/exports/openclaw-frontier-stack-clean`.
-2. Run `node scripts/verify-package.js` in the clean export.
+1. Work only from a freshly generated release artifact or source checkout that passes `npm run verify`.
+2. Run `node scripts/verify-package.js` in the release manifest.
 3. Run `node scripts/verify-package.js`.
 4. Confirm `readyForGithubUpload` remains false unless all reviewer, license, and owner approval gates have been intentionally completed.
-5. If any artifact differs from the clean export manifest, stop and regenerate the export from the package source.
+5. If any artifact differs from the release manifest manifest, stop and regenerate the export from the package source.
 
 ## Maintainer decision boundary
 

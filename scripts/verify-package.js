@@ -118,13 +118,14 @@ checks.push(run('changelog-test', process.execPath, [path.join(root, 'release-ga
 checks.push(run('release-notes-test', process.execPath, [path.join(root, 'release-gate', 'scripts', 'verify-release-notes.js')]));
 checks.push(run('reviewer-decision-schema-test', process.execPath, [path.join(root, 'release-gate', 'scripts', 'verify-reviewer-decision-schema.js')]));
 checks.push(run('github-hygiene-test', process.execPath, [path.join(root, 'release-gate', 'scripts', 'verify-github-hygiene.js')]));
+checks.push(run('public-surface-harness-test', process.execPath, [path.join(root, 'release-gate', 'scripts', 'verify-public-surface-harness.js')]));
 checks.push(run('operator-materials-test', process.execPath, [path.join(root, 'release-gate', 'scripts', 'verify-operator-materials.js')]));
 checks.push(run('owner-upload-approval-test', process.execPath, [path.join(root, 'release-gate', 'scripts', 'verify-owner-upload-approval.js')]));
 if (process.env.OPENCLAW_FRONTIER_STANDALONE_EXPORT !== '1') {
   checks.push(run('git-history-private-scan', process.execPath, [path.join(root, 'scripts', 'verify-git-history-clean.js')], { timeout: 120000 }));
 }
-checks.push(run('clean-export', process.execPath, [path.join(root, 'release-gate', 'scripts', 'create-clean-export.js')]));
-checks.push(run('clean-export-parity', process.execPath, [path.join(root, 'release-gate', 'scripts', 'check-export-parity.js')]));
+checks.push(run('release-manifest', process.execPath, [path.join(root, 'release-gate', 'scripts', 'create-clean-export.js')]));
+checks.push(run('release-manifest-parity', process.execPath, [path.join(root, 'release-gate', 'scripts', 'check-export-parity.js')]));
 if (process.env.OPENCLAW_FRONTIER_SKIP_FRESH_EXPORT !== '1') {
   checks.push(run('fresh-export-test', process.execPath, [path.join(root, 'release-gate', 'scripts', 'verify-fresh-export.js')], { timeout: 120000 }));
 }
