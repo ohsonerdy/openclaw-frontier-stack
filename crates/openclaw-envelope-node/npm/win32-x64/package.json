@@ -1,0 +1,15 @@
+{
+  "name": "@openclaw/envelope-native-win32-x64",
+  "version": "0.7.0",
+  "description": "Windows x64 prebuilt binary shell for @openclaw/envelope-native. Empty until the napi build pipeline populates it; the loader falls back to pure-JS when this is absent.",
+  "main": "openclaw-envelope.win32-x64-msvc.node",
+  "license": "MIT",
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "openclaw-envelope.win32-x64-msvc.node"
+  ]
+}

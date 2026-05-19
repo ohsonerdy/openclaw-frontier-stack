@@ -1,0 +1,9 @@
+{
+  "schema": "openclaw-frontier.ticket-template.v1",
+  "name": "incident-postmortem",
+  "defaultPriority": "p0",
+  "defaultSlaHours": 24,
+  "requiredFields": ["title", "body"],
+  "suggestedAssignees": ["sre", "orchestrator"],
+  "bodyTemplate": "## Incident summary\n\n- Severity:\n- Duration:\n- Detected at:\n- Resolved at:\n- Customer impact:\n\n## Timeline\n\n- HH:MM - <event>\n- HH:MM - <event>\n- HH:MM - <event>\n\n## Root cause\n\n<what actually broke and why>\n\n## Resolution\n\n<how the incident was stopped>\n\n## Five whys\n\n1.\n2.\n3.\n4.\n5.\n\n## Follow-up actions\n\n- [ ] <action one, link a follow-up ticket>\n- [ ] <action two>\n- [ ] <action three>\n\n## Lessons learned\n\n<what surprised us, what would we do differently>\n"
+}

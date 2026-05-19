@@ -1,0 +1,48 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "example-pkg": {
+      "name": "example-pkg",
+      "severity": "high",
+      "isDirect": true,
+      "via": [
+        {
+          "source": 1234567,
+          "name": "example-pkg",
+          "dependency": "example-pkg",
+          "title": "Prototype pollution in example-pkg",
+          "url": "https://github.com/advisories/GHSA-xxxx-yyyy-zzzz",
+          "severity": "high",
+          "cwe": ["CWE-1321"],
+          "range": "<1.2.3"
+        }
+      ],
+      "effects": [],
+      "range": "<1.2.3",
+      "nodes": ["node_modules/example-pkg"],
+      "fixAvailable": {
+        "name": "example-pkg",
+        "version": "1.2.3",
+        "isSemVerMajor": false
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 1,
+      "critical": 0,
+      "total": 1
+    },
+    "dependencies": {
+      "prod": 1,
+      "dev": 0,
+      "optional": 0,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 1
+    }
+  }
+}

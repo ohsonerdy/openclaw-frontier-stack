@@ -24,7 +24,17 @@ const { createLedger, BlackboardValidationError } = require('../../blackboard/li
 const { TaskFlowRuntime, TaskFlowError } = require('../../taskflow/lib/taskflow.js');
 const { PATTERNS } = require('../../../lib/coordination/index.js');
 const { estimateCallCost } = require('../../../lib/cost/index.js');
+const hookDispatcher = require('../../../lib/hooks/dispatcher.js');
+const hookConsent = require('../../../lib/hooks/consent.js');
 const goalState = require('./goal-state.js');
+
+// Repo root, computed once. The goal-loop is invoked from multiple cwds
+// (test temp dirs, the orchestration harness, the CLI), so we anchor the
+// hook config + allowlist to the repo so the dispatcher uses the same
+// surface regardless of cwd.
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
+const HOOKS_CONFIG_PATH = path.join(REPO_ROOT, 'hooks', 'hooks.json');
+const HOOK_ALLOWLIST_PATH = path.join(REPO_ROOT, 'release-gate', 'hook-allowlist.json');
 
 const VALID_PATTERNS = new Set(['fan-out', 'fan-in', 'chain', 'voting']);
 
@@ -139,6 +149,54 @@ function emitProgress(onProgress, event) {
 }
 
 /**
+ * Fire one event-hook lifecycle event and return the dispatcher result.
+ *
+ * The dispatcher is a pure module so we resolve config + allowlist lazily
+ * here and cache nothing — operator-edited hook configs take effect on
+ * the next dispatch. If either file is missing or unparseable, we return
+ * a `continue` decision with empty hooks so the goal loop is never gated
+ * on hook infrastructure being present.
+ *
+ * The result also flows through `onProgress` so the CLI/operator can see
+ * which hooks fired, which were blocked, and why. Blocked decisions surface
+ * as a separate `event-hook-block` progress event so the operator can
+ * react immediately.
+ */
+async function runEventHook(eventName, payload, { onProgress, hooks = {} } = {}) {
+  const configPath = hooks.configPath || HOOKS_CONFIG_PATH;
+  const allowlistPath = hooks.allowlistPath || HOOK_ALLOWLIST_PATH;
+  let result;
+  try {
+    result = await hookDispatcher.dispatch(eventName, payload, {
+      configPath,
+      allowlistPath,
+      cwd: REPO_ROOT,
+      timeoutMs: hooks.timeoutMs || 5000,
+      onWarn: (warning) => emitProgress(onProgress, { kind: 'event-hook-warning', ...warning }),
+    });
+  } catch (err) {
+    emitProgress(onProgress, { kind: 'event-hook-error', eventName, error: String(err.message || err) });
+    return { decision: 'continue', reason: null, context: [], hooks: [], error: String(err.message || err) };
+  }
+  if (result.decision === 'block') {
+    emitProgress(onProgress, {
+      kind: 'event-hook-block',
+      eventName,
+      hookId: result.blockerHookId,
+      reason: result.reason,
+    });
+  } else if (result.hooks && result.hooks.length > 0) {
+    emitProgress(onProgress, {
+      kind: 'event-hook-fired',
+      eventName,
+      hookCount: result.hooks.length,
+      contextCount: result.context.length,
+    });
+  }
+  return result;
+}
+
+/**
  * Parse a lane's `failure_mode`. Returns `{ kind, retries }` where `kind` is
  * one of:
  *   - 'abort'    — default; an `ok: false` result fails the whole goal
@@ -150,26 +208,39 @@ function emitProgress(onProgress, event) {
  * to `{ kind: 'abort', retries: 0 }` for backwards compatibility.
  */
 function normalizeFailureMode(raw, label = 'lane') {
-  if (raw == null || raw === '') return { kind: 'abort', retries: 0 };
+  if (raw == null || raw === '') return { kind: 'abort', retries: 0, fallbackRole: null };
   if (typeof raw === 'string') {
     const trimmed = raw.trim().toLowerCase();
-    if (trimmed === 'abort') return { kind: 'abort', retries: 0 };
-    if (trimmed === 'continue') return { kind: 'continue', retries: 0 };
+    if (trimmed === 'abort') return { kind: 'abort', retries: 0, fallbackRole: null };
+    if (trimmed === 'continue') return { kind: 'continue', retries: 0, fallbackRole: null };
     const retryMatch = /^retry-(\d+)$/.exec(trimmed);
     if (retryMatch) {
       const n = Math.max(1, Math.min(10, parseInt(retryMatch[1], 10)));
-      return { kind: 'retry', retries: n };
+      return { kind: 'retry', retries: n, fallbackRole: null };
     }
     throw new GoalValidationError(`${label}.failure_mode must be 'abort' | 'continue' | 'retry-N' (got: ${raw})`);
   }
   if (raw && typeof raw === 'object') {
-    const kind = String(raw.kind || 'abort').toLowerCase();
-    if (kind === 'abort' || kind === 'continue') return { kind, retries: 0 };
+    // Accept both legacy `{ kind, retries }` and new `{ onFailure, retries,
+    // fallbackRole }` (the failurePolicy shape).
+    const kindRaw = raw.kind || raw.onFailure || 'abort';
+    const kind = String(kindRaw).toLowerCase();
+    if (kind === 'abort' || kind === 'continue') {
+      return { kind, retries: 0, fallbackRole: null };
+    }
     if (kind === 'retry') {
       const n = Math.max(1, Math.min(10, Number(raw.retries) || 1));
-      return { kind: 'retry', retries: n };
+      return { kind: 'retry', retries: n, fallbackRole: null };
     }
-    throw new GoalValidationError(`${label}.failure_mode.kind must be 'abort' | 'continue' | 'retry' (got: ${raw.kind})`);
+    if (kind === 'fallback') {
+      const fallbackRole = raw.fallbackRole || raw.fallback_role || null;
+      if (!fallbackRole) {
+        throw new GoalValidationError(`${label}.failurePolicy.fallbackRole is required when onFailure='fallback'`);
+      }
+      const n = Math.max(0, Math.min(10, Number(raw.retries) || 0));
+      return { kind: 'fallback', retries: n, fallbackRole: toSimpleAgentId(fallbackRole, `${label}.fallbackRole`) };
+    }
+    throw new GoalValidationError(`${label}.failure_mode.kind must be 'abort' | 'continue' | 'retry' | 'fallback' (got: ${kindRaw})`);
   }
   throw new GoalValidationError(`${label}.failure_mode must be a string or object`);
 }
@@ -229,7 +300,10 @@ function normalizeGoal(input, { idHint } = {}) {
     }
     const summary = String(lane.summary || lane.description || `Lane ${name}`).trim().slice(0, 500);
     const expects = Array.isArray(lane.expects) ? lane.expects.map(String).slice(0, 16) : [];
-    const failureMode = normalizeFailureMode(lane.failure_mode || lane.failureMode, `goal.lanes[${index}]`);
+    const failureMode = normalizeFailureMode(
+      lane.failurePolicy || lane.failure_policy || lane.failure_mode || lane.failureMode,
+      `goal.lanes[${index}]`
+    );
     const normalized = { name, role, summary, expects, failureMode };
     if (patternRaw) {
       normalized.pattern = patternRaw;
@@ -278,6 +352,9 @@ function normalizeGoal(input, { idHint } = {}) {
       }
     : { operatorUpdateMinutes: 30, channel: 'operator-chat' };
 
+  const subGoalsRaw = Array.isArray(input.subGoals) ? input.subGoals : [];
+  const subGoals = subGoalsRaw.map((sg, i) => normalizeSubGoalSpec(sg, i, id));
+
   return {
     schema: GOAL_SCHEMA,
     id,
@@ -288,9 +365,24 @@ function normalizeGoal(input, { idHint } = {}) {
     definitionOfDone: String(input.definitionOfDone || `All lanes for ${id} return GREEN receipts.`).slice(0, 1000),
     cadence,
     lanes,
+    subGoals,
     green: Array.isArray(input.green) ? input.green.map((s) => String(s).slice(0, 500)) : [],
     red: Array.isArray(input.red) ? input.red.map((s) => String(s).slice(0, 500)) : [],
   };
+}
+
+/**
+ * Normalize one sub-goal spec. A sub-goal spec is itself a (smaller) goal
+ * record: `{ id?, title, lanes, ... }`. We re-use `normalizeGoal` so the
+ * recursive shape is the same. The sub id is forced to a `<parent>.<index>`
+ * scheme so two sub-goals from the same parent cannot collide.
+ */
+function normalizeSubGoalSpec(spec, index, parentId) {
+  if (!spec || typeof spec !== 'object') {
+    throw new GoalValidationError(`goal.subGoals[${index}] must be an object`);
+  }
+  const idHint = spec.id || `${parentId}.sub-${index + 1}`;
+  return normalizeGoal({ ...spec, id: idHint, source: spec.source || `subgoal-of:${parentId}` }, { idHint });
 }
 
 /**
@@ -542,6 +634,11 @@ async function pollForResults(ledger, claims, {
 
 function sleepAsync(ms) {
   return new Promise((resolve) => setTimeout(resolve, Math.max(1, ms)));
+}
+
+function laneRoleFor(lanes, laneName) {
+  const lane = (lanes || []).find((l) => l && l.name === laneName);
+  return (lane && lane.role) || 'unknown';
 }
 
 // Legacy sync sleep retained for any third-party caller that imports it. The
@@ -920,6 +1017,58 @@ async function runGoalLoop({
     emitProgress(onProgress, { kind: 'goal-start', goalId: state.goalId, title: state.title, lanes: normalized.lanes.length, mockAgents });
   }
 
+  // Hermes-port goal:start hook. If any allowed hook returns `block` we
+  // record an aborted state and emit a synthesized trace without dispatching
+  // any lanes — the operator-owned hook is the authority and we honour it.
+  const goalStartHook = await runEventHook('goal:start', {
+    goalId: state.goalId,
+    title: state.title,
+    lanes: normalized.lanes.length,
+    mockAgents,
+  }, { onProgress });
+  state.hookContext = state.hookContext || {};
+  if (goalStartHook.context && goalStartHook.context.length) state.hookContext['goal:start'] = goalStartHook.context;
+  if (goalStartHook.decision === 'block') {
+    state.status = 'aborted';
+    state.completedAt = new Date().toISOString();
+    state.synthesis = {
+      ok: false,
+      green: [],
+      red: normalized.lanes.map((l) => `${l.name}:hook-blocked`),
+      aborted: true,
+      hookBlocked: true,
+      blockerHookId: goalStartHook.blockerHookId,
+      reason: goalStartHook.reason,
+      generatedAt: state.completedAt,
+    };
+    if (persistState) goalState.writeStateAtomic(dir, state);
+    emitProgress(onProgress, { kind: 'goal-done', goalId: state.goalId, ok: false, status: 'aborted', usd: state.cost.usd, callCount: state.cost.callCount });
+    return {
+      schema: TRACE_SCHEMA,
+      goalId: normalized.id,
+      title: normalized.title,
+      ok: false,
+      generatedAt: state.completedAt,
+      lanes: normalized.lanes.map((lane) => ({
+        name: lane.name,
+        role: lane.role,
+        pattern: lane.pattern || null,
+        taskId: null,
+        status: 'hook-blocked',
+        ok: false,
+        summary: `goal:start hook ${goalStartHook.blockerHookId} returned block: ${goalStartHook.reason}`,
+        artifacts: [],
+      })),
+      green: [],
+      red: normalized.lanes.map((l) => `${l.name}:hook-blocked`),
+      definitionOfDone: normalized.definitionOfDone,
+      mockAgents,
+      aborted: true,
+      hookBlocked: { eventName: 'goal:start', hookId: goalStartHook.blockerHookId, reason: goalStartHook.reason },
+      cost: state.cost,
+    };
+  }
+
   // Split lanes into pattern-driven and simple-dispatch lanes.
   const patternLanes = normalized.lanes.filter((l) => l.pattern);
   const simpleLanes = normalized.lanes.filter((l) => !l.pattern);
@@ -966,7 +1115,7 @@ async function runGoalLoop({
   }
 
   // 2. Dispatch + collect simple lanes with per-lane failure_mode semantics.
-  let simpleOutcome = { claims: [], pollOutcome: { done: [], pending: [], results: [] }, synthesized: [], aborted: false };
+  let simpleOutcome = { claims: [], pollOutcome: { done: [], pending: [], results: [] }, synthesized: [], aborted: false, cancelled: false };
   if (simpleLanes.length > 0) {
     simpleOutcome = await runSimpleLanes({
       ledger,
@@ -982,6 +1131,53 @@ async function runGoalLoop({
       goalsDir: dir,
       isResume: Boolean(prior),
     });
+  }
+
+  // 2b. Run sub-goals (if any) AFTER parent lanes finish. Each sub-goal is
+  //     run as a self-contained child goal in the same blackboard, with its
+  //     state persisted under `<goalsDir>/sub/<parent>/<sub>.json`. We only
+  //     run sub-goals when the parent is not cancelled.
+  if (!simpleOutcome.cancelled && Array.isArray(normalized.subGoals) && normalized.subGoals.length > 0) {
+    for (const sub of normalized.subGoals) {
+      try {
+        emitProgress(onProgress, { kind: 'sub-goal-start', parentGoalId: normalized.id, subGoalId: sub.id });
+        const subTrace = await runSubGoalInline({
+          subGoal: sub,
+          parentGoalId: normalized.id,
+          parentDir: dir,
+          ledger,
+          blackboardPath,
+          mockAgents,
+          onProgress,
+        });
+        const subStateFile = persistState
+          ? goalState.subGoalStatePath(dir, normalized.id, sub.id)
+          : null;
+        goalState.recordSubGoalResult(state, {
+          subGoalId: sub.id,
+          template: null,
+          status: subTrace.ok ? 'done' : 'failed',
+          ok: Boolean(subTrace.ok),
+          usd: (subTrace.cost && subTrace.cost.usd) || 0,
+          callCount: (subTrace.cost && subTrace.cost.callCount) || 0,
+          statePath: subStateFile,
+        });
+        emitProgress(onProgress, { kind: 'sub-goal-done', parentGoalId: normalized.id, subGoalId: sub.id, ok: Boolean(subTrace.ok) });
+        if (persistState) goalState.writeStateAtomic(dir, state);
+      } catch (err) {
+        goalState.recordError(state, err);
+        goalState.recordSubGoalResult(state, {
+          subGoalId: sub.id,
+          status: 'failed',
+          ok: false,
+          usd: 0,
+          callCount: 0,
+          statePath: null,
+        });
+        if (persistState) goalState.writeStateAtomic(dir, state);
+        emitProgress(onProgress, { kind: 'sub-goal-error', parentGoalId: normalized.id, subGoalId: sub.id, error: String(err.message || err) });
+      }
+    }
   }
 
   // 3. Read usage facts emitted by agents and fold them into the cost ledger.
@@ -1004,9 +1200,9 @@ async function runGoalLoop({
   const simpleByName = new Map(simpleTrace.lanes.map((l) => [l.name, l]));
   const patternByName = new Map(patternLaneOutcomes.map((o) => [o.lane.name, summarizePatternLane(o.lane, o.patternResult)]));
   const allLanes = normalized.lanes.map((lane) => simpleByName.get(lane.name) || patternByName.get(lane.name));
-  const overallOk = !simpleOutcome.aborted && allLanes.every((l) => l.status === 'done');
-  const greenLanes = allLanes.filter((l) => l.status === 'done').map((l) => l.name);
-  const redLanes = allLanes.filter((l) => l.status !== 'done').map((l) => `${l.name}:${l.status}`);
+  const overallOk = !simpleOutcome.aborted && !simpleOutcome.cancelled && allLanes.every((l) => l && l.status === 'done');
+  const greenLanes = allLanes.filter((l) => l && l.status === 'done').map((l) => l.name);
+  const redLanes = allLanes.filter((l) => !l || l.status !== 'done').map((l) => l ? `${l.name}:${l.status}` : 'lane:missing');
   const trace = {
     schema: TRACE_SCHEMA,
     goalId: normalized.id,
@@ -1031,6 +1227,8 @@ async function runGoalLoop({
       : sharedTaskflow.snapshot(),
     cost: state.cost,
     aborted: Boolean(simpleOutcome.aborted),
+    cancelled: Boolean(simpleOutcome.cancelled),
+    subGoalResults: state.subGoalResults || [],
   };
 
   state.synthesis = {
@@ -1038,10 +1236,28 @@ async function runGoalLoop({
     green: greenLanes,
     red: redLanes,
     aborted: Boolean(simpleOutcome.aborted),
+    cancelled: Boolean(simpleOutcome.cancelled),
     generatedAt: trace.generatedAt,
   };
-  state.status = overallOk ? 'done' : (simpleOutcome.aborted ? 'aborted' : 'failed');
+  state.status = simpleOutcome.cancelled
+    ? 'cancelled'
+    : (overallOk ? 'done' : (simpleOutcome.aborted ? 'aborted' : 'failed'));
   state.completedAt = new Date().toISOString();
+  state.goalEnd = Date.now();
+
+  // Hermes-port goal:end hook. Fired as a notification; we do not honour
+  // `block` here because the goal has already finished. We still surface
+  // any context the hook contributed (e.g. a release-notes summary).
+  const goalEndHook = await runEventHook('goal:end', {
+    goalId: state.goalId,
+    ok: overallOk,
+    status: state.status,
+    ms: Date.parse(state.completedAt) - Date.parse(state.createdAt || state.completedAt),
+  }, { onProgress });
+  if (goalEndHook.context && goalEndHook.context.length) {
+    state.hookContext = state.hookContext || {};
+    state.hookContext['goal:end'] = goalEndHook.context;
+  }
   if (persistState) {
     goalState.writeStateAtomic(dir, state);
     trace.statePath = goalState.statePath(dir, state.goalId);
@@ -1065,14 +1281,81 @@ async function runGoalLoop({
  *
  * Returns `{ claims, pollOutcome, synthesized, aborted }`.
  */
+/**
+ * Look at the ledger for a `cancel-request` decision targeting this goal. If
+ * one is present, mark the state cancelled and return the cancel marker.
+ * Returns null when no cancel is pending.
+ */
+function checkCancelRequest(ledger, state, normalized) {
+  let records;
+  try { records = ledger.readRecords(); } catch (_) { return null; }
+  const marker = goalState.findCancelRequest(records, normalized.id);
+  if (!marker) return null;
+  state.cancelRequest = marker;
+  state.status = 'cancelled';
+  return marker;
+}
+
 async function runSimpleLanes({
   ledger, normalized, simpleLanes, mockAgents, maxWaitMs, pollIntervalMs, now,
   onProgress, state, persistState, goalsDir, isResume,
 }) {
-  const existingClaimed = isResume ? existingClaimedLaneNames(ledger, { id: normalized.id, lanes: simpleLanes }) : null;
+  const laneStartTimes = new Map();
+  const goalStartTs = state.goalStart != null ? state.goalStart : Date.now();
+  state.goalStart = goalStartTs;
+
+  // Pre-dispatch cancel check.
+  const preCancel = checkCancelRequest(ledger, state, normalized);
+  if (preCancel) {
+    if (persistState) goalState.writeStateAtomic(goalsDir, state);
+    emitProgress(onProgress, { kind: 'goal-cancelled', goalId: normalized.id, reason: preCancel.rationale });
+    return { claims: [], pollOutcome: { done: [], pending: [], results: [] }, synthesized: [], aborted: false, cancelled: true };
+  }
+
+  // Hermes-port lane:dispatch hooks. Fire one event per lane before any
+  // claim is written to the ledger. A hook that returns `block` removes
+  // the lane from the dispatch set and adds a `decision: blocked` record
+  // to the blackboard so the trace surfaces the gate.
+  const dispatchableLanes = [];
+  const blockedLaneOutcomes = [];
+  for (const lane of simpleLanes) {
+    const hookResult = await runEventHook('lane:dispatch', {
+      goalId: normalized.id,
+      laneId: lane.name,
+      role: lane.role,
+      subject: `${normalized.id}.${lane.name}`,
+      summary: lane.summary,
+    }, { onProgress });
+    if (hookResult.decision === 'block') {
+      try {
+        ledger.recordDecision({
+          agent: ORCHESTRATOR_AGENT,
+          decision: `lane-blocked:${lane.name}`,
+          status: 'blocked',
+          rationale: `lane:dispatch hook ${hookResult.blockerHookId} returned block: ${hookResult.reason}`,
+        });
+      } catch (_) { /* ledger may not support recordDecision in some test harnesses */ }
+      blockedLaneOutcomes.push({
+        laneName: lane.name,
+        role: lane.role,
+        taskId: `${normalized.id}.${lane.name}`,
+        ok: false,
+        summary: `lane:dispatch hook ${hookResult.blockerHookId} blocked: ${hookResult.reason}`,
+        artifacts: [],
+        ts: new Date().toISOString(),
+        agent: 'hook-dispatcher',
+        hookBlocked: true,
+      });
+      emitProgress(onProgress, { kind: 'lane-hook-blocked', laneName: lane.name, hookId: hookResult.blockerHookId, reason: hookResult.reason });
+      continue;
+    }
+    dispatchableLanes.push(lane);
+  }
+
+  const existingClaimed = isResume ? existingClaimedLaneNames(ledger, { id: normalized.id, lanes: dispatchableLanes }) : null;
   let claims;
   try {
-    claims = dispatchLanes(ledger, { ...normalized, lanes: simpleLanes }, { skipExisting: existingClaimed });
+    claims = dispatchLanes(ledger, { ...normalized, lanes: dispatchableLanes }, { skipExisting: existingClaimed });
   } catch (err) {
     if (err instanceof BlackboardValidationError || err instanceof TaskFlowError) {
       throw new GoalValidationError(`dispatch failed: ${err.message}`, err.details || {});
@@ -1080,12 +1363,13 @@ async function runSimpleLanes({
     throw err;
   }
   for (const c of claims) {
+    laneStartTimes.set(c.laneName, Date.now());
     emitProgress(onProgress, { kind: 'lane-dispatched', laneName: c.laneName, role: c.role, taskId: c.taskId, resumed: Boolean(c.resumed) });
   }
 
   let synthesized = [];
   if (mockAgents) {
-    synthesized = synthesizeMockResults(ledger, { ...normalized, lanes: simpleLanes }, claims);
+    synthesized = synthesizeMockResults(ledger, { ...normalized, lanes: dispatchableLanes }, claims);
   }
 
   let pollOutcome = await pollForResults(ledger, claims, {
@@ -1095,15 +1379,91 @@ async function runSimpleLanes({
     onProgress,
   });
 
+  // Record per-lane timings for everything we have results for.
+  for (const done of pollOutcome.done) {
+    const start = laneStartTimes.get(done.laneName);
+    if (start == null) continue;
+    goalState.recordLaneTiming(state, {
+      laneName: done.laneName,
+      role: laneRoleFor(simpleLanes, done.laneName),
+      startMs: Math.max(0, start - goalStartTs),
+      endMs: Math.max(0, Date.now() - goalStartTs),
+      status: done.ok ? 'done' : 'failed',
+      attempt: 0,
+    });
+  }
+
+  // Post-poll cancel check — operator may have written cancel-request while
+  // we were polling, in which case we should stop processing further lanes.
+  const midCancel = checkCancelRequest(ledger, state, normalized);
+  if (midCancel) {
+    if (persistState) goalState.writeStateAtomic(goalsDir, state);
+    emitProgress(onProgress, { kind: 'goal-cancelled', goalId: normalized.id, reason: midCancel.rationale });
+    return { claims, pollOutcome, synthesized, aborted: false, cancelled: true };
+  }
+
+  // Fire lane:result for every result we collected.
+  for (const done of pollOutcome.done) {
+    await runEventHook('lane:result', {
+      goalId: normalized.id,
+      laneId: done.laneName,
+      role: laneRoleFor(simpleLanes, done.laneName),
+      status: done.ok ? 'ok' : 'failed',
+      ms: Date.parse(done.ts) - Date.parse(state.createdAt || done.ts),
+    }, { onProgress });
+  }
+
+  // Re-fold blocked lanes into the pollOutcome shape so the synthesis loop
+  // treats them uniformly as failed lanes — they cannot be retried (the
+  // hook is the authority) and they count as red.
+  if (blockedLaneOutcomes.length > 0) {
+    pollOutcome = {
+      done: pollOutcome.done.concat(blockedLaneOutcomes),
+      pending: pollOutcome.pending,
+      results: pollOutcome.results,
+    };
+  }
+
   state.dispatchedClaims = claims;
   state.receivedResults = pollOutcome.results.slice();
   if (persistState) goalState.writeStateAtomic(goalsDir, state);
 
   const laneByName = new Map(simpleLanes.map((l) => [l.name, l]));
   const retryCounts = new Map();
+  const fallbackUsed = new Set();
   let aborted = false;
+  let cancelled = false;
+
+  // Record an initial recovery entry for any failed lane based on its policy
+  // (continue/abort/retry/fallback). This makes the recovery audit trail
+  // independent of whether retries succeed.
+  for (const done of pollOutcome.done) {
+    if (done.ok) continue;
+    const lane = laneByName.get(done.laneName);
+    if (!lane) continue;
+    const mode = lane.failureMode || { kind: 'abort' };
+    goalState.recordLaneRecovery(state, {
+      laneName: done.laneName,
+      role: lane.role,
+      attempt: 0,
+      action: mode.kind,
+      reason: done.summary || 'lane failed',
+      fallbackRole: mode.fallbackRole || null,
+      finalStatus: mode.kind === 'continue' ? 'failed-but-continued' : 'pending-recovery',
+      degraded: mode.kind === 'continue',
+    });
+  }
+  if (persistState) goalState.writeStateAtomic(goalsDir, state);
 
   while (true) {
+    // Cancel check at the head of every retry iteration.
+    const cancel = checkCancelRequest(ledger, state, normalized);
+    if (cancel) {
+      cancelled = true;
+      emitProgress(onProgress, { kind: 'goal-cancelled', goalId: normalized.id, reason: cancel.rationale });
+      break;
+    }
+
     const failedLanes = pollOutcome.done.filter((d) => !d.ok);
     const retriable = failedLanes.filter((d) => {
       const lane = laneByName.get(d.laneName);
@@ -1114,6 +1474,13 @@ async function runSimpleLanes({
       return used < mode.retries;
     });
 
+    const fallbackable = failedLanes.filter((d) => {
+      const lane = laneByName.get(d.laneName);
+      if (!lane) return false;
+      const mode = lane.failureMode || { kind: 'abort' };
+      return mode.kind === 'fallback' && !fallbackUsed.has(d.laneName);
+    });
+
     const aborters = failedLanes.filter((d) => {
       const lane = laneByName.get(d.laneName);
       const mode = (lane && lane.failureMode) || { kind: 'abort' };
@@ -1121,13 +1488,114 @@ async function runSimpleLanes({
     });
     if (aborters.length > 0) {
       aborted = true;
+      for (const a of aborters) {
+        const lane = laneByName.get(a.laneName);
+        goalState.recordLaneRecovery(state, {
+          laneName: a.laneName,
+          role: lane ? lane.role : 'unknown',
+          attempt: retryCounts.get(a.laneName) || 0,
+          action: 'abort',
+          reason: a.summary || 'aborting due to lane failure',
+          finalStatus: 'aborted',
+          degraded: false,
+        });
+      }
+      if (persistState) goalState.writeStateAtomic(goalsDir, state);
       emitProgress(onProgress, { kind: 'lane-aborted', laneNames: aborters.map((a) => a.laneName) });
       break;
     }
 
-    if (retriable.length === 0) break;
+    // Handle fallback path: dispatch a single retry under the fallback role.
+    if (fallbackable.length > 0) {
+      const fallbackClaims = [];
+      for (const failed of fallbackable) {
+        const lane = laneByName.get(failed.laneName);
+        fallbackUsed.add(failed.laneName);
+        const fallbackRole = lane.failureMode.fallbackRole;
+        const fbTaskId = `${normalized.id}.${lane.name}.fallback-${fallbackRole}`;
+        const summary = `[${normalized.id}][fallback->${fallbackRole}] ${lane.summary}`.slice(0, 500);
+        const claim = ledger.claimTask({ agent: ORCHESTRATOR_AGENT, taskId: fbTaskId, summary, forRole: fallbackRole });
+        fallbackClaims.push({ laneName: lane.name, role: fallbackRole, taskId: fbTaskId, claimId: claim.id, claimedAt: claim.ts, fallback: true });
+        laneStartTimes.set(`${lane.name}::fallback`, Date.now());
+        emitProgress(onProgress, { kind: 'lane-fallback-dispatch', laneName: lane.name, fallbackRole, taskId: fbTaskId });
+      }
+      if (mockAgents) {
+        const fbLanes = fallbackClaims.map((c) => ({ ...laneByName.get(c.laneName), role: c.role }));
+        const fbSynth = synthesizeMockResults(ledger, { ...normalized, lanes: fbLanes }, fallbackClaims, { strategy: 'all-ok' });
+        synthesized = synthesized.concat(fbSynth);
+      }
+      const fbOutcome = await pollForResults(ledger, fallbackClaims, {
+        maxWaitMs: mockAgents ? 5000 : maxWaitMs,
+        pollIntervalMs,
+        now,
+        onProgress,
+      });
+      const fbDoneByLane = new Map(fbOutcome.done.map((d) => [d.laneName, d]));
+      const okLanes = pollOutcome.done.filter((d) => d.ok);
+      const stillFailedAfterFallback = new Set();
+      const replaced = [];
+      for (const failed of failedLanes) {
+        const fbDone = fbDoneByLane.get(failed.laneName);
+        if (fbDone) {
+          replaced.push({ ...fbDone, originalTaskId: failed.taskId, fallback: true });
+          if (!fbDone.ok) stillFailedAfterFallback.add(failed.laneName);
+          // Record the final fallback outcome on the recovery trail.
+          const lane = laneByName.get(failed.laneName);
+          goalState.recordLaneRecovery(state, {
+            laneName: failed.laneName,
+            role: lane ? lane.role : 'unknown',
+            attempt: 1,
+            action: 'fallback',
+            reason: fbDone.summary || 'fallback dispatch completed',
+            fallbackRole: lane && lane.failureMode && lane.failureMode.fallbackRole || null,
+            finalStatus: fbDone.ok ? 'recovered' : 'failed-after-fallback',
+            degraded: !fbDone.ok,
+          });
+          // Record timing for the fallback attempt.
+          const fbStart = laneStartTimes.get(`${failed.laneName}::fallback`);
+          if (fbStart != null) {
+            goalState.recordLaneTiming(state, {
+              laneName: failed.laneName,
+              role: lane ? lane.failureMode.fallbackRole : 'unknown',
+              startMs: Math.max(0, fbStart - goalStartTs),
+              endMs: Math.max(0, Date.now() - goalStartTs),
+              status: fbDone.ok ? 'done' : 'failed',
+              attempt: 1,
+            });
+          }
+        } else {
+          replaced.push(failed);
+          stillFailedAfterFallback.add(failed.laneName);
+        }
+      }
+      pollOutcome = {
+        done: okLanes.concat(replaced),
+        pending: fbOutcome.pending,
+        results: pollOutcome.results.concat(fbOutcome.results),
+      };
+      state.receivedResults = pollOutcome.results.slice();
+      state.dispatchedClaims = claims.concat(fallbackClaims);
+      if (persistState) goalState.writeStateAtomic(goalsDir, state);
+      if (stillFailedAfterFallback.size === 0 && retriable.length === 0) break;
+      // After fallback we still allow retry to take a swing if any lane has
+      // both modes (rare); loop continues.
+    }
+
+    if (retriable.length === 0 && fallbackable.length === 0) {
+      // No lane wants further action — mark continue lanes terminal.
+      for (const f of failedLanes) {
+        const lane = laneByName.get(f.laneName);
+        if (lane && lane.failureMode && lane.failureMode.kind === 'continue') {
+          // Already recorded above; nothing more to do.
+        }
+      }
+      break;
+    }
+
+    if (retriable.length === 0) continue;
 
     const retryClaims = [];
+    const retryStartByLane = new Map();
     for (const failed of retriable) {
       const lane = laneByName.get(failed.laneName);
       const used = retryCounts.get(failed.laneName) || 0;
@@ -1138,6 +1606,7 @@ async function runSimpleLanes({
       await sleepAsync(backoffMs);
       const claim = ledger.claimTask({ agent: ORCHESTRATOR_AGENT, taskId: retryTaskId, summary, forRole: lane.role });
       retryClaims.push({ laneName: lane.name, role: lane.role, taskId: retryTaskId, claimId: claim.id, claimedAt: claim.ts, retry: used + 1 });
+      retryStartByLane.set(lane.name, Date.now());
       emitProgress(onProgress, { kind: 'lane-retry-dispatch', laneName: lane.name, attempt: used + 1, max: lane.failureMode.retries, taskId: retryTaskId });
     }
 
@@ -1166,6 +1635,28 @@ async function runSimpleLanes({
       if (retryDone) {
         replaced.push({ ...retryDone, originalTaskId: failed.taskId });
         if (!retryDone.ok) stillFailedLaneNames.add(failed.laneName);
+        const lane = laneByName.get(failed.laneName);
+        const attemptCount = retryCounts.get(failed.laneName) || 0;
+        goalState.recordLaneRecovery(state, {
+          laneName: failed.laneName,
+          role: lane ? lane.role : 'unknown',
+          attempt: attemptCount,
+          action: 'retry',
+          reason: retryDone.summary || 'retry attempt completed',
+          finalStatus: retryDone.ok ? 'recovered' : 'failed-retry',
+          degraded: !retryDone.ok,
+        });
+        const rStart = retryStartByLane.get(failed.laneName);
+        if (rStart != null) {
+          goalState.recordLaneTiming(state, {
+            laneName: failed.laneName,
+            role: lane ? lane.role : 'unknown',
+            startMs: Math.max(0, rStart - goalStartTs),
+            endMs: Math.max(0, Date.now() - goalStartTs),
+            status: retryDone.ok ? 'done' : 'failed',
+            attempt: attemptCount,
+          });
+        }
       } else {
         replaced.push(failed);
         stillFailedLaneNames.add(failed.laneName);
@@ -1183,7 +1674,70 @@ async function runSimpleLanes({
     if (stillFailedLaneNames.size === 0) break;
   }
 
-  return { claims, pollOutcome, synthesized, aborted };
+  return { claims, pollOutcome, synthesized, aborted, cancelled };
+}
+
+/**
+ * Run a sub-goal inline as part of a parent goal-loop. The sub-goal is a
+ * normalized goal; we execute it with the same blackboard ledger as the
+ * parent, persist its state under `<parentDir>/sub/<parent>/<sub>.json`, and
+ * return its trace. Sub-goals always run with no recursion of their own sub-
+ * goals — to avoid surprise unbounded trees, we strip `subGoals` before
+ * dispatch.
+ *
+ * In mock mode the sub-goal also runs in mock mode. Cancel observation in the
+ * parent does NOT propagate down: each sub-goal observes its own
+ * `cancel-request` (keyed on the sub-goal id) independently.
+ */
+async function runSubGoalInline({ subGoal, parentGoalId, parentDir, ledger, blackboardPath, mockAgents, onProgress }) {
+  const subState = goalState.newState({
+    goal: { ...subGoal, subGoals: [] },
+    blackboardPath,
+    options: { mockAgents, dryRun: false, maxWaitMs: mockAgents ? 5000 : 30000, pollIntervalMs: 100, parentGoalId },
+  });
+  subState.parentGoalId = parentGoalId;
+  // Persist the sub-goal state file before dispatch so a partial run is
+  // still discoverable via `listSubGoalStates`.
+  if (parentDir) goalState.writeSubGoalStateAtomic(parentDir, parentGoalId, subState);
+
+  // Dispatch + synthesize + collect, using only simple lanes (sub-goal
+  // pattern lanes are out of scope for this minimal recursion).
+  const subSimpleLanes = subGoal.lanes.filter((l) => !l.pattern);
+  const simpleOutcome = await runSimpleLanes({
+    ledger,
+    normalized: { ...subGoal, subGoals: [] },
+    simpleLanes: subSimpleLanes,
+    mockAgents,
+    maxWaitMs: mockAgents ? 5000 : 30000,
+    pollIntervalMs: 100,
+    now: Date.now,
+    onProgress,
+    state: subState,
+    persistState: Boolean(parentDir),
+    goalsDir: parentDir,
+    isResume: false,
+  });
+
+  const subTrace = synthesize({ ...subGoal, lanes: subSimpleLanes }, simpleOutcome.claims, simpleOutcome.pollOutcome);
+  subTrace.cost = subState.cost;
+  subTrace.statePath = parentDir ? goalState.subGoalStatePath(parentDir, parentGoalId, subGoal.id) : null;
+  subTrace.parentGoalId = parentGoalId;
+  subTrace.ok = !simpleOutcome.aborted && !simpleOutcome.cancelled && subTrace.lanes.every((l) => l.status === 'done');
+  subState.synthesis = {
+    ok: subTrace.ok,
+    green: subTrace.green,
+    red: subTrace.red,
+    aborted: Boolean(simpleOutcome.aborted),
+    cancelled: Boolean(simpleOutcome.cancelled),
+    generatedAt: subTrace.generatedAt,
+  };
+  subState.status = simpleOutcome.cancelled ? 'cancelled' : (subTrace.ok ? 'done' : 'failed');
+  subState.completedAt = new Date().toISOString();
+  subState.goalEnd = Date.now();
+  subState.dispatchedClaims = simpleOutcome.claims;
+  subState.receivedResults = simpleOutcome.pollOutcome.results.slice();
+  if (parentDir) goalState.writeSubGoalStateAtomic(parentDir, parentGoalId, subState);
+  return subTrace;
 }
 
 /**
@@ -1351,6 +1905,7 @@ module.exports = {
   GoalValidationError,
   normalizeGoal,
   normalizeFailureMode,
+  normalizeSubGoalSpec,
   goalFromPrompt,
   defaultLanePlan,
   dispatchLanes,
@@ -1359,6 +1914,8 @@ module.exports = {
   synthesize,
   buildTaskflowMirror,
   runGoalLoop,
+  runSubGoalInline,
+  checkCancelRequest,
   blackboardSummary,
   recapBlackboard,
   toSimpleAgentId,

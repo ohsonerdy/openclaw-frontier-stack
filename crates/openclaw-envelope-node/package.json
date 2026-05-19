@@ -1,0 +1,35 @@
+{
+  "name": "@openclaw/envelope-native",
+  "version": "0.7.0",
+  "description": "N-API binding for the openclaw-envelope Rust crate. Optional native acceleration for the Node signed-bus envelope; the package always falls back to the pure-JS implementation when the binary is not built for the host triple.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "openclaw-envelope",
+    "triples": {
+      "defaults": false,
+      "additional": [
+        "x86_64-pc-windows-msvc",
+        "aarch64-apple-darwin",
+        "x86_64-unknown-linux-gnu"
+      ]
+    }
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "prepublishOnly": "napi prepublish -t npm",
+    "version": "napi version"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ]
+}

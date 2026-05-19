@@ -61,7 +61,7 @@ function parseArgs(argv) {
     if (a === '--live') args.live = true;
     else if (a === '--model') args.model = argv[++i];
     else if (a === '--skill') args.skill = argv[++i];
-    else if (a === '--max-parallel') args.maxParallel = Number(argv[++i]) || 4;
+    else if (a === '--max-parallel') args.maxParallel = Number(argv[++i]) || 8;
     else if (a === '--endpoint') args.endpoint = argv[++i];
     else if (a === '--api-format') args.apiFormat = argv[++i];
     else if (a === '--help' || a === '-h') args.help = true;
@@ -109,7 +109,7 @@ Flags:
                          Default: anthropic for api.anthropic.com,
                                   openai for any other endpoint
   --skill <skill-name>   Run only this skill (default: all)
-  --max-parallel <n>     Max concurrent live calls (default 4, ignored in dry-run)
+  --max-parallel <n>     Max concurrent live calls (default 8, ignored in dry-run)
   --help                 Show this help
 
 Exit codes:
@@ -169,6 +169,8 @@ function isLocalHost(hostname) {
 }
 
 function resolveBackend(args) {
+  // Defensive: accept null/undefined caller and fall through to env + defaults.
+  args = args || {};
   // Endpoint resolution: --endpoint > OPENCLAW_EVAL_ENDPOINT > default Anthropic.
   const rawEndpoint = (args.endpoint || process.env.OPENCLAW_EVAL_ENDPOINT || DEFAULT_ANTHROPIC_ENDPOINT).trim();
   let endpointUrl;
@@ -364,14 +366,35 @@ if (typeof module !== 'undefined') {
 }
 
 function scoreAssertion(output, assertion) {
-  // Heuristic: case-insensitive substring search across the assertion's key
-  // phrases. The assertion is a human-readable string like "Calls
-  // modern.X.Y via modern-mcp if connected" — we extract identifier-shaped
-  // tokens and look for them.
-  const tokens = (assertion.match(/(?:modern\.[a-z_.]+|[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})*|[a-z_-]{4,})/g) || [])
+  // Typed assertion shape: { type: 'contains' | 'not-contains' | 'length-at-least', value: ... }
+  if (assertion && typeof assertion === 'object' && typeof assertion.type === 'string') {
+    const out = String(output || '');
+    const type = assertion.type.toLowerCase();
+    const value = assertion.value;
+    if (type === 'contains') {
+      const needle = String(value || '').toLowerCase();
+      const pass = needle.length > 0 && out.toLowerCase().includes(needle);
+      return { pass, type, needle, hits: pass ? [needle] : [] };
+    }
+    if (type === 'not-contains') {
+      const needle = String(value || '').toLowerCase();
+      const pass = needle.length === 0 || !out.toLowerCase().includes(needle);
+      return { pass, type, needle, hits: [] };
+    }
+    if (type === 'length-at-least') {
+      const min = Number(value);
+      const pass = Number.isFinite(min) && out.length >= min;
+      return { pass, type, min, length: out.length, hits: [] };
+    }
+    // Unknown type: fail closed and surface the type so callers can spot bad config.
+    return { pass: false, type, error: 'unknown-assertion-type', hits: [] };
+  }
+  // Legacy string assertion (free-form prose): substring search across distinctive tokens.
+  const text = String(assertion || '');
+  const tokens = (text.match(/(?:modern\.[a-z_.]+|[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})*|[a-z_-]{4,})/g) || [])
     .map((t) => t.toLowerCase())
     .filter((t, i, a) => a.indexOf(t) === i);
-  const lowOut = output.toLowerCase();
+  const lowOut = String(output || '').toLowerCase();
   const hits = tokens.filter((t) => lowOut.includes(t));
   // Soft pass: 50%+ of distinctive tokens appear in the output
   const pass = tokens.length === 0 ? false : hits.length / tokens.length >= 0.5;

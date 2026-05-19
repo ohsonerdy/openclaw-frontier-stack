@@ -28,7 +28,7 @@ const {
   BlackboardLedger,
   BlackboardValidationError,
 } = require('../src/blackboard/lib/ledger');
-const envelope = require('../src/signed-bus/lib/envelope');
+const envelope = require('../src/signed-bus/lib/envelope-loader');
 const { TaskFlowRuntime } = require('../src/taskflow/lib/taskflow');
 
 const root = path.resolve(__dirname, '..');

@@ -228,6 +228,7 @@ module.exports = {
   VALID_TYPES: Array.from(VALID_TYPES),
   createEnvelope,
   canonicalize,
+  stable,
   sign,
   verify,
   loadPublicKey,

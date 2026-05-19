@@ -32,7 +32,7 @@ function loadNats() {
     throw e;
   }
 }
-const env = require('./envelope');
+const env = require('./envelope-loader');
 
 const HOME = process.env.USERPROFILE || process.env.HOME;
 

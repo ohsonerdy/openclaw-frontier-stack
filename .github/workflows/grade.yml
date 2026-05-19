@@ -1,0 +1,88 @@
+name: Grade OpenClaw Frontier Stack
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tier_3:
+        description: "Run tier-3 (live model) eval"
+        required: false
+        default: "true"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install package metadata
+        run: npm install --ignore-scripts
+      - name: Resolve tier-3 flag
+        id: flag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ inputs.tier_3 }}" = "false" ]; then
+              echo "args=" >> "$GITHUB_OUTPUT"
+            else
+              echo "args=--tier-3" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "args=--tier-3" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run grade
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_OAUTH_TOKEN }}
+        run: npm run grade -- ${{ steps.flag.outputs.args }}
+        continue-on-error: true
+      - name: Inspect grade JSON
+        id: inspect
+        run: |
+          version=$(node -e "console.log(require('./package.json').version)")
+          jsonPath="release-gate/reports/grade-${version}.json"
+          mdPath="release-gate/scorecards/grade-${version}.md"
+          composite=$(node -e "console.log(require('./${jsonPath}').composite.score)")
+          letter=$(node -e "console.log(require('./${jsonPath}').composite.letter)")
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "json_path=${jsonPath}" >> "$GITHUB_OUTPUT"
+          echo "md_path=${mdPath}" >> "$GITHUB_OUTPUT"
+          echo "composite=${composite}" >> "$GITHUB_OUTPUT"
+          echo "letter=${letter}" >> "$GITHUB_OUTPUT"
+      - name: Upload scorecard
+        uses: actions/upload-artifact@v4
+        with:
+          name: grade-${{ steps.inspect.outputs.version }}
+          path: |
+            release-gate/reports/grade-${{ steps.inspect.outputs.version }}.json
+            release-gate/scorecards/grade-${{ steps.inspect.outputs.version }}.md
+      - name: Open regression issue when composite below B
+        if: ${{ steps.inspect.outputs.composite < 80 }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const scorecard = fs.readFileSync('${{ steps.inspect.outputs.md_path }}', 'utf8');
+            const composite = '${{ steps.inspect.outputs.composite }}';
+            const letter = '${{ steps.inspect.outputs.letter }}';
+            const version = '${{ steps.inspect.outputs.version }}';
+            const title = `Grade regression on v${version}: composite ${composite} (${letter})`;
+            const body = `The release-gate grade workflow scored v${version} below B.\n\n${scorecard}`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['release-gate', 'grade-regression'],
+            });

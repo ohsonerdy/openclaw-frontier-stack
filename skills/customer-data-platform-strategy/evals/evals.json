@@ -1,0 +1,100 @@
+{
+  "skill_name": "customer-data-platform-strategy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're a $12M brand and Segment is quoting us $80k/year. Worth it?",
+      "expected_output": "Walks the four-archetype grid. At $12M with no warehouse-first stack named, recommends warehouse + reverse-ETL (Hightouch or Census) as the lower-cost path that scales. Calls out Segment as over-spec at this stage unless the brand has 4+ activation surfaces and a marketing-only team. Names the conditions that would flip the recommendation toward packaged CDP.",
+      "assertions": [
+        "Applies the four-archetype decision grid",
+        "Recommends warehouse-first as the default at $12M",
+        "Names Hightouch or Census as the activation path",
+        "Calls out the disqualifying conditions for packaged CDP",
+        "Sizes activation surfaces before recommending spend",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our customer record is a mess — same person shows up as three different records in Klaviyo, two in Gorgias, and the order on Shopify doesn't tie back. Do we need a CDP?",
+      "expected_output": "Identifies a Level 1 identity-stitching problem solvable with deterministic email + phone matching, not a CDP per se. Walks through whether a warehouse + reverse-ETL stack solves it, vs whether a packaged CDP is justified. Pulls first-touch attribution to size the cross-channel pain.",
+      "assertions": [
+        "Diagnoses the identity-resolution level required",
+        "Names Level 1 deterministic stitching as sufficient",
+        "Calls modern.attribution.first_touch to size cross-channel pain",
+        "Distinguishes the identity fix from the full CDP buy",
+        "Recommends the smallest-spend path that solves the problem",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We're about to instrument events on our new site. What schema should we use?",
+      "expected_output": "Walks the event-schema discipline framework. Verb-Object past-tense naming, mandatory properties per event (customer_id, session_id, timestamp, source), consistent case convention, 15-40 named events with properties for variants. Calls out the irreversibility of schema sprawl and version the schema. References the 20-event starter schema.",
+      "assertions": [
+        "Names the verb-object past-tense convention",
+        "Lists mandatory properties per event",
+        "Warns against schema sprawl past 40 events",
+        "Recommends versioning the schema",
+        "References the 20-event starter set",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "GDPR keeps coming up in our compliance review. What does our CDP need to do?",
+      "expected_output": "Walks the five compliance pillars: right-to-deletion within 30 days end-to-end, data minimization, retention windows (7yr purchase / 24mo behavioral / 13mo anonymous), consent state per jurisdiction respected by activation surfaces, cross-border transfer with SCCs or EU residency. Calls out the audit posture rule: if right-to-deletion cannot be explained in three sentences the CDP is not production-ready.",
+      "assertions": [
+        "Lists the five compliance pillars",
+        "Names the 30-day right-to-deletion requirement",
+        "Names typical retention windows by data type",
+        "Notes consent state must be respected per jurisdiction by activation",
+        "Names SCCs or EU residency for cross-border data",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "If we get a CDP, where does the biggest payoff come from?",
+      "expected_output": "Walks the activation-surface lift hierarchy. Email lifecycle and Meta lookalike suppression-seed deliver the largest measurable lift per dollar. Onsite personalization is highest-effort, lower-lift. Paid search audience layering is marginal. Recommends activating on 2-3 surfaces, not 7. Pulls cohort LTV to size the personalization payoff.",
+      "assertions": [
+        "Ranks email and Meta suppression-seed at the top of the lift hierarchy",
+        "Names onsite personalization as high-effort lower-lift",
+        "Calls modern.retention.cohort_ltv to size the payoff",
+        "Recommends 2-3 activation surfaces, not all of them",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We're $45M revenue with five channels each above 10% and no CDP. What should we do?",
+      "expected_output": "Recommends moving off platform-native audiences immediately. With five channels above 10% the identity-stitching pain is structural and gets worse with scale. Pulls revenue by channel to confirm distribution. Names packaged CDP (Segment, Rudderstack, mParticle) or composable warehouse stack depending on engineering headcount.",
+      "assertions": [
+        "Calls modern.sales.by_channel to confirm channel distribution",
+        "Calls out platform-native audiences as broken at this revenue and channel count",
+        "Names packaged or composable CDP as the two real choices",
+        "Conditions the choice on engineering headcount",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "A vendor is pitching us probabilistic identity stitching across devices. Do we need it?",
+      "expected_output": "Identifies Level 3 probabilistic stitching as usually an over-sell for ecomm. Most brands operate at Level 1-2. Asks whether the operator has a named use case that fails without probabilistic stitching (cross-device anonymous attribution is the most common). If not, declines the upsell and recommends Level 2 deterministic + login-based stitching.",
+      "assertions": [
+        "Names probabilistic as Level 3 and typically over-spec for ecomm",
+        "Asks for the use case that requires it",
+        "Recommends Level 1-2 deterministic stitching as the floor",
+        "Declines the vendor upsell absent a named justifying use case",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    }
+  ]
+}

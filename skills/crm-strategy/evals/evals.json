@@ -1,0 +1,105 @@
+{
+  "$schema": "openclaw-frontier.skill-eval.v1",
+  "skill_name": "crm-strategy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're a $15M DTC apparel brand. Should we get HubSpot?",
+      "expected_output": "Walks the four CRM archetypes. At $15M pure DTC with no sales motion the answer is archetype 1: Klaviyo + Shopify + warehouse is enough. HubSpot is the most over-CRM'd category and unlikely to add measurable LTV. Conditions the recommendation on whether a wholesale or B2B-adjacent arm exists. Recommends saving the spend.",
+      "assertions": [
+        "Walks the four CRM archetypes",
+        "Names archetype 1 as fit for pure DTC under $50M",
+        "Recommends against standalone CRM",
+        "Calls out Klaviyo + Shopify + warehouse as sufficient",
+        "Conditions on absence of wholesale or B2B-adjacent arm",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We're DTC at $25M but we just launched a wholesale program with 15 retailers. Do we need a CRM now?",
+      "expected_output": "Yes, archetype 2 starts to apply. Walks the wholesale-program path. Recommends HubSpot Starter or Pipedrive sized to the wholesale arm only, not enterprise tooling. Pulls channel revenue split to confirm wholesale share. Names the buyer-rep relationship tracking and account history as the core use cases.",
+      "assertions": [
+        "Identifies archetype 2 as the fit",
+        "Recommends HubSpot Starter or Pipedrive at this scale",
+        "Pulls modern.sales.by_channel for wholesale share",
+        "Names buyer-rep tracking as the core use case",
+        "Sizes the CRM to the wholesale arm not the whole business",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our customer data is in 6 different tools and nobody has the full picture. Where do we start?",
+      "expected_output": "Walks the single-customer-view design framework. Source of truth per data type: Shopify for orders, Klaviyo for engagement, Gorgias for support, CRM for marketing intent. Email as the practical key. Recommends auditing existing tools, picking sources of truth, and routing all customer events through the integration layer rather than duplicating data.",
+      "assertions": [
+        "Walks the single-customer-view source-of-truth framework",
+        "Names email as the practical identity key",
+        "Names Shopify as order source of truth",
+        "Names Klaviyo as engagement source of truth",
+        "Recommends source-of-truth audit before tool consolidation",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our sales team complains they get bad leads. Marketing complains sales doesn't follow up. How do we fix this?",
+      "expected_output": "Walks the marketing-sales handoff framework. Recommends a two-way contract with documented SLAs: MQL definition fires automatically, sales has 24h acceptance window, 5 business days for first outreach. Monthly round-trip review of acceptance and rejection reasons. Notes that the lead score must be visible and explainable for sales to trust it.",
+      "assertions": [
+        "Walks the handoff contract framework",
+        "Names documented SLA for acceptance and outreach",
+        "Recommends monthly round-trip review",
+        "Names rejection reason codes for nurture re-entry",
+        "Calls out lead score visibility as critical to sales trust",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "What lifecycle stages should we set up in our CRM?",
+      "expected_output": "Walks the lifecycle stages framework. Subscriber/Lead, MQL, SQL, Customer (with subcategories), Champion/Advocate, Lapsed/Churn risk. Each stage has a defined transition trigger. Common mistakes called out: MQL defined by form alone, SQL defined by gut, no Customer stage because customers live in Shopify. Recommends documenting transitions and auditing monthly.",
+      "assertions": [
+        "Lists the six lifecycle stages",
+        "Names operational transition triggers per stage",
+        "Calls out the common MQL-by-form mistake",
+        "Calls out the missing-Customer-stage mistake",
+        "Recommends monthly transition rate audit",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "How should we design lead scoring?",
+      "expected_output": "Walks the lead-scoring framework. Behavioral points (high-intent actions, weighted by recency), firmographic points (ICP match), negative scoring (inactivity, bad fit), MQL threshold calibrated to sales-team capacity, quarterly calibration. Recommends keeping the formula visible to sales and reviewing it monthly. Names the explainability-in-three-sentences rule.",
+      "assertions": [
+        "Walks the lead scoring framework",
+        "Names behavioral, firmographic, and negative scoring components",
+        "Names time-weighting for behavioral signals",
+        "Recommends sales-capacity-calibrated MQL threshold",
+        "Recommends quarterly calibration",
+        "Calls out the explainability rule for sales trust",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "A vendor is pitching us Salesforce. We're a $40M DTC with no real sales team. Should we?",
+      "expected_output": "No. At pure DTC $40M with no sales function, Salesforce is archetype 4 over-spec for archetype 1 needs. Walks the over-CRM diagnosis. The right investment is identity and warehouse work (CDP-adjacent) not enterprise CRM. References customer-data-platform-strategy for the deeper data architecture question. Recommends declining the upsell.",
+      "assertions": [
+        "Identifies Salesforce as over-spec for archetype 1",
+        "Names the missing sales function as the disqualifying condition",
+        "Recommends warehouse and identity investment instead",
+        "References customer-data-platform-strategy",
+        "Recommends declining the vendor pitch",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    }
+  ]
+}

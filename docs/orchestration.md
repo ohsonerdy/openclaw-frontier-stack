@@ -269,6 +269,84 @@ applies `quorum` (minimum voters needed) and `threshold` (fraction of cast
 votes required to approve), and returns the verdict. `ok` is `decided &&
 verdict === 'approve'`.
 
+#### Subagent fan-out
+
+`lib/coordination/subagent.js` exports `subagentFanOut`, a parent-driven
+helper that spawns N short-lived child agents under a custom sub-role with a
+restricted blackboard-write scope. Each child runs in its own
+`subagent:<parentGoalId>:<index>` scope; the parent's filtered view
+(`result.parentResults()`) only surfaces the children's final `result`
+records. Intermediate `fact` and `decision` records the children emit stay
+on the ledger for audit but never propagate into the parent's pattern
+result.
+
+Two execution modes:
+
+| Mode         | What it does                                                                                       |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| `workers`    | In-process `worker_threads`. The handler runs in the worker; cheapest option for tests + CPU work. |
+| `processes`  | Spawns `openclaw-agent --role <role> --task-id <id> --scope <scope>` per child as a short process. |
+
+Each child gets a `scopedLedger` adapter that REJECTS writes whose `scope`
+field does not match its assigned slice. A handler that returns a forged
+scope cannot leak into the parent's namespace — the parent always overrides
+the child's recorded scope with the child's true assigned slice when it
+writes the result record on the child's behalf.
+
+Example: delegate review of three files to three child reviewers, then
+collapse their verdicts into one majority decision via `fan-in`:
+
+```js
+const path = require('path');
+const { createLedger } = require('./src/blackboard/lib/ledger.js');
+const { subagentFanOut, fanIn } = require('./lib/coordination');
+
+const ledger = createLedger({ ledgerPath: path.join(process.cwd(), 'blackboard.jsonl') });
+
+const sub = await subagentFanOut({
+  parent: 'goal-review-batch',
+  role: 'reviewer',
+  tasks: [
+    { id: 'review-a', summary: 'review src/router.js' },
+    { id: 'review-b', summary: 'review src/auth.js' },
+    { id: 'review-c', summary: 'review src/store.js' },
+  ],
+  blackboard: ledger,
+  mode: 'workers',
+  timeoutMs: 5000,
+  handler: ({ task }) => {
+    // The handler is a pure function — no closure capture. It runs in a
+    // worker. The parent serializes it via .toString().
+    return { ok: true, summary: `reviewed ${task.id}: lgtm`, artifacts: [] };
+  },
+});
+
+// The parent's filtered view sees ONLY the children's result records. Any
+// intermediate `fact`/`decision` records the children emitted stay on the
+// ledger for audit but are not surfaced here.
+const verdicts = sub.parentResults();
+
+// Aggregate the N child verdicts into a single recommendation. The fan-in
+// joiner reads each child's taskId off the ledger and synthesizes.
+const final = await fanIn({
+  goalId: 'goal-review-batch',
+  sourceTaskIds: sub.childTaskIds,
+  joiner: {
+    id: 'review-synthesis',
+    role: 'architect',
+    summary: 'merge 3 child reviewer verdicts into a final recommendation',
+  },
+  ledger,
+  timeoutMs: 5000,
+  mockJoinerResult: { ok: true, summary: 'all 3 reviewers approved' },
+});
+```
+
+Use `mode: 'processes'` when the child must run as a real `openclaw-agent`
+binary (live model call, signed-bus emission, audit log). Use
+`mode: 'workers'` when the child is a pure function and the call site just
+wants cheap parallelism plus the scoped-write guarantee.
+
 ### Mixing pattern and simple lanes
 
 A goal can have both pattern lanes and simple (no-pattern) lanes; the harness

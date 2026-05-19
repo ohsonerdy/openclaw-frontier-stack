@@ -52,6 +52,7 @@ const {
   STATES: TICKET_STATES,
 } = require(path.join(repoRoot, 'src', 'tickets', 'lib', 'ticket-store.js'));
 const goalTemplates = require(path.join(repoRoot, 'lib', 'goal-templates', 'index.js'));
+const { runDoctor, formatHumanReadable: formatDoctorReport } = require(path.join(repoRoot, 'lib', 'doctor', 'index.js'));
 
 const HELP_TEXT = `openclaw — OpenClaw Frontier Stack engineer CLI
 
@@ -71,6 +72,7 @@ Usage:
   openclaw recap [--days N] [--cost]          roll up the last N days of activity (default 1)
   openclaw watch [--filter K] [--agent A]     tail the blackboard ledger in real time
   openclaw ticket <action> [args]             ticket FSM (see "openclaw ticket --help")
+  openclaw doctor [--json] [--no-network]     runtime health probe (see docs/doctor.md)
   openclaw --help                             show this message
 
 Global flags:
@@ -107,6 +109,11 @@ Watch flags:
                          or relative: 5m, 1h, 30s)
   --no-color             (watch) disable ANSI color in the output
 
+Doctor flags:
+  --no-network           (doctor) skip the model-backend HTTP probe
+  --identity-key <path>  (doctor) override OPENCLAW_IDENTITY_KEY for the
+                         signed-bus key check
+
 Exit codes:
   0  Subcommand succeeded
   1  Goal had at least one non-GREEN lane / runtime error
@@ -134,6 +141,10 @@ function parseGlobal(argv) {
     listGoals: false,
     showGoal: null,
     resumeGoal: null,
+    cancelGoal: null,
+    ganttGoal: null,
+    diffPair: null,
+    progressFile: null,
     persistState: true,
     goalsDir: null,
     all: false,
@@ -160,6 +171,9 @@ function parseGlobal(argv) {
     comment: null,
     status: null,
     blocked: false,
+    // doctor flags
+    noNetwork: false,
+    identityKey: null,
   };
   const positional = [];
   for (let i = 2; i < argv.length; i += 1) {
@@ -179,6 +193,10 @@ function parseGlobal(argv) {
     else if (a === '--list') flags.listGoals = true;
     else if (a === '--show') flags.showGoal = argv[++i];
     else if (a === '--resume') flags.resumeGoal = argv[++i];
+    else if (a === '--cancel') flags.cancelGoal = argv[++i];
+    else if (a === '--gantt') flags.ganttGoal = argv[++i];
+    else if (a === '--diff') flags.diffPair = argv[++i];
+    else if (a === '--progress-file') flags.progressFile = path.resolve(process.cwd(), argv[++i]);
     else if (a === '--no-persist') flags.persistState = false;
     else if (a === '--goals-dir') flags.goalsDir = path.resolve(process.cwd(), argv[++i]);
     else if (a === '--all') flags.all = true;
@@ -206,6 +224,8 @@ function parseGlobal(argv) {
     else if (a === '--comment') flags.comment = argv[++i];
     else if (a === '--status') flags.status = argv[++i];
     else if (a === '--blocked') flags.blocked = true;
+    else if (a === '--no-network') flags.noNetwork = true;
+    else if (a === '--identity-key') flags.identityKey = argv[++i];
     else if (a === '--help' || a === '-h') flags.help = true;
     else positional.push(a);
   }
@@ -422,6 +442,68 @@ async function cmdGoal(positional, flags) {
     return;
   }
 
+  // --cancel <id>: write a cancel-request decision to the ledger for goalId.
+  if (flags.cancelGoal) {
+    const ledger = createLedger({ ledgerPath: flags.blackboard });
+    try {
+      const rec = ledger.recordDecision({
+        agent: 'orchestrator',
+        taskId: flags.cancelGoal,
+        decision: 'cancel-request',
+        status: 'accepted',
+        rationale: 'operator requested cancellation via openclaw goal --cancel',
+      });
+      if (flags.json) emit({ ok: true, cancelRequest: rec }, true);
+      else emit(`cancel-request written for goal ${flags.cancelGoal}`);
+    } catch (err) {
+      process.stderr.write(`cancel failed: ${err.message}\n`);
+      process.exit(1);
+    }
+    return;
+  }
+
+  // --gantt <id>: render the ASCII gantt for a persisted goal state.
+  if (flags.ganttGoal) {
+    const dir = goalState.resolveGoalsDir({ blackboardPath: flags.blackboard, override: flags.goalsDir });
+    let state;
+    try { state = goalState.readState(dir, flags.ganttGoal); }
+    catch (err) { process.stderr.write(`${err.message}\n`); process.exit(2); }
+    const text = goalState.renderGantt(state, { color: flags.color !== false });
+    emit(text);
+    return;
+  }
+
+  // --diff <other_id>: compare two persisted goal-states. The positional
+  // following `goal` is the FIRST goal id; --diff takes the SECOND.
+  if (flags.diffPair) {
+    const dir = goalState.resolveGoalsDir({ blackboardPath: flags.blackboard, override: flags.goalsDir });
+    const firstId = positional[1];
+    if (!firstId) {
+      process.stderr.write('openclaw goal --diff <other_id> requires the first goal id as a positional\n');
+      process.exit(2);
+    }
+    let a; let b;
+    try { a = goalState.readState(dir, firstId); }
+    catch (err) { process.stderr.write(`first goal: ${err.message}\n`); process.exit(2); }
+    try { b = goalState.readState(dir, flags.diffPair); }
+    catch (err) { process.stderr.write(`second goal: ${err.message}\n`); process.exit(2); }
+    const result = goalState.diffStates(a, b);
+    if (flags.json) emit({ from: firstId, to: flags.diffPair, ...result }, true);
+    else {
+      const lines = [];
+      lines.push(`diff: ${firstId} -> ${flags.diffPair}`);
+      if (result.statusChanged) lines.push(`status: ${result.statusChanged.from} -> ${result.statusChanged.to}`);
+      if (result.addedLanes.length) lines.push(`+ lanes: ${result.addedLanes.join(', ')}`);
+      if (result.removedLanes.length) lines.push(`- lanes: ${result.removedLanes.join(', ')}`);
+      for (const c of result.changedLanes) lines.push(`~ ${c.name}: ${c.from} -> ${c.to}`);
+      if (result.addedSubGoals.length) lines.push(`+ subGoals: ${result.addedSubGoals.join(', ')}`);
+      if (result.removedSubGoals.length) lines.push(`- subGoals: ${result.removedSubGoals.join(', ')}`);
+      lines.push(`cost delta: $${result.costDelta.toFixed(6)}`);
+      emit(lines.join('\n'));
+    }
+    return;
+  }
+
   // Mutual exclusion: --template and --file cannot be combined.
   if (flags.template && flags.file) {
     process.stderr.write('openclaw goal: --template and --file are mutually exclusive\n');
@@ -472,7 +554,20 @@ async function cmdGoal(positional, flags) {
   }
   // CLI default: mock-agents=true unless explicitly disabled.
   const mockAgents = flags.mockAgents === null ? true : flags.mockAgents;
-  const onProgress = buildProgressEmitter(flags);
+  const baseProgress = buildProgressEmitter(flags);
+  // If --progress-file is set, also tee every progress event to that file as
+  // ndjson so an external watcher (or test harness) can tail it.
+  let onProgress = baseProgress;
+  if (flags.progressFile) {
+    // Truncate the file on start so each invocation has a clean log.
+    try { fs.writeFileSync(flags.progressFile, ''); } catch (_) { /* best-effort */ }
+    onProgress = (event) => {
+      try {
+        fs.appendFileSync(flags.progressFile, JSON.stringify({ ts: new Date().toISOString(), ...event }) + '\n');
+      } catch (_) { /* best-effort */ }
+      if (baseProgress) baseProgress(event);
+    };
+  }
   let trace;
   try {
     trace = await runGoalLoop({
@@ -581,6 +676,34 @@ function cmdRecap(_positional, flags) {
   });
   if (flags.json) emit(recap, true);
   else emit(renderRecapText(recap));
+}
+
+async function cmdDoctor(_positional, flags) {
+  // The doctor probe inspects the live workspace and reports a structured
+  // verdict. We default `blackboard` to release-gate/blackboard.jsonl so the
+  // operator sees the same path the verifier uses, not the cwd default that
+  // `goal` uses for in-flight goal state.
+  let blackboardPath = flags.blackboard;
+  const defaultGoalBlackboard = path.resolve(process.cwd(), 'blackboard.jsonl');
+  if (blackboardPath === defaultGoalBlackboard) {
+    blackboardPath = path.join(repoRoot, 'release-gate', 'blackboard.jsonl');
+  }
+  let report;
+  try {
+    report = await runDoctor({
+      repoRoot,
+      blackboard: blackboardPath,
+      noNetwork: Boolean(flags.noNetwork),
+      identityKey: flags.identityKey || null,
+      ticketsPath: flags.ticketsPath || null,
+    });
+  } catch (err) {
+    process.stderr.write(`doctor failed: ${err.stack || err.message || err}\n`);
+    process.exit(1);
+  }
+  if (flags.json) emit(report, true);
+  else emit(formatDoctorReport(report));
+  process.exit(report.ok ? 0 : 1);
 }
 
 // ---------- openclaw watch ----------
@@ -1111,6 +1234,7 @@ async function main() {
     case 'recap': return cmdRecap(positional, flags);
     case 'watch': return cmdWatch(positional, flags);
     case 'ticket': return cmdTicket(positional, flags);
+    case 'doctor': return cmdDoctor(positional, flags);
     case undefined: help(); process.exit(2); return;
     default:
       process.stderr.write(`unknown subcommand: ${sub}\n`);

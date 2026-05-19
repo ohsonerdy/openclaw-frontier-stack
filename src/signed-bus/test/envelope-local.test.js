@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const envelope = require('../lib/envelope');
+const envelope = require('../lib/envelope-loader');
 
 function publicKeyOpenSsh(publicKey) {
   const jwk = publicKey.export({ format: 'jwk' });

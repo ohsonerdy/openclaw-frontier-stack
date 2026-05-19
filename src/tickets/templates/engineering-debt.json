@@ -1,0 +1,9 @@
+{
+  "schema": "openclaw-frontier.ticket-template.v1",
+  "name": "engineering-debt",
+  "defaultPriority": "p2",
+  "defaultSlaHours": 336,
+  "requiredFields": ["title", "body"],
+  "suggestedAssignees": ["builder"],
+  "bodyTemplate": "## Debt summary\n\n<one-line description of the smell, hack, or known weakness>\n\n## Where it lives\n\n- Files / paths:\n- Modules / surfaces:\n\n## Current cost\n\n<what does this debt make harder today, who pays it>\n\n## Proposed cleanup\n\n<the shape of the fix>\n\n## Risk of leaving it\n\n<what could go wrong if we never get to this>\n\n## Touched-by-this dependencies\n\n<existing tickets or workstreams this overlaps with>\n"
+}

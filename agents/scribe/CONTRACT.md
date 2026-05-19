@@ -191,3 +191,90 @@ Your turn ends when one of:
    `task-waiting` (source artifact in flight).
 
 No other exit is valid.
+
+## Per-release notes via `scripts/render-release-notes.js`
+
+When the target version has a published git tag (or a candidate
+manifest at `release-gate/exports/release-manifest-manifest.json`) and
+its CHANGELOG block is complete, scribe MAY produce the matching
+`release-gate/release-notes/vX.Y.Z.md` file by invoking the renderer
+instead of hand-writing the file from scratch. The renderer reads the
+CHANGELOG block, the git history between the previous tag and the
+target, and the skill catalog delta, and emits a markdown file with
+the canonical sections: header, summary, stats, highlights, migration
+notes (when present), and full-changelog reference.
+
+### When to call the renderer
+
+- The TASK envelope's `targetSection` is
+  `release-gate/release-notes/v<X.Y.Z>.md` (the per-version file form,
+  not `DRAFT_RELEASE_NOTES.md`).
+- The CHANGELOG block for `vX.Y.Z` already exists and has a dated
+  header in the form `## YYYY-MM-DD — vX.Y.Z — <title>`.
+- Either the `vX.Y.Z` git tag exists, or the renderer is invoked with
+  `OPENCLAW_RELEASE_NOTES_GIT_FIXTURE` pointing at a fixture file (the
+  test path).
+- No `path-claim` is held by another role on
+  `release-gate/release-notes/vX.Y.Z.md`.
+
+If any of the above fails: do not call the renderer. Emit `ALERT`
+naming the failing precondition and yield, exactly as the rest of the
+contract requires.
+
+### How to call the renderer
+
+```sh
+node scripts/render-release-notes.js \
+  --version vX.Y.Z \
+  --out release-gate/release-notes/vX.Y.Z.md
+```
+
+The renderer writes the file at the `--out` path and prints a JSON
+summary on stdout with the shape:
+
+```json
+{
+  "schema": "openclaw-frontier.release-notes-render.v1",
+  "ok": true,
+  "version": "vX.Y.Z",
+  "prev": "vA.B.C",
+  "out": "release-gate/release-notes/vX.Y.Z.md",
+  "stats": { "commits": <int>, "filesChanged": <int>,
+             "insertions": <int>, "deletions": <int> },
+  "skills": { "prev": <int>, "target": <int> },
+  "highlights": <int>,
+  "hasMigration": <bool>
+}
+```
+
+Capture the JSON summary verbatim in the scribe `fact` record with
+subject `scribe:<narrative-id>:rendered`. Do not paraphrase the stats;
+they are derived numeric truth from the git ledger and must round-trip
+without editing.
+
+### What scribe must still do by hand
+
+- Confirm the rendered file passes the public-content scan (no
+  private hosts, paths, tokens, or names) before emitting the
+  `:landed` fact.
+- Hand-edit only the **migration notes** body when the CHANGELOG
+  `### Migration` block needs operator-readable expansion. The
+  renderer copies the block verbatim; if it needs prose softening
+  for operators, scribe edits the rendered file in place after the
+  render step. Do not edit the stats, the highlights bullets, or
+  the full-changelog reference — those are mechanical.
+- Emit one `path-release` per `path-claim` held, as the existing
+  contract requires.
+
+### What scribe must NEVER do with the renderer
+
+- Never invoke the renderer for a version that has no tag and no
+  candidate manifest. The renderer will refuse, but scribe should
+  refuse first.
+- Never edit the JSON summary printed by the renderer. It is fact
+  material, not narrative.
+- Never set `OPENCLAW_RELEASE_NOTES_GIT_FIXTURE` outside of a test
+  environment. The fixture path exists for the renderer's own test
+  harness; using it during a real release would falsify the stats.
+- Never call the renderer for `DRAFT_RELEASE_NOTES.md`. That file is
+  authored by hand and is out of scope for the renderer.

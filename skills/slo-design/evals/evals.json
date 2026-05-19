@@ -1,0 +1,89 @@
+{
+  "skill_name": "slo-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our checkout API has an SLO of 'average latency under 500ms'. We met it last month but customers complained that checkout was slow. What's wrong with the SLO?",
+      "expected_output": "The average is the wrong statistic. The mean can be in spec while the slowest 1% to 5% of users wait many seconds. Switch to a percentile-based SLI such as 'percentage of requests under 500ms at p99'. For an interactive payment path, p99 is the right percentile because tail latency directly maps to abandoned checkouts. The SLI should be a ratio: (requests under threshold) / (valid requests). Exclude invalid input (malformed 4xx) from the denominator. Re-baseline the target against the new percentile metric; expect the number to look worse initially because it reflects what users actually experience.",
+      "assertions": [
+        "Identifies the average as hiding the tail",
+        "Recommends a percentile-based latency SLI",
+        "Recommends p99 specifically for the interactive payment path",
+        "SLI is framed as a ratio of requests under threshold over valid requests",
+        "Excludes invalid input (malformed 4xx) from the denominator",
+        "Expects the target to be re-baselined against the new metric"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Management wants to set our SLO at 99.99%. Our service currently runs around 99.7%. Is this realistic?",
+      "expected_output": "Almost certainly not without significant engineering investment. 99.99% allows about 4.3 minutes of failure per month or 52 minutes per year. The team currently operates at 99.7% (about 2 hours of failure per month). Closing that gap requires redundant infrastructure, fast failover, automated mitigation — a multi-quarter investment. Setting the target without that investment teaches the team to ignore the SLO because they will miss it every month. Recommend either (a) set the target at 99.9% (the realistic next step from 99.7%, about 43 minutes of budget per month), or (b) commit to the engineering work for 99.99% with a roadmap and a transition target. Aspirational SLOs that the team cannot meet are theater.",
+      "assertions": [
+        "Identifies 99.99% as requiring significant engineering investment",
+        "Quantifies the budget at 99.99% (about 4.3 minutes per month or 52 minutes per year)",
+        "Compares against the current 99.7% baseline",
+        "Recommends 99.9% as the realistic intermediate target",
+        "Calls out aspirational SLOs as theater",
+        "Suggests an engineering investment roadmap if 99.99% is the real goal"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We have an error budget policy that says 'when budget is exhausted, feature work pauses'. Last month we exhausted the budget on day 18, and the team shipped four features that week anyway. What should we do?",
+      "expected_output": "The error-budget policy is being ignored, which means the SLO is theater. Two fixes. (1) Enforce the policy through change-management. When budget is below 10%, tier 2 and 3 changes require explicit approval that names the budget cost. When budget is exhausted, only reliability fixes and emergency changes ship. (2) Investigate the override: was the policy unreasonable (target too tight, window too short), or did the team simply not respect it? If the policy is unreasonable, revise it; if the team didn't respect it, the next post-mortem of an incident that consumed budget should call this out. The policy is a coordination mechanism only if it actually constrains behavior. Without enforcement, the SLO is decoration.",
+      "assertions": [
+        "Identifies the policy is being ignored, not the metric",
+        "Recommends enforcing the policy through change-management",
+        "Names the override as the failure mode to investigate",
+        "Distinguishes between unreasonable policy and disrespected policy",
+        "Calls out that the SLO is theater without enforcement",
+        "Suggests budget-cost named in any change ticket when budget is low"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We have an SLO on a background batch pipeline. Should we use availability or latency?",
+      "expected_output": "Neither in the traditional sense. Background pipelines are usually freshness-bound: 'records processed within X minutes of arrival' or 'pipeline lag under N minutes'. The SLI is the ratio of records meeting the freshness threshold over all records. Availability still matters (the pipeline must run), but latency-as-typically-defined doesn't apply to background work because no user is waiting on a single request. For the freshness SLO, the target depends on downstream consumers' tolerance: a fraud pipeline feeding real-time decisions needs sub-minute freshness; a daily report can be 24-hour freshness. Pair with an availability SLO on the pipeline runner itself (it executed, didn't crash) for completeness.",
+      "assertions": [
+        "Recommends a freshness-based SLI for the background pipeline",
+        "Freshness SLI is a ratio of records meeting the threshold over all records",
+        "Notes that latency-as-typically-defined does not apply (no waiting user)",
+        "Recommends pairing with an availability SLO on the pipeline runner",
+        "Freshness threshold depends on downstream consumer tolerance",
+        "Distinguishes between fraud-pipeline (sub-minute) and report-pipeline (24-hour) cases"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our 28-day SLO has been at 99.92% for three weeks (target is 99.9%). The on-call is comfortable. But yesterday in the last hour we had a sharp latency spike. Should we have been paged?",
+      "expected_output": "Yes, via a burn-rate alert, not via the 28-day SLO. The 28-day SLO measures aggregate compliance; it does not react fast enough to in-progress incidents. The standard pattern is a multi-window multi-burn alert: fast-burn (e.g., 1-hour window at 14x burn rate, with a 5-minute confirm) pages the on-call; slow-burn (6-hour window at 2-3x burn rate) opens a ticket. The fast-burn would have fired during the latency spike. Without burn-rate alerts, the team sees the SLO dip a day later and cannot intervene during the incident. Recommend adding fast-burn and slow-burn alerts on top of the 28-day SLO calculation.",
+      "assertions": [
+        "Identifies the 28-day SLO as too slow for in-progress incidents",
+        "Recommends fast-burn and slow-burn alerts on top of the SLO",
+        "Names specific multi-window pattern (1-hour fast-burn, 6-hour slow-burn)",
+        "Fast-burn pages; slow-burn opens a ticket",
+        "Calls out short-window confirmation to avoid single-minute blips",
+        "Treats burn-rate alerting as what makes the SLO operational"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our service has 14 SLOs covering different endpoints and behaviors. The dashboard is busy. Is this the right number?",
+      "expected_output": "Probably too many. The function of an SLO is to drive behavior (gate releases, allocate engineering attention, trigger on-call). With 14 indicators, the team cannot keep them straight, and the budget-policy enforcement becomes impractical (which budget gates the release?). Recommend collapsing to one or two indicators per user-facing service: availability of the critical user journey and quality (latency or correctness) of the same. Per-endpoint SLOs are operational telemetry, not SLOs. Use a single service-level SLO that aggregates across endpoints, and rely on dashboards and alerts for the per-endpoint visibility. The discipline is to pick the smallest set that captures user experience.",
+      "assertions": [
+        "Identifies 14 SLOs as too many",
+        "Recommends collapsing to one or two indicators per service",
+        "Per-endpoint SLOs become operational telemetry, not SLOs",
+        "Names the failure mode: budget-policy enforcement becomes impractical",
+        "Recommends aggregating to service-level critical-user-journey indicators",
+        "Frames the discipline as picking the smallest set that captures user experience"
+      ],
+      "files": []
+    }
+  ]
+}

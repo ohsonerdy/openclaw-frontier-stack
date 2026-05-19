@@ -1,0 +1,104 @@
+{
+  "$schema": "openclaw-frontier.skill-eval.v1",
+  "skill_name": "tiktok-shop-strategy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Should we set up TikTok Shop? We're a $4M skincare brand with 30% gross margin and AOV of $42.",
+      "expected_output": "Surfaces the gross-margin floor concern. At 30% gross margin the all-in TikTok Shop commission stack of 15-25% leaves single-digit contribution margin. Walks the category-fit gate (skincare passes on visual demonstrability and impulse band) but conditions on margin uplift first. Recommends testing TikTok ads to DTC ahead of TikTok Shop because the DTC cart preserves margin.",
+      "assertions": [
+        "Calls out the 30% gross margin as below the structural floor",
+        "Names the 15-25% all-in commission stack",
+        "Walks the category-fit gate for skincare",
+        "Recommends TikTok ads to DTC before TikTok Shop",
+        "Pulls modern.sales.aov to confirm AOV by SKU",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "What's the difference between TikTok Shop and TikTok ads? My agency is pushing both.",
+      "expected_output": "Distinguishes the two products. TikTok Shop is in-app checkout with creator affiliate, TikTok ads is paid media driving to DTC. Walks the cannibalization risk if both run unmanaged. Recommends starting with whichever fits the catalog and only adding the second after incrementality is measured.",
+      "assertions": [
+        "Defines TikTok Shop and TikTok ads as different products",
+        "Names the in-app checkout vs DTC routing as the structural difference",
+        "Calls out cannibalization risk when both run together",
+        "Recommends measuring incrementality before scaling both",
+        "Pulls modern.ads.roas to baseline current ad performance",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our TikTok Shop has 3 creators driving 90% of revenue. Should we worry?",
+      "expected_output": "Yes — concentration risk and pipeline fragility. Walks the UGC pipeline durability framework. Recommends rebalancing toward 20-40 pieces of creator-tagged content per month, with the portfolio mix of Open Plan plus Targeted Plan plus Spark Ads to reduce dependency on any one creator. Names asset rights as the under-invested protection.",
+      "assertions": [
+        "Identifies concentration risk in three-creator dependency",
+        "Walks the UGC pipeline durability framework",
+        "Names 20-40 pieces per month as the volume target",
+        "Recommends the tier portfolio mix",
+        "Calls out usage rights as critical to amplify top content",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We sell premium home goods at $180 AOV. Is TikTok Shop a fit?",
+      "expected_output": "Borderline. The category passes on visual demonstrability but is above the $80 impulse band. Conversion model shifts to creator-trust-driven and content burden goes up. Walks the category-fit gate explicitly. Recommends testing with one or two hero SKUs in the $80-$120 band before committing the full catalog. Notes that some premium catalogs do work but require more curated creator partnerships, not Open Plan volume.",
+      "assertions": [
+        "Identifies the AOV as above the impulse band",
+        "Walks the category-fit gate",
+        "Recommends testing on lower-AOV hero SKUs first",
+        "Notes the content burden increase for premium catalogs",
+        "Recommends Targeted Plan over Open Plan for premium fit",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our supplement brand is about to launch on TikTok Shop. What compliance issues should we expect?",
+      "expected_output": "Walks the compliance and category restrictions framework. Supplements are restricted with approval — require ingredient disclosure and FDA-aligned labeling. Health claims are reviewed harshly. Notes the brand's liability for creator non-disclosure. Recommends documenting the compliance path before listing rather than discovering restrictions mid-launch.",
+      "assertions": [
+        "Identifies supplements as restricted with approval",
+        "Names ingredient disclosure and FDA-aligned labeling requirements",
+        "Warns about health claims and benefit-vs-curative language",
+        "Calls out brand liability for creator non-disclosure",
+        "Recommends compliance documentation before listing",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our open-plan creator commission is 15%. Most creators ignore our offer. What should we change?",
+      "expected_output": "Commission is below the typical band. Walks the creator partnership economics. Open Plan creators self-select; without competitive commission they skip the product. Recommends raising the Open Plan rate to 18-20% range, layering Targeted Plan on top-performing 10-20 creators with negotiated 20-30% commission plus samples, and considering Live Shopping if a SKU is breaking out.",
+      "assertions": [
+        "Identifies the 15% commission as below the competitive band",
+        "Walks the creator partnership tiers and typical rates",
+        "Recommends raising Open Plan to 18-20%",
+        "Recommends layering Targeted Plan on top performers",
+        "Names Live Shopping as a velocity tier for breakout SKUs",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We're EU-based and want to sell on TikTok Shop. Is this viable?",
+      "expected_output": "TikTok Shop is not live in EU. Selling to UK and US requires entity and tax setup in those markets. Recommends conditioning on whether the brand has the international infrastructure or whether TikTok ads to a localized DTC site is the better near-term path. References the international-expansion skill for the broader country-launch work.",
+      "assertions": [
+        "Identifies that TikTok Shop is not live in EU",
+        "Names UK and US as the relevant TikTok Shop markets",
+        "Conditions on entity and tax setup in target market",
+        "Recommends TikTok ads to localized DTC as the alternative",
+        "References international-expansion for country-launch work",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "schema": "openclaw-frontier.ticket-template.v1",
+  "name": "bug-report",
+  "defaultPriority": "p1",
+  "defaultSlaHours": 48,
+  "requiredFields": ["title", "body"],
+  "suggestedAssignees": ["builder", "qa"],
+  "bodyTemplate": "## Summary\n\n<one-line summary of the defect>\n\n## Steps to reproduce\n\n1. <step one>\n2. <step two>\n3. <step three>\n\n## Expected behaviour\n\n<what should happen>\n\n## Actual behaviour\n\n<what happens instead>\n\n## Environment\n\n- Version:\n- Platform:\n- Branch:\n\n## Logs / evidence\n\n<paste relevant log lines, stack traces, or attach via openclaw ticket attach>\n"
+}

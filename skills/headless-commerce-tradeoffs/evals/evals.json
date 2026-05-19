@@ -1,0 +1,104 @@
+{
+  "skill_name": "headless-commerce-tradeoffs",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're a $9M Shopify brand and our agency is pushing us to go headless. Should we?",
+      "expected_output": "Walks the four-question gate. At $9M with no named limitation surfaced, recommends a no on headless and a 90-day theme-customization sprint. Names the permanent frontend FTE requirement and the SEO risk. Calls out that this is the most common premature replatform conversation.",
+      "assertions": [
+        "Applies the four-question go/no-go gate",
+        "Asks for the named current revenue-blocking limitation",
+        "Names the permanent frontend FTE requirement",
+        "Surfaces the SEO migration risk",
+        "Recommends a 90-day theme-customization sprint as the alternative",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our PDP is 3.5 seconds LCP on mobile and we know speed is killing conversion. Is headless the answer?",
+      "expected_output": "Frames performance as a real but narrow headless win. Recommends measuring whether the theme can be optimized first (image CDN, app audit, third-party script audit). If headless proceeds, names Hydrogen or Next.js as the two real choices for Shopify-staying brands. Names the diminishing-returns rule past 1.5s mobile LCP.",
+      "assertions": [
+        "Names theme optimization (CDN, app audit, third-party scripts) as the first move",
+        "Names Hydrogen or Next.js as the realistic stack choices",
+        "Cites the diminishing-returns rule past 1.5s LCP",
+        "Recommends a performance budget enforced in CI",
+        "Names the ongoing performance owner requirement",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We get 40% of revenue from organic search and we're considering a headless replatform. What should we watch?",
+      "expected_output": "Identifies organic-search risk as the dominant variable. Walks the five-pillar SEO migration checklist: URL preservation, crawlability, structured-data parity, internal linking parity, sitemap and robots.txt parity. Recommends staging the headless storefront on a subdomain for 30 days before DNS cutover.",
+      "assertions": [
+        "Identifies organic-search risk as dominant given the 40% share",
+        "Lists the five-pillar SEO migration checklist",
+        "Recommends staging on a subdomain for 30 days pre-cutover",
+        "Calls out the 10-30% traffic-loss range from poor cutovers",
+        "References seo-audit for the deeper organic plan",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We're $50M revenue, multi-region, want to be on commercetools. Worth it?",
+      "expected_output": "Walks the four headless stacks. At $50M with multi-region requirements, composable commerce is in scope but commercetools specifically has 12-24 month exit cost. Names Commerce Layer, Saleor, BigCommerce headless as the realistic peers. Confirms the team-shape requirement (dedicated platform engineering, not a single FTE).",
+      "assertions": [
+        "Confirms composable commerce is in scope at $50M with multi-region",
+        "Names commercetools' high lock-in profile",
+        "Names Commerce Layer / Saleor / BigCommerce headless as peers",
+        "Calls out the dedicated platform-engineering team requirement",
+        "Includes a 12-24 month exit cost estimate",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "What apps will we lose if we go headless from Shopify?",
+      "expected_output": "Walks the theme-app loss surface. Reviews UI, upsells, subscriptions UI, cart drawer, store locator, gift-with-purchase will not work without custom rebuilds. Estimates 4-8 weeks per app equivalent. Recommends auditing the current app stack and pricing the rebuild work into the headless TCO.",
+      "assertions": [
+        "Lists the categories of apps that will not work headless",
+        "Estimates 4-8 weeks per app equivalent rebuild",
+        "Recommends auditing the current app stack first",
+        "Includes the rebuild cost in the headless TCO model",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "What's the realistic 12-month cost of going headless on Hydrogen?",
+      "expected_output": "Produces a TCO model. Engineering FTE ($180k-$280k loaded), Oxygen hosting plus image CDN and monitoring ($18k-$60k/year), initial build cost ($150k-$400k), theme-app rebuild work ($80k-$200k), SEO migration discipline ($30k-$80k). Total first-year range $450k-$1M plus permanent ongoing $250k-$400k/year.",
+      "assertions": [
+        "Produces a 12-month TCO model",
+        "Includes engineering FTE cost",
+        "Includes infra and monitoring cost",
+        "Includes initial build cost",
+        "Includes theme-app rebuild cost",
+        "Includes SEO migration cost",
+        "Names a total first-year range and ongoing cost",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We're on BigCommerce, $15M, want to do a Next.js storefront. Yes or no?",
+      "expected_output": "At $15M without a named limitation, leans toward no but in scope. Walks the four-question gate, conditions on whether a frontend FTE exists. If yes, names Next.js + BigCommerce Storefront API as a reasonable stack with moderate lock-in. Pulls the channel and device data to verify the conversion-lift case.",
+      "assertions": [
+        "Applies the four-question gate",
+        "Conditions yes on existence of a frontend FTE",
+        "Pulls modern.sales.aov by device to size conversion lift",
+        "Names Next.js + BigCommerce Storefront API as the realistic stack",
+        "Notes BigCommerce headless has different lock-in than Hydrogen",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    }
+  ]
+}

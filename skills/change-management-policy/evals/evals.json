@@ -1,0 +1,89 @@
+{
+  "skill_name": "change-management-policy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our CAB approves every change within five minutes. No questions asked. We had a tier 3 change last month that broke production for two hours, and the post-mortem said 'CAB approved it'. What's going wrong?",
+      "expected_output": "The CAB is theater. Five-minute approvals with no recorded rationale are rubber stamps. Two fixes. (1) Require every CAB approval to record specific concerns or sign-off rationale; 'approved' alone is not an approval. (2) The CAB is a review, not a guarantee — the service owner remains accountable for the change regardless of CAB approval. The post-mortem should investigate the change itself, not point at the CAB. Healthy signal: the CAB sometimes rejects changes, asks for more evidence, or proposes splitting changes into phases. If the CAB has never rejected a change, it's not reviewing.",
+      "assertions": [
+        "Identifies the CAB as rubber-stamping",
+        "Requires rationale recorded with every approval",
+        "Notes the CAB is a review, not a guarantee, and service owner remains accountable",
+        "Names a healthy signal: the CAB sometimes rejects or pushes back",
+        "Calls out the anti-pattern of pointing at CAB to shift blame",
+        "Does not recommend adding more tiers or making CAB heavier as the fix"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want to change a config flag that routes 5% of traffic to a new payment processor. The diff is one line. Does this need CAB review?",
+      "expected_output": "The tier is determined by risk, not diff size. The four questions: blast radius (payment processor change has high blast radius if it goes wrong); rollback path (reversible by flipping the flag back, fast); user-visible impact if rollback is needed (some users see payment failures); team familiarity (depends on the team). Even at 5% traffic, this affects revenue-critical path, so tier 3 is likely. Required evidence: tested rollback, named CAB reviewers, abort criteria (e.g., 'if error rate on the 5% path exceeds X within Y minutes, flip back'). Do not assume one-line means tier 1.",
+      "assertions": [
+        "Identifies that diff size does not determine tier",
+        "Walks through the four-question tier-assignment test",
+        "Assigns tier 3 (or tier 2-3) based on payment-path blast radius",
+        "Requires tested rollback (not just described)",
+        "Requires abort criteria with concrete threshold and window",
+        "Does not approve as tier 1 based on one-line diff"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We're in an active sev 1. The fix is to roll back yesterday's deploy. Does this need to go through CAB?",
+      "expected_output": "No. This is a tier 4 emergency change. Criteria: there is a declared incident, the change is the mitigation, and the incident commander authorizes. Record the authorization in the incident channel with timestamp. The full review happens after, not before: a post-change retrospective within 48 hours, captured in the post-mortem. The retrospective asks whether this was really an emergency (yes — sev 1 with rollback as mitigation), and whether any process gap allowed the original bad deploy through. Do not wait for CAB during an active sev 1; that extends user impact.",
+      "assertions": [
+        "Identifies this as a tier 4 emergency change",
+        "Names the three criteria: declared incident, change is mitigation, IC authorizes",
+        "Requires IC authorization recorded in the incident channel",
+        "Requires post-change retrospective within 48 hours",
+        "Does not require pre-change CAB during the active incident",
+        "Treats the rollback as mitigation, not as bypassing process"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our team has been marking 80% of changes as 'emergency' for the past three months because the regular CAB queue is days deep. What's the fix?",
+      "expected_output": "Two failures. (1) The emergency carve-out has become a loophole. Most of these are not real emergencies (no declared incident, the change is not active-incident mitigation). The post-incident review should catch this pattern. (2) The underlying issue is the CAB bottleneck. If tier 2 changes are being routed to CAB, the tier definitions are not being enforced — service-owner review should clear most tier 2 changes. Fixes: enforce the tier definitions strictly, expand the CAB roster to reduce wait, and audit the past three months of 'emergency' changes — most were probably tier 2 that should have gone through service-owner review. Tighten the emergency criteria: declared incident, change is mitigation, IC authorizes, mandatory retrospective.",
+      "assertions": [
+        "Identifies the emergency carve-out being abused",
+        "Identifies the CAB bottleneck as the underlying cause",
+        "Recommends enforcing tier definitions strictly",
+        "Recommends expanding the CAB roster",
+        "Recommends auditing the past 'emergency' changes",
+        "Restates the tight emergency criteria"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We want to deploy a major refactor of the authentication service on Friday at 3pm so it goes live before the weekend. Should we?",
+      "expected_output": "No. Tier 3 change to a critical service (authentication) on Friday afternoon is the anti-pattern. The weekend on-call inherits the risk; team availability for recovery is reduced. The default policy should be 'no tier 3 deploys after noon Friday local time' with explicit exception required. Recommend deferring to Monday morning (full team availability) or, if there is a real business reason for Friday, requiring an explicit exception with the on-call expanded for weekend coverage, the abort criteria defined, and the IC named. Treat the timing as a safety decision, not a scheduling preference.",
+      "assertions": [
+        "Recommends against Friday afternoon tier 3 deploys",
+        "Names weekend on-call risk as the concern, not the change itself",
+        "Recommends Monday morning as the default alternative",
+        "If proceeding, requires explicit exception with expanded on-call coverage",
+        "Requires defined abort criteria",
+        "Treats deploy timing as a policy-enforced safety decision"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We have one CAB tier for everything. Tier 1 routine config changes wait three days for the same review as tier 3 schema changes. The team is starting to merge-bypass. How should the policy be restructured?",
+      "expected_output": "Single-tier policy is the failure. Restructure into four tiers. Tier 1 (standard, pre-approved): peer review in the PR, no separate ticket. Tier 2 (normal, single-service): service owner sign-off, written rollback plan, change ticket. Tier 3 (major, multi-service or critical-path): CAB review with named reviewers, tested rollback, abort criteria. Tier 4 (emergency): IC authorization, post-change retrospective. The tier is determined by risk (blast radius, rollback, user impact, team familiarity), not diff size. Move the routine config changes to tier 1 to free CAB capacity for the changes that actually need it. If the team is already merge-bypassing, the current policy is non-functional and the fix is risk-tiering, not stricter enforcement of a broken policy.",
+      "assertions": [
+        "Identifies single-tier policy as the failure",
+        "Recommends the four-tier structure",
+        "Each tier has a distinct approver and evidence requirement",
+        "Tier is assigned by risk, not diff size",
+        "Moves routine changes to tier 1 to free CAB capacity",
+        "Does not recommend stricter enforcement of the existing single-tier policy"
+      ],
+      "files": []
+    }
+  ]
+}

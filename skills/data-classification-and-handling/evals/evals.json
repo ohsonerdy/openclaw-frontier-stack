@@ -1,0 +1,117 @@
+{
+  "schema": "openclaw-frontier.skill-eval.v1",
+  "skill_name": "data-classification-and-handling",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "A new dataset will contain customer order history including billing address and email. The team is calling it 'internal' because only the support team will query it. Is that the right tier?",
+      "expected_output": "No. Billing address and email are PII, which puts the dataset in the restricted tier regardless of which internal team queries it. The classification is based on the data's sensitivity, not on who currently has access. Three implications. First, storage controls have to meet restricted requirements: encryption at rest, encryption in transit, field-level access if some queries don't need the PII fields. Second, retention is bounded by purpose: order history needed for support and dispute resolution is kept only as long as that purpose exists. Third, the access model is least-privilege with audit logging; the support team gets a documented role with just-in-time elevation for sensitive queries, not standing broad access. The phrase 'only the support team will query it' is the kind of informal control that fails the moment the access pattern changes. Classify as restricted, build the controls accordingly, and revisit if a less sensitive sub-view of the data (without PII fields) is needed for broader use.",
+      "assertions": [
+        {"type": "contains", "value": "restricted"},
+        {"type": "contains", "value": "PII"},
+        {"type": "contains", "value": "encryption"},
+        {"type": "contains", "value": "least-privilege"},
+        {"type": "contains", "value": "audit log"},
+        {"type": "not-contains", "value": "internal is correct"},
+        {"type": "not-contains", "value": "support team controls are enough"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We just discovered that one of our debug log lines has been logging the full HTTP request body, which includes email and phone number, for the last six months. The logs are kept for two years. What do we do?",
+      "expected_output": "Treat this as an incident with two threads. Immediate mitigation: stop the leak. Patch the logger to redact or drop the offending fields; deploy and confirm new log entries are clean. Second thread: remediate the existing two-year retention of leaked PII. Options in order of preference. (1) Delete the affected log entries — if the logging backend supports targeted deletion. (2) Re-process the log archive to redact the PII fields and replace the originals. (3) Shorten retention on the affected log stream to the minimum legally required, and document the residual exposure. Third thread: notify and audit. Determine who had access to the logs over the six months; review audit logs for anomalous access; assess whether breach notification obligations apply per applicable regulations. Fourth thread: prevent recurrence. Add SDK-level filters or schema-enforced field allowlists that block PII from reaching logs in the first place. Run a log scan periodically to catch new leaks.",
+      "assertions": [
+        {"type": "contains", "value": "stop the leak"},
+        {"type": "contains", "value": "redact"},
+        {"type": "contains", "value": "retention"},
+        {"type": "contains", "value": "audit"},
+        {"type": "contains", "value": "filter"},
+        {"type": "contains", "value": "notify"},
+        {"type": "not-contains", "value": "no action needed"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Engineering wants to set up a shared service account that all microservices use to read from the customer database. They argue it simplifies operations. What's the issue?",
+      "expected_output": "The issue is that a shared service account destroys audit log attribution. When the customer database is accessed, the audit log will show 'shared-service-account did it' with no further information about which microservice or code path triggered the access. After-the-fact investigation of any incident or anomaly becomes impossible. Two more concerns. (1) Credential rotation is harder; rotating the shared account requires coordinated changes across every consuming service. (2) Blast radius of credential compromise is broader; one leaked key affects every service that used the account. The right pattern: each microservice has its own identity (separate service account or workload identity), with audit log entries attributable to that specific service. The 'simplification' the team is proposing is a one-time setup convenience traded against permanent loss of investigability. Recommend per-service identities; if onboarding new services feels heavy, automate the identity provisioning rather than collapsing to one account.",
+      "assertions": [
+        {"type": "contains", "value": "audit"},
+        {"type": "contains", "value": "attribution"},
+        {"type": "contains", "value": "per-service"},
+        {"type": "contains", "value": "rotation"},
+        {"type": "contains", "value": "blast radius"},
+        {"type": "not-contains", "value": "shared account is fine"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We received a user request under GDPR to delete all their data. The customer database has a delete path, but I'm worried about copies elsewhere. Where do I need to look?",
+      "expected_output": "Several places, each subject to the same deletion obligation. (1) Primary customer database — the obvious one. (2) Replicas and analytical copies — data warehouse, BI tools, any reporting copies; these need the same deletion. (3) Backups — the user's record needs to be excluded from restore. Typical approaches are either to schedule backups to age out within the deletion window (30-90 days), or to maintain a deletion tombstone that's applied on restore. (4) Application logs — any log line with the user's identifiers in the retention window needs redaction or deletion. (5) Metrics and traces — if user_id was attached to spans or high-cardinality metric labels, scrub or expire. (6) Error trackers — error reports containing the user's request context. (7) Caches — invalidate or expire. (8) Vendors — any third-party processors with the user's data need a deletion request propagated; contracts should require this. (9) Derived data — aggregates may be non-identifying and can stay; non-aggregated derivations need the same deletion. The completeness of the response depends on having a current data classification register that maps where user data lives.",
+      "assertions": [
+        {"type": "contains", "value": "backup"},
+        {"type": "contains", "value": "replica"},
+        {"type": "contains", "value": "log"},
+        {"type": "contains", "value": "vendor"},
+        {"type": "contains", "value": "cache"},
+        {"type": "contains", "value": "register"},
+        {"type": "not-contains", "value": "just delete from the database"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our retention policy is 'we keep everything forever because storage is cheap.' What's wrong with that?",
+      "expected_output": "Storage cost is not the constraint that should drive retention. Three reasons to bound retention. (1) Breach liability scales with what's stored. A breach of seven years of data is worse than a breach of one year, regardless of how cheap the storage was. (2) Legal exposure: regulators in many jurisdictions require minimization and bounded retention for personal data; 'forever' violates the policy on its face. (3) Operational cost compounds: long retention means longer queries, larger indexes, more migrations to maintain, more places to delete on request. The right model: retention is bounded by purpose. For each dataset, ask what business need requires keeping it, and set retention to the time horizon of that need. Restricted-tier data has the tightest bounds, often the legal minimum. Internal data has bounds based on operational utility. Public data may be kept indefinitely. Update the policy from 'keep everything' to per-dataset retention with documented purpose, and start ageing out data that no longer has a purpose.",
+      "assertions": [
+        {"type": "contains", "value": "breach"},
+        {"type": "contains", "value": "liability"},
+        {"type": "contains", "value": "minimization"},
+        {"type": "contains", "value": "purpose"},
+        {"type": "contains", "value": "regulator"},
+        {"type": "not-contains", "value": "storage is the only cost"},
+        {"type": "not-contains", "value": "keep everything is fine"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Engineers routinely pull production data into their local dev environments to debug issues. The data includes customer records. Is that okay?",
+      "expected_output": "No. The local dev environment is the org's lowest-security tier — engineer laptops have varied controls, may be on home networks, may be shared with personal use. Restricted-tier data does not belong there. Two changes to make. First, block the leak at the source: production access tooling should not allow bulk extraction of restricted data to local; queries against production should return aggregates or pseudonymized output, not raw PII. Second, give engineers a working alternative: synthetic test fixtures with the same schema as production but generated data, or in-place debug tooling (logging, tracing, debugging in a staging environment with realistic-but-synthetic data) that lets them investigate without extraction. For the rare case where production data really is needed (a hard-to-reproduce bug), establish a defined process — short-lived access in a contained environment with audit, not a laptop dump. Recover from the current state by inventorying which engineers have what local data and arranging cleanup.",
+      "assertions": [
+        {"type": "contains", "value": "local"},
+        {"type": "contains", "value": "laptop"},
+        {"type": "contains", "value": "synthetic"},
+        {"type": "contains", "value": "pseudonymized"},
+        {"type": "contains", "value": "audit"},
+        {"type": "not-contains", "value": "pulling production data is fine"},
+        {"type": "not-contains", "value": "engineers should have access"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We have a data classification policy in our internal wiki. It lists four tiers and assigns example datasets. Auditor approved it last year. But I have no idea if the storage layer or the application code actually enforces any of it. How do I tell?",
+      "expected_output": "What you have is a policy document, not enforcement. To check whether the policy is real, look at the tooling. Six things to verify. (1) Schema metadata: do tables and columns carry tier labels that the storage layer reads? (2) Access controls per tier: do restricted-tier tables actually require elevated access, or does the same role read everything? (3) Encryption at rest and in transit: are restricted-tier stores encrypted, and is the key management separate from the storage? (4) Audit logs: are reads of restricted data logged with identity, action, resource, and reason — and is anyone monitoring those logs? (5) Logs and traces: does the SDK or collector strip PII before it reaches the observability backend? (6) Backups and vendors: do they inherit classification, or are they treated as out-of-scope? If any of these answer 'no', the policy is theater. The fix is incremental: pick the highest-risk gap, add the enforcement, then move to the next. The auditor approved the document; the data is protected by the tooling.",
+      "assertions": [
+        {"type": "contains", "value": "tooling"},
+        {"type": "contains", "value": "enforcement"},
+        {"type": "contains", "value": "schema"},
+        {"type": "contains", "value": "audit log"},
+        {"type": "contains", "value": "encryption"},
+        {"type": "contains", "value": "theater"},
+        {"type": "not-contains", "value": "the policy is enough"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    }
+  ]
+}

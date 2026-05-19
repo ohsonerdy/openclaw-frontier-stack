@@ -1,0 +1,118 @@
+{
+  "schema": "openclaw-frontier.skill-eval.v1",
+  "skill_name": "service-ownership-boundaries",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our `orders` service has grown to 80,000 lines of code. Two teams contribute to it — the fulfillment team and the billing team — and every PR needs cross-team review. The team lead wants to split it. What's the test for whether splitting is the right move?",
+      "expected_output": "The signal isn't the line count; it's whether two bounded contexts have crept into one service. Three things to check. First, do `fulfillment` and `billing` operate on the same `Order` model with the same fields, or do they each look at different fields with different lifecycles? If the lifecycles diverge, you have two contexts in one service. Second, do the two teams need to change the same files for unrelated features, or are the change zones already separable? If the change zones are separable, the split has a natural seam. Third, are the deploy cadences different? If billing wants slow careful releases and fulfillment wants fast iteration, the shared codebase forces a compromise that hurts both. If all three checks point to two real contexts, split along the seam, with an explicit translation layer between the two new services. If the codebase is one context and the friction is just coordination, the answer might be code ownership rules within one service, not two services.",
+      "assertions": [
+        {"type": "contains", "value": "bounded context"},
+        {"type": "contains", "value": "lifecycle"},
+        {"type": "contains", "value": "deploy cadence"},
+        {"type": "contains", "value": "seam"},
+        {"type": "contains", "value": "translation"},
+        {"type": "not-contains", "value": "split because the codebase is big"},
+        {"type": "not-contains", "value": "always split monoliths"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Last night's incident had an outage in our `notification-relay` service. The page went to three teams because the catalog has it listed as owned by 'platform', the code is in the 'comms' team's repo, and the on-call schedule sends pages to the 'messaging' rotation. Nobody knew who was supposed to fix it. How do we untangle this?",
+      "expected_output": "This is an ownership ambiguity that the post-mortem should treat as a process failure, not a technical one. Step 1: assign one team as the canonical owner today. The owning team has the design authority, the on-call responsibility, and the catalog entry. Step 2: update the service catalog so service name, owning team, repository, and on-call rotation all point to the same place. Step 3: if the assignment is unfair (the team is taking on a service they didn't design), make the resourcing visible — the team's portfolio grows, and either headcount or other work shifts. The orphan-by-committee pattern (three teams each thinking another owns it) is how services rot; pick one owner. Update the runbook to reflect the new owner so the next page lands on the right rotation.",
+      "assertions": [
+        {"type": "contains", "value": "one team"},
+        {"type": "contains", "value": "service catalog"},
+        {"type": "contains", "value": "on-call"},
+        {"type": "contains", "value": "owner"},
+        {"type": "contains", "value": "runbook"},
+        {"type": "not-contains", "value": "all three teams should own it"},
+        {"type": "not-contains", "value": "platform team takes all orphans"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We have two services: `pricing-engine` and `pricing-rules`. They share a database, share an on-call rotation, and every feature requires a coordinated deploy across both. Should we merge them?",
+      "expected_output": "Likely yes. The split is theater. The criteria: shared database (no data isolation between services), shared on-call (no operational isolation), coordinated deploys (no release independence). The supposed benefit of the split — isolation — doesn't exist. Merging into one service removes the inter-service call, removes the deploy coordination, and reduces the operational surface to one. Confirm before merging that the original reason for the split has gone away (e.g., it was for a team boundary that no longer exists). If the original reason is still real but the implementation drifted, the fix is to restore the isolation, not to merge. The default for two services that always change together is one service.",
+      "assertions": [
+        {"type": "contains", "value": "merge"},
+        {"type": "contains", "value": "shared"},
+        {"type": "contains", "value": "isolation"},
+        {"type": "contains", "value": "coordinated deploy"},
+        {"type": "contains", "value": "theater"},
+        {"type": "not-contains", "value": "keep them separate"},
+        {"type": "not-contains", "value": "more services is always better"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "A new engineer is proposing a `feature-flag-service` to centralize flag evaluation. Currently each service evaluates flags via a shared library. The library is 800 lines and stable. Is the new service worth it?",
+      "expected_output": "Probably not yet. The current library works, is stable, and ships with each consumer's deploy. A service would add a network call on the hot path (every flag check), an on-call burden, and a new failure mode (the flag service is down, so flags fall back to default behavior, which may or may not be what you want). The case for a service emerges when (a) the flag logic needs central enforcement that can't be trusted to consumers (e.g., kill-switch behavior across all clients), (b) the flag data evolves faster than consumer deploy cadence, or (c) multiple non-trusted clients need flags without embedding the library. If none of these apply, keep the library, version it, and let consumers upgrade on their own cadence. If two or three of them apply, the service may be worth the operational cost; design with caching and fail-open behavior so flag evaluation is resilient to the service being unhealthy.",
+      "assertions": [
+        {"type": "contains", "value": "library"},
+        {"type": "contains", "value": "network call"},
+        {"type": "contains", "value": "on-call"},
+        {"type": "contains", "value": "central"},
+        {"type": "contains", "value": "fail-open"},
+        {"type": "not-contains", "value": "always prefer services"},
+        {"type": "not-contains", "value": "libraries are an anti-pattern"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We've drawn an architecture diagram with eight services. The team has twelve engineers split across two teams. The diagram has been pinned to the wall for six months and the rollout is at three of the eight services. What's going wrong?",
+      "expected_output": "The architecture doesn't match the team shape. Twelve engineers in two teams cannot realistically own eight services with meaningful depth on each. Conway's law is winning: the rollout stalled at the services that aligned with team boundaries, and the rest are unowned. Two paths. Path A (reverse-Conway): if eight services is the right shape, you need more teams or to restructure the two teams into smaller ownership units; staff the gap before continuing the rollout. Path B (accept the team shape): redraw the architecture to four or five services aligned with the two teams. Pick larger services that one team can own end-to-end. Pinning a diagram doesn't change the org; one of the two has to move. Don't continue building services with no owner; that's how the orphan list grows.",
+      "assertions": [
+        {"type": "contains", "value": "Conway"},
+        {"type": "contains", "value": "team shape"},
+        {"type": "contains", "value": "owner"},
+        {"type": "contains", "value": "redraw"},
+        {"type": "contains", "value": "twelve engineers"},
+        {"type": "not-contains", "value": "keep pushing the eight-service vision"},
+        {"type": "not-contains", "value": "the architecture will sort itself out"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "A small `image-resize` microservice handles a request that's been in the catalog for years. It gets paged once a quarter. The team that built it was reorganized two years ago, and the current owners say they've never touched it. Should we just leave it alone?",
+      "expected_output": "No. This is an orphan; treat it as a tail risk. Three steps. First, verify the actual usage: who calls it, how often, and is it on the critical path of any user-facing feature? If usage is zero, deprecate and remove. Second, if usage is non-zero, assign a real owner. The current 'owners' who don't touch it are not really owners; either reassign to a team with capacity or sunset the service. Third, document the operational behavior: even if pages are rare, when one fires the responder needs a runbook. A working orphan is the most dangerous kind because the first failure is also the first time anyone has looked at it in years. Don't 'leave it alone'; either invest enough to own it or retire it. Quiet does not mean safe.",
+      "assertions": [
+        {"type": "contains", "value": "orphan"},
+        {"type": "contains", "value": "usage"},
+        {"type": "contains", "value": "deprecate"},
+        {"type": "contains", "value": "owner"},
+        {"type": "contains", "value": "runbook"},
+        {"type": "not-contains", "value": "leave it alone"},
+        {"type": "not-contains", "value": "quiet means safe"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our `account-api` service calls `user-profile-service` for every request, and that service calls `auth-token-service` for every request. A single user request to `account-api` results in five cross-service hops. Latency is bad. Is the architecture wrong?",
+      "expected_output": "Yes, the boundary is chatty. Five cross-service hops per user request is a signal that the services were split too granularly, or the protocol is too synchronous. Two paths. Path A: redraw the boundary. If `user-profile` and `auth-token` are always called together by `account-api`, the bounded context may actually be one service, not three. Merge if the original split reason has gone away. Path B: change the protocol. Batch the calls, cache aggressively at the caller, or move some of the synchronous lookups to async (data pushed to `account-api` rather than pulled). Adding a BFF (backend-for-frontend) layer that fans out and assembles can also reduce client-perceived latency without changing the underlying services. The rule of thumb: more than two or three cross-service calls per user request is a sign the boundary is wrong; reconsider before optimizing further within the current shape.",
+      "assertions": [
+        {"type": "contains", "value": "chatty"},
+        {"type": "contains", "value": "boundary"},
+        {"type": "contains", "value": "merge"},
+        {"type": "contains", "value": "protocol"},
+        {"type": "contains", "value": "cross-service"},
+        {"type": "not-contains", "value": "add more services to fix it"},
+        {"type": "not-contains", "value": "five hops is normal"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    }
+  ]
+}

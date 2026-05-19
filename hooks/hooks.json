@@ -1,4 +1,5 @@
 {
+  "schema": "openclaw-frontier.hooks.v2",
   "Stop": [
     {
       "script": "private-content-scan.js",
@@ -12,5 +13,14 @@
       "script": "git-push-gate.js",
       "description": "Block git push to public remotes if scanner finds private content"
     }
-  ]
+  ],
+  "events": {
+    "goal:start": [],
+    "goal:end": [],
+    "lane:dispatch": [],
+    "lane:result": [],
+    "release-gate:propose": [],
+    "release-gate:approve": [],
+    "release-gate:reject": []
+  }
 }

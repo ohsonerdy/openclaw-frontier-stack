@@ -1,0 +1,104 @@
+{
+  "$schema": "openclaw-frontier.skill-eval.v1",
+  "skill_name": "inventory-and-demand-planning",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We keep running out of our best-seller and overstocked on slow movers. What do we do?",
+      "expected_output": "Walks ABC stratification. The pattern indicates uniform planning rigor across SKUs. Recommends classifying SKUs into A/B/C tiers and applying different rigor: A items get statistical safety stock with weekly review, C items get min-max or discontinuation review. Pulls velocity by SKU and identifies which SKUs are A and which are C.",
+      "assertions": [
+        "Walks ABC stratification framework",
+        "Pulls modern.sales.aov by SKU for velocity",
+        "Names different planning rigor per tier",
+        "Names statistical safety stock for A items",
+        "Names discontinuation as an option for C items",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "What's the right safety stock formula? My supplier has 30-day lead time with about 7 days of variability.",
+      "expected_output": "Walks the safety stock formula. Z × sqrt(LT × demand variance + demand squared × LT variance). Names the lead-time variability term as the often-skipped component. With 7-day standard deviation on 30-day lead time the LT variance is substantial. Recommends 1.65 Z-score for 95% service level on A items. Reminds that lead time variability and demand variability compound, not add.",
+      "assertions": [
+        "Names the safety stock formula explicitly",
+        "Calls out lead time variability as commonly skipped",
+        "Names 1.65 Z-score for 95% service level",
+        "Distinguishes A item from B/C service levels",
+        "Notes that LT and demand variability compound",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "How do I decide reorder point for a SKU?",
+      "expected_output": "Walks the reorder point formula. ROP = (lead time × average demand) + safety stock. Use forecast for next lead-time window not historical average. Recommends quarterly review. Notes the multi-SKU joint replenishment opportunity for SKUs sharing a supplier. Discusses MOQ constraints if they apply.",
+      "assertions": [
+        "Names the reorder point formula",
+        "Recommends forecast input not historical average",
+        "Recommends quarterly review cadence",
+        "Names joint replenishment for shared-supplier SKUs",
+        "Names MOQ constraint handling",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our supplier orders go crazy during sales then crash after. What's happening?",
+      "expected_output": "Identifies the bullwhip effect, specifically the promotion-driven amplification. Walks the four causes: forecast updating cascade, order batching, promo and price changes, shortage gaming. Recommends smoother ordering, smaller batches, and either steadier pricing or information sharing with the supplier on actual customer demand. Names the supplier-relationship cost of the whip.",
+      "assertions": [
+        "Identifies the bullwhip effect by name",
+        "Names promo and price changes as the amplification driver",
+        "Walks the four causes",
+        "Recommends smoother ordering and smaller batches",
+        "Recommends information sharing with supplier",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We have inventory turn of 4x but 70% gross margin. Is that good?",
+      "expected_output": "Calculates margin-per-dollar-of-inventory: 70% margin × 4 turns = 280%. Compares to category benchmarks. For replenishment SKUs 6-12 turns is target; 4 turns at 70% margin is below typical replenishment performance unless margin is structurally premium. Recommends checking whether higher turn at lower margin would produce more total margin dollars. Pulls margin by SKU to identify mix issues.",
+      "assertions": [
+        "Calculates margin-per-dollar-of-inventory",
+        "Compares to category turn benchmarks",
+        "Walks the margin-vs-turn tradeoff",
+        "Pulls modern.sales.margin_by_product",
+        "Recommends margin dollars optimization over margin percentage",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We're forecasting next year's launch. What components should be in the forecast?",
+      "expected_output": "Walks the demand forecasting framework. Forecast = baseline trend × seasonal multiplier × event adjustment. Recommends 12-week trailing baseline decomposed into trend, seasonal, and event components. Forecast as a range with confidence intervals, not a single number. Monthly bias correction. Notes that launch forecasts have higher uncertainty and need wider confidence intervals.",
+      "assertions": [
+        "Names the forecast structure: baseline × seasonal × event",
+        "Recommends 12-week trailing baseline",
+        "Recommends forecast as range with P50 and P90",
+        "Recommends monthly bias correction",
+        "Notes higher uncertainty for launch SKUs",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Should we cost stockouts more than overstocks?",
+      "expected_output": "For A items yes, for C items usually no. Walks the asymmetry framework. Stockout cost includes lost order plus lost customer plus cascade losses on bundle SKUs. Overstock cost is holding plus markdown plus obsolescence. For A items the customer-loss tail dominates and stockout avoidance is the right error. For C items the holding cost dominates and stockout tolerance frees cash. Pulls SKU affinity to size cascade losses.",
+      "assertions": [
+        "Walks the stockout vs overstock asymmetry",
+        "Conditions on SKU tier",
+        "Pulls modern.sales.sku_affinity for cascade losses",
+        "Names customer-loss tail for A items",
+        "Names holding-cost dominance for C items",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    }
+  ]
+}
