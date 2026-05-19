@@ -1,0 +1,111 @@
+{
+  "skill_name": "security-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review this PR: it adds a new endpoint that takes a JSON object and updates user profile fields. The handler is currentUser.update(params).",
+      "expected_output": "Identifies mass-assignment risk under broken access control. The diff lets users set any field on their record including potentially privileged ones (is_admin, role, etc.). Recommends allowlisting writable fields explicitly. Also flags input validation gaps and the need for authorization at the model/service layer not just the controller. Walks through the OWASP categories systematically.",
+      "assertions": [
+        "Identifies mass-assignment risk",
+        "Categorizes under broken access control",
+        "Recommends allowlisting writable fields",
+        "Notes authorization should be at model or service layer",
+        "Walks through OWASP categories",
+        "Provides specific remediation",
+        "Verdict with justification (request changes)"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "The PR builds a SQL query by concatenating user input. The dev says it's fine because they sanitize first with a regex. Is this safe?",
+      "expected_output": "No, never safe. SQL string concatenation is always wrong. Regex sanitization is a deny-list and deny-lists always have holes. Use parameterized queries. Recommends rewriting to bind parameters via the database driver. Categorizes under injection. Notes the historical pattern of regex-based SQL injection prevention failing repeatedly.",
+      "assertions": [
+        "Says SQL concatenation is always wrong",
+        "Says regex sanitization (deny-list) has holes",
+        "Recommends parameterized queries",
+        "Categorizes under injection",
+        "Recommends using the driver bind mechanism",
+        "Provides example of the safe pattern",
+        "Verdict request-changes"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Review the diff: it adds an endpoint POST /admin/run-command that takes a command string and runs it on the server. There's an auth check.",
+      "expected_output": "Even with auth, this is dangerous. RCE-as-a-feature is rarely justifiable. Asks why the feature exists — could it be replaced with specific allowed actions? If genuinely needed, recommends extreme controls: allowlist of permitted commands, no shell interpolation, command runs as a deprivileged user, logs every invocation with full context, requires step-up auth. Notes that authorization to call the endpoint is different from authorization to run arbitrary code as the service user.",
+      "assertions": [
+        "Flags RCE-as-feature as high risk even with auth",
+        "Asks why the feature exists / alternatives",
+        "Recommends allowlist of permitted commands if kept",
+        "No shell interpolation",
+        "Deprivileged user execution",
+        "Logging every invocation",
+        "Step-up auth requirement",
+        "Distinguishes endpoint auth from execution auth"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "The PR adds an image upload endpoint that takes a URL, fetches the image, resizes it, stores it. What should I look for?",
+      "expected_output": "Classic SSRF pattern. User-controlled URL becomes an outbound fetch from the server's network. Attacker can probe internal networks, reach cloud metadata endpoints, exfiltrate data. Recommendations: allowlist of permitted hosts, blocklist of private IPs and cloud metadata endpoints (169.254.x.x, fd00::/8, etc.), DNS resolution before connect with re-validation to prevent DNS rebinding, content-type validation, size limits. Categorizes under SSRF.",
+      "assertions": [
+        "Identifies SSRF risk",
+        "Recommends host allowlist",
+        "Recommends private IP blocklist",
+        "Mentions cloud metadata endpoints as target",
+        "DNS rebinding prevention (resolve then connect)",
+        "Content-type and size validation",
+        "Categorizes under SSRF / A10"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "PR adds password reset flow: user enters email, we send a 6-digit code that expires in 24h, code is checked, password is reset. Anything wrong?",
+      "expected_output": "Several issues. 6 digits is small token space (1M combos) — needs strict rate limiting and lockout. 24h expiry is long; recommend 15-60 minutes. Token must be single-use (mark consumed on first valid verification). Distinguish 'email doesn't exist' from 'email exists but wrong code' to avoid enumeration — return the same response for both. Check for re-using old reset tokens. Confirms the new password meets policy. Categorizes under authentication failures.",
+      "assertions": [
+        "Notes 6 digits requires rate limiting",
+        "Recommends shorter expiry (15-60 minutes)",
+        "Token must be single-use",
+        "Same response for unknown email vs wrong code (anti-enumeration)",
+        "Categorizes under authentication failures (A7)",
+        "Password policy enforcement on reset",
+        "Lockout after N failed attempts"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Diff adds new dep called 'easy-jwt' that hasn't had a release in 14 months. We use it to verify auth tokens. Safe?",
+      "expected_output": "High concern. Auth library that's not actively maintained is a structural risk. CVEs may not be patched. JWT libraries specifically have a history of vulnerabilities (alg=none, algorithm confusion). Recommends evaluating actively-maintained alternatives, or if keeping, doing a deep review of the library's algorithm validation and signing key handling. Cross-references dependency-upgrade-safely. Notes that auth-critical deps are the worst place to use abandoned libraries.",
+      "assertions": [
+        "Flags abandoned dep as structural risk",
+        "Notes JWT library vulnerability history",
+        "Mentions alg=none or algorithm confusion class",
+        "Recommends evaluating alternatives",
+        "If keeping, deep review of alg validation and key handling",
+        "Cross-references dependency-upgrade-safely",
+        "Notes auth-critical deps are worst place for abandoned libraries"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "PR adds detailed error responses including stack traces in 500 errors. Helps debugging. Approve?",
+      "expected_output": "No. Stack traces in production responses are an information-disclosure pattern (security misconfiguration). They reveal internal file paths, framework versions, table names, sometimes credentials in environment variables. Recommends generic error message to the client, full detail to logs only with a request ID the client can quote to support. Categorizes under security misconfiguration. Notes this is one of the most common production information-disclosure patterns.",
+      "assertions": [
+        "Rejects detailed error responses in production",
+        "Identifies information disclosure",
+        "Categorizes under security misconfiguration",
+        "Recommends generic error + detailed logs",
+        "Request ID for support correlation",
+        "Notes the pattern reveals paths, versions, framework details",
+        "Verdict request-changes"
+      ],
+      "files": []
+    }
+  ]
+}

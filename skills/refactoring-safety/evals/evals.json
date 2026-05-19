@@ -1,0 +1,107 @@
+{
+  "skill_name": "refactoring-safety",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to refactor this 500-line function into smaller pieces. The function is in our checkout flow. There are some tests but I'm not sure how much they cover.",
+      "expected_output": "Recommends characterization tests first before any refactor. Identify the inputs and outputs of the function, sample realistic inputs (production logs if available), record current outputs (including side effects), and write tests that pin the current behavior — including bugs. The test gap assessment comes first because checkout flow is high stakes. Then refactor in small steps with the refactor → test → refactor loop.",
+      "assertions": [
+        "Recommends characterization tests first",
+        "Identifies inputs and outputs of the function",
+        "Records current behavior including bugs",
+        "Notes checkout flow is high stakes",
+        "Small steps with refactor -> test -> refactor loop",
+        "Test gap assessment before refactor",
+        "Notes side effects need to be pinned too"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I'm doing a refactor. Tests are failing. Can I just update the tests to match the new output?",
+      "expected_output": "No. Three possibilities: refactor introduced a bug (most common, undo), previous behavior was a bug and refactor fixed it (still undo, ship bug fix separately), or tests were testing implementation details (refactor the tests first in a separate prior commit, then redo the refactor). Updating tests during a refactor to make them pass masks regressions. The discipline is: tests are the spec, don't change the spec during the implementation.",
+      "assertions": [
+        "Says no, do not update tests to pass",
+        "Lists the three possibilities (bug, accidental fix, brittle tests)",
+        "Recommends undo and split into separate commits",
+        "Tests are the spec",
+        "Notes masking regressions as the risk",
+        "Brittle tests should be fixed in prior commit"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I want to swap our ORM. The codebase has thousands of places that use it. How do I do this safely?",
+      "expected_output": "Strangler-fig pattern. Build the new ORM-using code behind the same seam as the old one. Switch one caller at a time. Run both side-by-side for the migration window if possible (shadow reads, dual writes). Notes this is a multi-month effort and a big-bang rewrite is the highest-risk pattern. Rollback at any step is flipping the seam back. Recommends an ADR for the migration plan.",
+      "assertions": [
+        "Strangler-fig pattern",
+        "Build new code behind same seam",
+        "Switch one caller at a time",
+        "Shadow / dual-write for the migration window",
+        "Big-bang rewrite as the highest-risk pattern (avoid)",
+        "Rollback by flipping the seam",
+        "ADR for the migration plan",
+        "Multi-month effort"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I'm in the middle of a feature PR and noticed some ugly code in an unrelated function. Should I clean it up while I'm here?",
+      "expected_output": "No. Yak-shaving in feature PRs makes the PR harder to review, larger to revert, and mixes the diff. Open a separate PR for the cleanup. Notes that 'while I'm here' is the canonical anti-pattern. The discipline is one logical change per PR. Recommends keeping a todo list of cleanup candidates to address in dedicated PRs.",
+      "assertions": [
+        "Says no, separate PR for the cleanup",
+        "Yak-shaving in feature PR is anti-pattern",
+        "Makes PR harder to review and revert",
+        "One logical change per PR",
+        "Keep todo list of cleanup candidates",
+        "Notes 'while I'm here' is canonical anti-pattern"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I want to move a method from class A to class B. Just cut and paste?",
+      "expected_output": "Use extract-then-move. Step 1: extract the method into a standalone function at its current location. Step 2: move the extracted unit to its new home. Each step is reversible cheaply; both steps as one commit is harder to revert. Tests run after each step. Notes this is slower than the cut-and-paste approach but the safety margin is worth it for non-trivial methods.",
+      "assertions": [
+        "Recommends extract-then-move",
+        "Step 1 extract at current location",
+        "Step 2 move to new location",
+        "Each step reversible cheaply",
+        "Tests after each step",
+        "Slower but safer than cut-and-paste"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "I want to rename a function used in 80 places. Find-and-replace or something more careful?",
+      "expected_output": "Use the tooling: LSP rename, AST codemod (ts-morph, jscodeshift, etc.), or the language's refactor tools. Manual find-and-replace risks string collisions and missed sites. After the tool runs, review the diff to confirm only intended sites changed. Run the test suite. Notes mechanical wide-scope changes beat manual edits for accuracy.",
+      "assertions": [
+        "Use tooling (LSP rename, AST codemod)",
+        "Manual find-and-replace risks string collisions",
+        "Review the diff after tool runs",
+        "Run test suite after",
+        "Mechanical changes beat manual for accuracy",
+        "Notes the risk of missed sites"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I want to refactor this code but it has zero tests. The code is also in a hot path. Should I just go for it?",
+      "expected_output": "No. Refactoring untested hot-path code is the worst combination. Three options: (1) add characterization tests first then refactor (right answer for important code), (2) leave it alone (right answer if the ugliness is tolerable and there's no test budget), (3) accept high risk explicitly with extensive rollback plan and monitoring (last resort). 'Just go for it' is not a valid option. Recommends adding tests first, then refactoring in small steps.",
+      "assertions": [
+        "Says no, do not just go for it",
+        "Characterization tests first",
+        "Lists leave-it-alone as valid option",
+        "Notes untested hot-path is worst combination",
+        "Small steps after tests added",
+        "Rollback plan and monitoring if accepting risk",
+        "Refactoring untested code is high risk"
+      ],
+      "files": []
+    }
+  ]
+}

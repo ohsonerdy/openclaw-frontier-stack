@@ -45,8 +45,9 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          NOTES_FILE="${GITHUB_WORKSPACE}/release-notes-${TAG}.md"
           # Extract the block between this version's header and the next ##
-          NOTES=$(awk -v tag="${TAG#v}" '
+          awk -v tag="${TAG#v}" '
             BEGIN { capture=0 }
             /^## / {
               if (capture) exit
@@ -54,21 +55,18 @@ jobs:
               next
             }
             capture { print }
-          ' CHANGELOG.md)
-          if [ -z "$NOTES" ]; then
-            NOTES="Release ${TAG}. See CHANGELOG.md for details."
+          ' CHANGELOG.md > "$NOTES_FILE"
+          if [ ! -s "$NOTES_FILE" ]; then
+            echo "Release ${TAG}. See CHANGELOG.md for details." > "$NOTES_FILE"
           fi
-          {
-            echo "notes<<RELEASE_NOTES_EOF"
-            echo "$NOTES"
-            echo "RELEASE_NOTES_EOF"
-          } >> "$GITHUB_OUTPUT"
+          echo "notes_file=${NOTES_FILE}" >> "$GITHUB_OUTPUT"
 
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ steps.notes.outputs.tag }}"
+          NOTES_FILE="${{ steps.notes.outputs.notes_file }}"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release $TAG already exists; uploading tarball."
             gh release upload "$TAG" release-gate/artifacts/*.tgz \
@@ -77,7 +75,7 @@ jobs:
             gh release create "$TAG" release-gate/artifacts/*.tgz \
               --repo "$GITHUB_REPOSITORY" \
               --title "$TAG" \
-              --notes "${{ steps.notes.outputs.notes }}"
+              --notes-file "$NOTES_FILE"
           fi
 
       - name: Upload release artifact (workflow artifact backup)

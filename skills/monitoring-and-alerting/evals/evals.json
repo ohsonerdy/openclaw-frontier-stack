@@ -1,0 +1,112 @@
+{
+  "skill_name": "monitoring-and-alerting",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm shipping a new HTTP service next week. What alerts should I set up?",
+      "expected_output": "Walks through RED metrics (Rate, Errors, Duration) as the user-impact signal. Recommends alerts on symptoms: latency p99 above target, error rate above threshold, traffic anomaly. Adds saturation as the fourth signal. Recommends NOT paging on CPU/memory/disk by default — those are cause-alerts that go to lower-severity channels. Recommends runbooks for each alert before launch. Notes monitoring should ship with the service, not after.",
+      "assertions": [
+        "Recommends RED metrics framework",
+        "Alerts on user-impact symptoms",
+        "Latency p99 alert",
+        "Error rate alert",
+        "Traffic / saturation alert",
+        "Cause-alerts go to lower-severity channels",
+        "Runbook for each alert before launch",
+        "Monitoring ships with the service"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our on-call is complaining about alert fatigue. What do I do?",
+      "expected_output": "Triage the alerts. Pull all firings from the last 30 days. For each alert, count firings and count actual actions taken. Action rate below 30% is fatigue territory. Below 10% is noise. Options: kill the noisy alert, tune the threshold, route to non-paging channel, add hysteresis. Recommends quarterly audit cadence. Notes the cost of keeping noisy alerts is on-call ignoring all alerts.",
+      "assertions": [
+        "Pulls last 30 days of firings",
+        "Counts firings and counts actions taken",
+        "Action rate below 30% is fatigue",
+        "Below 10% is noise",
+        "Options: kill, tune, route, hysteresis",
+        "Quarterly audit cadence",
+        "Cost of keeping noisy alerts is ignoring all alerts"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Should I alert on CPU usage above 80%?",
+      "expected_output": "Probably not as a pager. CPU is a cause-alert, not a symptom. High CPU may or may not affect users; latency is what affects them. If latency is fine at 80% CPU, the alert is noise. If latency is bad at 80% CPU, alert on latency instead. CPU is useful in dashboards and as a non-paging signal but rarely as a page. Recommends RED-style alerts on the user-facing metric instead.",
+      "assertions": [
+        "Probably not as a pager",
+        "CPU is cause-alert not symptom",
+        "Latency is what affects users",
+        "Useful in dashboards as non-paging signal",
+        "Recommends alerting on user-facing metric instead",
+        "CPU alone doesn't tell you about user impact"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "What's the difference between SLI, SLO, and SLA?",
+      "expected_output": "SLI is a specific measurement of service quality. SLO is the target for the SLI. SLA is a contractual commitment to the SLO. The chain: pick SLIs from user-impact metrics, set SLOs slightly tighter than user tolerance (the gap is the error budget), commit SLAs only when SLOs are validated. Common mistake: SLOs at 100% (not achievable). SLIs that measure internal state instead of user impact.",
+      "assertions": [
+        "SLI is specific measurement",
+        "SLO is target for SLI",
+        "SLA is contractual commitment",
+        "Pick SLIs from user-impact metrics",
+        "SLOs tighter than user tolerance",
+        "Error budget is the gap",
+        "100% SLO is unachievable",
+        "Cause-metric SLIs are wrong"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Every time we deploy, our error rate alerts fire briefly. Should I suppress them during deploys?",
+      "expected_output": "Yes, suppress non-critical alerts during deploy windows OR design the alerts with longer windows / hysteresis that don't trip on brief deploy noise. The goal is the alert fires only on real user impact, not on the normal turbulence of a deploy. Notes that if the deploy actually broke something, the alert should still fire once the window passes — suppression during deploy is for brief restart noise, not for hiding deploy regressions.",
+      "assertions": [
+        "Suppress non-critical alerts during deploy windows",
+        "OR longer window / hysteresis on alerts",
+        "Goal is alert on real user impact",
+        "Brief deploy noise should not page",
+        "Real deploy regression should still alert post-window",
+        "Don't hide deploy regressions"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our dashboard has 47 charts. Nobody reads it. Help.",
+      "expected_output": "Apply the dashboard hierarchy. Overview dashboard with the four golden signals only — read at start of shift. Service dashboard per service with deeper detail — read when alerts fire. Component dashboard per subsystem — read during investigation. Host/instance dashboard rarely. The 47-chart dashboard is a single-level monolith that nobody reads. Recommends ruthless pruning and explicit audience per dashboard.",
+      "assertions": [
+        "Apply dashboard hierarchy",
+        "Overview with four golden signals",
+        "Service dashboard per service",
+        "Component dashboard per subsystem",
+        "Host dashboard rarely read",
+        "47-chart single dashboard is unreadable",
+        "Ruthless pruning",
+        "Explicit audience per dashboard"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our alerts don't have runbooks. People page the team lead and ask 'what does this mean'. What should we do?",
+      "expected_output": "Every alert needs a runbook before it pages. Without one, the alert wastes the responder's time and the team lead becomes a single point of failure. Recommends writing runbooks for the top firing alerts first, then ratcheting up the bar to 'no new alert without a runbook'. The runbook has: what the alert means in user terms, first action, common causes, mitigations, escalation. Update after each incident.",
+      "assertions": [
+        "Every alert needs a runbook",
+        "Without runbook the alert wastes responder time",
+        "Team lead as single point of failure is anti-pattern",
+        "Start with top-firing alerts",
+        "Ratchet bar to no-new-alert-without-runbook",
+        "Runbook contents: meaning, first action, causes, mitigations, escalation",
+        "Update runbooks after incidents",
+        "References incident-response for runbook usage"
+      ],
+      "files": []
+    }
+  ]
+}

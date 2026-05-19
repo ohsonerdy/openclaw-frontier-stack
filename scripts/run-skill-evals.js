@@ -13,10 +13,15 @@
  *      model. Zero external dependencies. Always free.
  *
  *   2. Live mode (--live --model <model-id>)
- *      Same plan, but for each eval also calls the Claude API with the
+ *      Same plan, but for each eval also calls a model backend with the
  *      eval prompt loaded against the SKILL.md as system prompt. Returns
  *      the model output and a per-assertion check (substring/regex match
- *      heuristic). Requires ANTHROPIC_API_KEY in the environment.
+ *      heuristic).
+ *
+ *      Default backend is Anthropic (https://api.anthropic.com). Pass
+ *      --endpoint and --api-format to target an OpenAI-compatible server
+ *      such as Ollama (http://localhost:11434) or vLLM
+ *      (http://localhost:8000).
  *
  * Usage:
  *
@@ -24,6 +29,8 @@
  *   node scripts/run-skill-evals.js --skill cro          # dry-run, one skill
  *   node scripts/run-skill-evals.js --live --model claude-sonnet-4-6
  *   node scripts/run-skill-evals.js --live --skill cro --model claude-opus-4-7
+ *   node scripts/run-skill-evals.js --live --model llama3 \
+ *       --endpoint http://localhost:11434 --api-format openai
  *
  * Output: JSON to stdout. Non-zero exit if any eval file is malformed (dry-run)
  * or if any assertion fails (live mode).
@@ -32,18 +39,31 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const http = require('http');
+const { URL } = require('url');
 
 const root = path.resolve(__dirname, '..');
 const skillsDir = path.join(root, 'skills');
 
+const DEFAULT_ANTHROPIC_ENDPOINT = 'https://api.anthropic.com';
+
 function parseArgs(argv) {
-  const args = { live: false, model: null, skill: null, maxParallel: 4 };
+  const args = {
+    live: false,
+    model: null,
+    skill: null,
+    maxParallel: 4,
+    endpoint: null,
+    apiFormat: null,
+  };
   for (let i = 2; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === '--live') args.live = true;
     else if (a === '--model') args.model = argv[++i];
     else if (a === '--skill') args.skill = argv[++i];
     else if (a === '--max-parallel') args.maxParallel = Number(argv[++i]) || 4;
+    else if (a === '--endpoint') args.endpoint = argv[++i];
+    else if (a === '--api-format') args.apiFormat = argv[++i];
     else if (a === '--help' || a === '-h') args.help = true;
     else {
       process.stderr.write(`unknown arg: ${a}\n`);
@@ -58,19 +78,36 @@ function help() {
 
 Modes:
   Dry-run (default):  validates eval-file structure, no API calls
-  Live (--live):      calls Claude API with each eval, scores assertions
+  Live (--live):      calls a model backend with each eval, scores assertions
 
-Auth for --live (priority order):
+Auth for --live (Anthropic backend, priority order):
   ANTHROPIC_OAUTH_TOKEN    Preferred. Charges your Pro/Max subscription.
   CLAUDE_CODE_OAUTH_TOKEN  Alias for ANTHROPIC_OAUTH_TOKEN.
   ANTHROPIC_API_KEY        Fallback. Charges per-token via API billing.
                            Opt in only if you want pay-per-token instead
                            of subscription billing.
 
+Auth for --live (OpenAI-compatible backend, priority order):
+  OPENCLAW_EVAL_API_KEY    Preferred. Sent as Bearer token.
+  OPENAI_API_KEY           Fallback. Sent as Bearer token.
+                           If neither is set and the endpoint is localhost
+                           or 127.0.0.1 (e.g. Ollama default), no auth
+                           header is sent. Remote endpoints require a key.
+
 Flags:
   --live                 Enable live mode
-  --model <model-id>     Claude model id (live mode only)
-                         Examples: claude-opus-4-7, claude-sonnet-4-6, claude-haiku-4-5-20251001
+  --model <model-id>     Model id (live mode only)
+                         Anthropic examples: claude-opus-4-7, claude-sonnet-4-6,
+                           claude-haiku-4-5-20251001
+                         Ollama / vLLM examples: llama3, qwen2.5:14b,
+                           mistralai/Mistral-7B-Instruct-v0.3
+  --endpoint <url>       Backend base URL (env: OPENCLAW_EVAL_ENDPOINT)
+                         Default: https://api.anthropic.com
+                         Examples: http://localhost:11434 (Ollama),
+                                   http://localhost:8000 (vLLM)
+  --api-format <fmt>     "anthropic" or "openai" (env: OPENCLAW_EVAL_API_FORMAT)
+                         Default: anthropic for api.anthropic.com,
+                                  openai for any other endpoint
   --skill <skill-name>   Run only this skill (default: all)
   --max-parallel <n>     Max concurrent live calls (default 4, ignored in dry-run)
   --help                 Show this help
@@ -125,7 +162,100 @@ function validateEvalsFile(skillName, evalsObj) {
   return errors;
 }
 
-async function callClaude({ model, system, userPrompt, auth }) {
+function isLocalHost(hostname) {
+  if (!hostname) return false;
+  const h = hostname.toLowerCase();
+  return h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '0.0.0.0';
+}
+
+function resolveBackend(args) {
+  // Endpoint resolution: --endpoint > OPENCLAW_EVAL_ENDPOINT > default Anthropic.
+  const rawEndpoint = (args.endpoint || process.env.OPENCLAW_EVAL_ENDPOINT || DEFAULT_ANTHROPIC_ENDPOINT).trim();
+  let endpointUrl;
+  try {
+    endpointUrl = new URL(rawEndpoint);
+  } catch (err) {
+    throw new Error(`invalid endpoint URL: ${rawEndpoint}`);
+  }
+
+  // Format resolution: --api-format > OPENCLAW_EVAL_API_FORMAT > inferred from host.
+  let apiFormat = (args.apiFormat || process.env.OPENCLAW_EVAL_API_FORMAT || '').trim().toLowerCase();
+  if (!apiFormat) {
+    apiFormat = endpointUrl.hostname.toLowerCase() === 'api.anthropic.com' ? 'anthropic' : 'openai';
+  }
+  if (apiFormat !== 'anthropic' && apiFormat !== 'openai') {
+    throw new Error(`invalid --api-format: ${apiFormat} (expected "anthropic" or "openai")`);
+  }
+
+  return { endpointUrl, apiFormat };
+}
+
+function resolveAuth({ endpointUrl, apiFormat }) {
+  // Returns { kind, token } | { kind: 'none' } | throws on missing required auth.
+  if (apiFormat === 'anthropic') {
+    const oauthToken = process.env.ANTHROPIC_OAUTH_TOKEN || process.env.CLAUDE_CODE_OAUTH_TOKEN;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (oauthToken) return { kind: 'oauth', token: oauthToken };
+    if (apiKey) return { kind: 'api-key', token: apiKey };
+    throw new Error([
+      '--live mode against an Anthropic endpoint requires one of:',
+      '  ANTHROPIC_OAUTH_TOKEN  (preferred — charged to your Pro/Max subscription)',
+      '  CLAUDE_CODE_OAUTH_TOKEN  (alias)',
+      '  ANTHROPIC_API_KEY      (fallback — charged per-token via API billing)',
+      '',
+      'Generate an OAuth token via Claude Code (`/login`) or export an existing',
+      'session token. Use ANTHROPIC_API_KEY only if you explicitly want API',
+      'billing instead of subscription billing.',
+    ].join('\n'));
+  }
+  // OpenAI-compatible path.
+  const openclaw = process.env.OPENCLAW_EVAL_API_KEY;
+  const openai = process.env.OPENAI_API_KEY;
+  const token = openclaw || openai;
+  if (token) return { kind: 'bearer', token };
+  if (isLocalHost(endpointUrl.hostname)) return { kind: 'none' };
+  throw new Error([
+    `--live mode against ${endpointUrl.origin} requires one of:`,
+    '  OPENCLAW_EVAL_API_KEY  (preferred)',
+    '  OPENAI_API_KEY         (fallback)',
+    '',
+    'A local endpoint (localhost / 127.0.0.1) such as a default Ollama install',
+    'can run without auth — but this endpoint is remote, so a key is required.',
+  ].join('\n'));
+}
+
+function httpRequest({ endpointUrl, pathSuffix, headers, body }) {
+  // Builds a request against endpointUrl + pathSuffix, picking https vs http.
+  const target = new URL(pathSuffix, endpointUrl);
+  const isHttps = target.protocol === 'https:';
+  const lib = isHttps ? https : http;
+  const options = {
+    hostname: target.hostname,
+    port: target.port || (isHttps ? 443 : 80),
+    path: `${target.pathname}${target.search}`,
+    method: 'POST',
+    headers,
+  };
+  return new Promise((resolve, reject) => {
+    const req = lib.request(options, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => resolve({ statusCode: res.statusCode, body: Buffer.concat(chunks).toString('utf8') }));
+    });
+    req.on('error', (err) => {
+      // Normalise common network errors so the failure message is operator-readable.
+      if (err && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'EHOSTUNREACH' || err.code === 'ETIMEDOUT')) {
+        reject(new Error(`endpoint unreachable (${err.code}): ${endpointUrl.origin}`));
+        return;
+      }
+      reject(err);
+    });
+    req.write(body);
+    req.end();
+  });
+}
+
+async function callAnthropic({ model, system, userPrompt, auth, endpointUrl }) {
   const body = JSON.stringify({
     model,
     max_tokens: 4096,
@@ -140,35 +270,56 @@ async function callClaude({ model, system, userPrompt, auth }) {
   // Auth: OAuth token preferred (charged to user's Pro/Max subscription); fall back to API key (charged per-token).
   if (auth.kind === 'oauth') {
     headers['Authorization'] = `Bearer ${auth.token}`;
-  } else {
+  } else if (auth.kind === 'api-key') {
     headers['X-Api-Key'] = auth.token;
   }
-  const options = {
-    hostname: 'api.anthropic.com',
-    path: '/v1/messages',
-    method: 'POST',
-    headers,
-  };
-  return new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
-      const chunks = [];
-      res.on('data', (c) => chunks.push(c));
-      res.on('end', () => {
-        const text = Buffer.concat(chunks).toString('utf8');
-        try {
-          const parsed = JSON.parse(text);
-          if (res.statusCode >= 400) return reject(new Error(`${res.statusCode} ${parsed.error?.message || text}`));
-          const output = (parsed.content || []).map((b) => b.text || '').join('\n').trim();
-          resolve({ output, usage: parsed.usage || null });
-        } catch (err) {
-          reject(new Error(`Bad response (${res.statusCode}): ${text.slice(0, 500)}`));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
+  const { statusCode, body: text } = await httpRequest({ endpointUrl, pathSuffix: '/v1/messages', headers, body });
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (err) {
+    throw new Error(`Bad response (${statusCode}): ${text.slice(0, 500)}`);
+  }
+  if (statusCode >= 400) throw new Error(`${statusCode} ${parsed.error?.message || text}`);
+  const output = (parsed.content || []).map((b) => b.text || '').join('\n').trim();
+  return { output, usage: parsed.usage || null };
+}
+
+async function callOpenAICompatible({ model, system, userPrompt, auth, endpointUrl }) {
+  const body = JSON.stringify({
+    model,
+    max_tokens: 4096,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: userPrompt },
+    ],
   });
+  const headers = {
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(body),
+  };
+  if (auth.kind === 'bearer') {
+    headers['Authorization'] = `Bearer ${auth.token}`;
+  }
+  const { statusCode, body: text } = await httpRequest({ endpointUrl, pathSuffix: '/v1/chat/completions', headers, body });
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (err) {
+    throw new Error(`Bad response (${statusCode}): ${text.slice(0, 500)}`);
+  }
+  if (statusCode >= 400) {
+    const msg = parsed.error?.message || parsed.error || text;
+    throw new Error(`${statusCode} ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`);
+  }
+  const choice = (parsed.choices || [])[0];
+  const output = (choice?.message?.content || '').trim();
+  return { output, usage: parsed.usage || null };
+}
+
+async function callModel(opts) {
+  if (opts.apiFormat === 'anthropic') return callAnthropic(opts);
+  return callOpenAICompatible(opts);
 }
 
 function scoreAssertion(output, assertion) {
@@ -186,10 +337,10 @@ function scoreAssertion(output, assertion) {
   return { pass, tokens, hits };
 }
 
-async function runLiveEval({ model, auth, skillName, systemPrompt, evalCase }) {
+async function runLiveEval({ model, auth, apiFormat, endpointUrl, skillName, systemPrompt, evalCase }) {
   let output, usage, error;
   try {
-    const res = await callClaude({ model, system: systemPrompt, userPrompt: evalCase.prompt, auth });
+    const res = await callModel({ model, system: systemPrompt, userPrompt: evalCase.prompt, auth, apiFormat, endpointUrl });
     output = res.output;
     usage = res.usage;
   } catch (err) {
@@ -217,29 +368,15 @@ async function main() {
     process.stderr.write('--live requires --model <model-id>\n');
     process.exit(2);
   }
-  // Auth resolution: OAuth token preferred (charged to user's Pro/Max
-  // subscription), API key as opt-in fallback (charged per-token).
-  // Priority: ANTHROPIC_OAUTH_TOKEN > ANTHROPIC_API_KEY.
+
+  let backend = null;
   let auth = null;
   if (args.live) {
-    const oauthToken = process.env.ANTHROPIC_OAUTH_TOKEN || process.env.CLAUDE_CODE_OAUTH_TOKEN;
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (oauthToken) {
-      auth = { kind: 'oauth', token: oauthToken };
-    } else if (apiKey) {
-      auth = { kind: 'api-key', token: apiKey };
-    } else {
-      process.stderr.write([
-        '--live mode requires one of:',
-        '  ANTHROPIC_OAUTH_TOKEN  (preferred — charged to your Pro/Max subscription)',
-        '  CLAUDE_CODE_OAUTH_TOKEN  (alias)',
-        '  ANTHROPIC_API_KEY      (fallback — charged per-token via API billing)',
-        '',
-        'Generate an OAuth token via Claude Code (`/login`) or export an existing',
-        'session token. Use ANTHROPIC_API_KEY only if you explicitly want API',
-        'billing instead of subscription billing.',
-        '',
-      ].join('\n'));
+    try {
+      backend = resolveBackend(args);
+      auth = resolveAuth(backend);
+    } catch (err) {
+      process.stderr.write(`${err.message}\n\n`);
       process.exit(2);
     }
   }
@@ -255,7 +392,11 @@ async function main() {
     generatedAt: new Date().toISOString(),
     mode: args.live ? 'live' : 'dry-run',
     model: args.model || null,
-    auth: args.live ? auth.kind : null,
+    auth: args.live ? {
+      kind: auth.kind,
+      endpoint: backend.endpointUrl.origin,
+      apiFormat: backend.apiFormat,
+    } : null,
     skillsScanned: skills.length,
     skills: [],
   };
@@ -291,7 +432,15 @@ async function main() {
       const queue = [...evalsObj.evals];
       while (queue.length) {
         const batch = queue.splice(0, args.maxParallel);
-        const results = await Promise.all(batch.map((e) => runLiveEval({ model: args.model, auth, skillName, systemPrompt, evalCase: e })));
+        const results = await Promise.all(batch.map((e) => runLiveEval({
+          model: args.model,
+          auth,
+          apiFormat: backend.apiFormat,
+          endpointUrl: backend.endpointUrl,
+          skillName,
+          systemPrompt,
+          evalCase: e,
+        })));
         skillReport.evals.push(...results);
       }
       const fails = skillReport.evals.filter((e) => !e.ok);

@@ -1,0 +1,99 @@
+{
+  "skill_name": "post-mortem-writing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We just had a Sev 1. Mitigation landed an hour ago. Help me draft the post-mortem.",
+      "expected_output": "Walks through the required sections (Summary, Impact, Timeline, Root cause and contributing factors, What went well, What went poorly, Action items, Open questions, Distribution). Asks for the RCA output as input or recommends running root-cause-analysis first. Marks any unknown section as 'needs input' rather than inventing content. Reinforces blameless framing.",
+      "assertions": [
+        "Lists all required sections in order",
+        "Asks for RCA output or recommends RCA first",
+        "Marks unknown sections as 'needs input'",
+        "Reinforces blameless framing",
+        "Mentions Summary, Impact, Timeline, Root cause, What went well, What went poorly, Action items",
+        "Recommends distribution list including affected team and leadership"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "My draft says 'Engineer X pushed a bad config and caused the outage'. Is that blameless?",
+      "expected_output": "Pushback that this is blame, not blameless. Reframes to a system finding: 'A config was deployed without validation against staging' or 'The deploy system did not catch a known-bad config shape'. Notes that timeline entries can name actors (procedural) but findings should not (evaluative). Recommends re-reading the draft for similar phrasing.",
+      "assertions": [
+        "Says the draft is NOT blameless",
+        "Reframes to a system finding",
+        "Distinguishes timeline naming (procedural OK) from finding naming (evaluative not OK)",
+        "Notes 'system did not help' as a reframing tool",
+        "Recommends re-reading the draft for similar phrasing"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I have 8 action items but only 2 of them have owners assigned. Can I publish?",
+      "expected_output": "No, action items without owners disappear. Every action item must have a named owner before publish, plus a due date and severity-of-skip. Recommends pausing publish, holding a short follow-up with the affected team to assign owners, and only publishing once all action items have owners. Notes that publishing with TBD owners trains the team that action items don't matter.",
+      "assertions": [
+        "Says do not publish without owners on every action item",
+        "Notes each action item needs owner, due date, severity of skip",
+        "Recommends a follow-up meeting to assign owners",
+        "Notes TBD owners train the team that action items don't matter",
+        "Suggests publishing might create resentment without ownership"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "My action items are: 'improve test coverage', 'review deploys more carefully', 'better monitoring'. Are those good?",
+      "expected_output": "All three are vague and unactionable. 'Improve test coverage' — which tests, at which layer, catching what. 'Review deploys more carefully' — what specifically would the reviewer check, what would they catch. 'Better monitoring' — alert on what symptom, with what threshold, paging whom. Recommends rewriting each as a specific deliverable with an owner and due date. Notes that vague action items are the #1 reason post-mortems don't drive change.",
+      "assertions": [
+        "Calls out all three as vague/unactionable",
+        "Asks specific questions to make each concrete",
+        "Recommends specific deliverable with owner and due date",
+        "Notes vague items are why post-mortems don't drive change",
+        "Provides example of how to rewrite at least one"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I want to skip the 'what went well' section because nothing really went well. We were chaotic the whole time.",
+      "expected_output": "Pushback to find at least two things. The detection alert fired, the on-call paged, someone showed up, mitigation eventually worked. Notes that skipping 'what went well' builds a culture where post-mortems feel punitive, which reduces honest reporting in the future. Recommends thinking about minimum-bar things: 'detection happened within X minutes', 'the right person got paged', 'mitigation reversed cleanly'.",
+      "assertions": [
+        "Pushes back on skipping the section",
+        "Notes skipping builds punitive post-mortem culture",
+        "Provides minimum-bar examples (detection, paging, mitigation reversal)",
+        "Asks for two to four specific things that worked",
+        "Connects honest reporting to a non-punitive culture"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We had a near-miss. Service almost went down but a teammate noticed and reverted before it did. No customer impact. Post-mortem?",
+      "expected_output": "Yes, near-misses warrant post-mortems if they would have been Sev 1/2 had something not intervened. The intervention itself is a contributing factor that worked, but counting on luck is a fragile control. Recommends a full RCA on why the near-miss happened, what the 'what went well' section captures about the early catch, and what action items would prevent the next near-miss from becoming an actual incident.",
+      "assertions": [
+        "Recommends a post-mortem for near-misses",
+        "Frames near-miss as 'would have been Sev 1/2 if'",
+        "Notes counting on luck is a fragile control",
+        "Requires full RCA on the near-miss",
+        "Captures the early catch in 'what went well'",
+        "Action items prevent next near-miss from becoming incident"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "All of our action items are about better alerting and faster paging. Is that a complete post-mortem?",
+      "expected_output": "Diagnoses that the post-mortem hasn't found the root cause. If every action item is in the detection/response bucket, the RCA stopped at 'we should have noticed sooner' instead of 'why did this break in the first place'. Recommends sending the post-mortem back to RCA to ask the deeper why-chain. Notes that detection improvements are usually the easiest to identify and the easiest to ship, which is why teams end there.",
+      "assertions": [
+        "Says the post-mortem hasn't found the root cause",
+        "Diagnoses all-detection action items as RCA stopping early",
+        "Recommends returning to RCA",
+        "Notes detection items are easiest to identify but rarely the full answer",
+        "Asks the deeper why-chain question",
+        "References root-cause-analysis for the deeper analysis"
+      ],
+      "files": []
+    }
+  ]
+}

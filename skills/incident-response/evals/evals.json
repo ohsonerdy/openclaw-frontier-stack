@@ -1,0 +1,100 @@
+{
+  "skill_name": "incident-response",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our checkout page is returning 500s for what looks like every user. We deployed 20 minutes ago. What do I do right now?",
+      "expected_output": "Triage as Sev 1 (core journey broken at scale). Recommend immediate rollback as the mitigation lever since a recent deploy is the suspect. Should preserve evidence (deploy log, error logs from the failing window) before fully rolling forward. Should assign roles and set comms cadence at 15-minute intervals. Should not start root-cause hunting before mitigation lands.",
+      "assertions": [
+        "Triages as Sev 1 based on the matrix",
+        "Names rollback as the primary mitigation lever",
+        "Calls out preserving evidence before mitigation (deploy log, error logs)",
+        "Sets comms cadence at 15-minute intervals for Sev 1",
+        "Assigns roles (IC, responder, comms lead)",
+        "Defers root-cause analysis to after mitigation",
+        "Does not propose a hotfix as the first move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We have an alert that fires for 502s from the payment service. It's been firing for 5 minutes. Nothing on the dashboards looks out of the ordinary. What is this?",
+      "expected_output": "Diagnosis that this may be Sev 3 or Sev 4 — alert without confirmed user impact. Should NOT default to Sev 1 just because an alert fired. Should ask whether the user-facing symptom is confirmed before triaging higher. Should distinguish between alerting on symptoms (user-impact) versus alerting on causes (502 count).",
+      "assertions": [
+        "Asks for the user-facing symptom before triaging",
+        "Does not default to Sev 1 based on the alert alone",
+        "Distinguishes alerting on symptoms vs alerting on causes",
+        "References monitoring-and-alerting for alert tuning",
+        "Suggests Sev 3 or Sev 4 as plausible until impact is confirmed"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We have a Sev 1 in flight. I'm the only engineer awake. Should I be writing status page updates or should I be debugging?",
+      "expected_output": "Recommends focusing on mitigation first while delegating or batching comms. The technical responder should not also be drafting status pages because context switching out of diagnosis breaks flow. Should suggest pulling in a comms lead or batching a brief status update on a timer. Should reinforce that customer silence during incidents is worse than slow mitigation.",
+      "assertions": [
+        "Recommends the technical responder NOT also draft status updates in detail",
+        "Recommends pulling in a comms lead or paging another engineer",
+        "Notes context switching out of diagnosis breaks flow",
+        "Notes customer silence is worse than slow mitigation",
+        "Suggests a brief templated update rather than full silence"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We mitigated the incident 10 minutes ago with a feature flag. Metrics look normal. Can I go to bed?",
+      "expected_output": "Diagnosis that 10 minutes is below the typical 10-30 minute hold time for declaring resolved. Should recommend continuing to monitor for the hold window before declaring resolved, especially since the underlying cause is unknown (flag flip is a mitigation, not a fix). Should note that premature resolution is a common pattern where mitigation works briefly then the cause flares again.",
+      "assertions": [
+        "Recommends a hold time (10-30 minutes) before declaring resolved",
+        "Distinguishes flag flip as mitigation, not root-cause fix",
+        "Warns about premature resolution pattern",
+        "Recommends explicit IC sign-off on declaring resolved",
+        "Suggests scheduling follow-up RCA and post-mortem"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I'm on-call. I want to roll back but my manager says I should wait for the deploy team to approve. The deploy team is on US west and it's 4am there.",
+      "expected_output": "Pushback on the approval-required pattern. On-call should have pre-authorized authority to rollback Sev 1 incidents without approval. Should recommend rolling back now and flagging the process gap as a follow-up to fix before the next page. Should distinguish between approval-for-rollback (anti-pattern) and approval-for-irreversible-change (legitimate).",
+      "assertions": [
+        "Says the on-call should be able to rollback without approval",
+        "Recommends rolling back now and fixing the process gap later",
+        "Distinguishes reversible rollback from irreversible change",
+        "Flags approval-required-for-rollback as a process bug",
+        "Suggests pre-authorizing decision authority before the next page"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We're 45 minutes into a Sev 2 and there's no agreement on who should call it. Three engineers are debugging in three different threads. How do I get this back on track?",
+      "expected_output": "Diagnosis that incident channel hygiene is broken. Should consolidate into one channel, name an IC, pin the current status, kill the side threads. Should recommend a single IC who is NOT also the technical responder. Should recommend a status update to all participants stating the consolidation.",
+      "assertions": [
+        "Recommends consolidating to one incident channel",
+        "Recommends explicitly naming an IC",
+        "Kills the side-thread pattern",
+        "Pins current status to the channel",
+        "Recommends IC is not also the technical responder",
+        "Posts a consolidation update so everyone re-orients"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Customer support is getting flooded with tickets and asking what they should tell users. We've been investigating for an hour. What do I tell support?",
+      "expected_output": "Recommends giving support a templated external-comms message focused on impact (not cause), with no ETA they can't keep. Should distinguish lead-with-impact from lead-with-cause messaging. Should recommend posting on the status page first so support can link to it instead of writing per-ticket. Should reinforce that customers tolerate outages but not silence.",
+      "assertions": [
+        "Recommends an impact-led message (not cause-led)",
+        "Avoids promising a specific ETA",
+        "Recommends posting on status page so support can link",
+        "Notes that customers tolerate outages but not silence",
+        "Provides a concrete template support can use",
+        "References the Sev 1 / Sev 2 cadence depending on triage"
+      ],
+      "files": []
+    }
+  ]
+}

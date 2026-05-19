@@ -1,0 +1,103 @@
+{
+  "skill_name": "api-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm building a new public API for partner integrations. REST or GraphQL?",
+      "expected_output": "Asks about the consumer profile (browser, mobile, partners with code-gen needs) before deciding. For partners with stable known queries and the need for typed SDKs, REST is usually the better default. GraphQL fits when partners need flexible field selection across deeply nested data. Notes that public APIs are the most conservative posture — version from day one, stable error shape, deprecation windows. Recommends writing the contract first (OpenAPI for REST or SDL for GraphQL).",
+      "assertions": [
+        "Asks about consumer profile before choosing",
+        "REST default for public stable-query workloads",
+        "GraphQL for flexible field selection needs",
+        "Notes public API requires conservative posture",
+        "Recommends versioning from day one",
+        "Recommends writing the contract first (OpenAPI or SDL)",
+        "References architecture-decision-records for capturing the choice"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I'm adding a 'soft delete' field to my existing user object. Is that a breaking change?",
+      "expected_output": "Walks through the change taxonomy. Adding an optional response field is structurally additive (safe), but adding a soft-delete field changes the semantics of GET responses — clients that previously got 404 for deleted users now get 200 with a deleted flag. That semantic shift IS breaking for clients that don't check the flag. Recommends a deprecation period and explicit migration notice if any clients exist that don't handle the new field.",
+      "assertions": [
+        "Walks through the change taxonomy",
+        "Distinguishes structural additive (safe) from semantic breaking",
+        "Notes the 404 -> 200 with deleted flag is a semantic shift",
+        "Recommends deprecation notice for existing clients",
+        "Suggests monitoring callers that might be affected"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Should my list endpoint use ?page=N&page_size=20 or cursors?",
+      "expected_output": "Asks about the underlying data stability and list depth. Cursor for active feeds and large lists; offset for short stable lists. Notes that offset duplicates and skips items when the list changes between page fetches. Cursor is the safer default unless there's a strong UI requirement for 'jump to page 47'. Recommends not offering both.",
+      "assertions": [
+        "Asks about data stability and list depth",
+        "Cursor for active feeds and large lists",
+        "Offset for short stable lists",
+        "Notes offset duplicates/skips on changing lists",
+        "Recommends not offering both",
+        "Notes cursor is the safer modern default"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Design the error response shape for my new payments API. Partners will write code against it.",
+      "expected_output": "Recommends a stable consistent shape across all endpoints. Partners building typed bindings need predictable shape. Either RFC 7807 problem+json or a custom shape with stable error codes, message, field path, and request ID. Strong recommendation: include a stable error code (not just a message), the field name when the error is field-specific, and a request ID for support correlation. Notes payments specifically benefits from idempotency keys.",
+      "assertions": [
+        "Recommends a consistent shape across all endpoints",
+        "Mentions RFC 7807 or custom as the two options",
+        "Requires stable error code (not just message)",
+        "Requires request ID for support correlation",
+        "Field name when error is field-specific",
+        "Mentions idempotency keys for payment mutations",
+        "Provides at least one example error response"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I have an endpoint that triggers a workflow. Should it be POST /workflows/start or POST /workflows?",
+      "expected_output": "Diagnoses this as the resource-modeling vs RPC-modeling question. If the workflow is a verb-shaped action (triggering, computing, sending), an RPC-shaped endpoint like POST /workflows/start is honest. If the workflow has a persistent resource representation (status, history, cancellation), POST /workflows that creates a workflow resource is cleaner. Asks whether consumers need to query the workflow afterward — if yes, resource modeling wins.",
+      "assertions": [
+        "Frames as resource vs RPC modeling",
+        "RPC OK when the action is genuinely verb-shaped",
+        "Resource modeling when there is a persistent representation",
+        "Asks whether consumers query the workflow afterward",
+        "Notes do not hide RPC behind fake resources"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our internal services talk to each other via REST. We're adding 8 new services. Switch to gRPC?",
+      "expected_output": "Walks through the gRPC tradeoffs. Internal service-to-service, strict typing, streaming patterns, code-gen stubs — all favor gRPC. The cost is operational (managing protos, code generation pipeline) and the loss of HTTP caching primitives. Recommends gRPC for the new services if the team can absorb the operational cost. Notes that hybrid (REST for external, gRPC for internal) is common and fine. Suggests writing an ADR.",
+      "assertions": [
+        "Recommends gRPC for internal service-to-service",
+        "Notes strict typing and streaming as gRPC strengths",
+        "Notes operational cost of proto management",
+        "Hybrid (REST external, gRPC internal) is fine",
+        "Recommends writing an ADR for the decision",
+        "Asks whether the team can absorb the operational cost"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "My API has been v1 for 2 years. We need to make a breaking change. How do I version?",
+      "expected_output": "Walks through the versioning strategy options. URL path versioning (/v2) is the most common and easiest to reason about. Recommends running v1 and v2 in parallel for a defined deprecation window (typically 6-12 months for partners). Notes that the breaking change should be classified per the taxonomy, and the migration guide for partners should be a deliverable. Suggests writing an ADR to record the deprecation policy.",
+      "assertions": [
+        "Recommends URL path versioning (/v2)",
+        "Run v1 and v2 in parallel during deprecation",
+        "Defined deprecation window (6-12 months for partners)",
+        "Migration guide is a required deliverable",
+        "Classify the breaking change per the taxonomy",
+        "Recommends ADR for deprecation policy"
+      ],
+      "files": []
+    }
+  ]
+}

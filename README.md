@@ -6,9 +6,14 @@
 [![Node ≥20](https://img.shields.io/badge/node-%E2%89%A520-43853d?logo=node.js&logoColor=white)](package.json)
 [![Agent Skills spec](https://img.shields.io/badge/Agent_Skills-spec_v1-7c3aed)](https://agentskills.io/specification.md)
 
+[![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-d97757)](https://docs.claude.com/en/docs/claude-code/plugins)
+[![Codex CLI](https://img.shields.io/badge/Codex_CLI-plugin-10a37f?logo=openai&logoColor=white)](https://developers.openai.com/codex/plugins)
+[![Cursor](https://img.shields.io/badge/Cursor-skills-111111)](https://cursor.com/docs/skills)
+[![OpenCode](https://img.shields.io/badge/OpenCode-plugin-0ea5e9)](https://opencode.ai/docs/plugins)
+
 > Current release status: see [STATUS.md](STATUS.md).
 
-OpenClaw Frontier Stack is a **production-ready, drop-in multi-agent coding orchestration stack** for shared state, signed coordination, durable task ownership, memory, observability, and fail-closed release gates. It also ships **Modern Skills** — ecomm marketing skills for AI agents, integrated with the Modern AI MCP.
+OpenClaw Frontier Stack is a **production-ready, drop-in multi-agent coding orchestration stack** — interoperable across Claude Code, Codex, Cursor, and OpenCode — for shared state, signed coordination, durable task ownership, memory, observability, and fail-closed release gates. It also ships **Modern Skills** — ecomm marketing skills for AI agents, integrated with the Modern AI MCP — and **Operator Skills** for safe public releases, durable task coordination, and full-history audits.
 
 This repository is the public source package. It ships production core modules, operator-ready templates, local acceptance scenarios, and release harnesses that can be installed and verified from a fresh checkout. Private runtime state is intentionally excluded: operators provide their own credentials, hosts, policy bindings, and deployment configuration.
 
@@ -46,7 +51,7 @@ Included capabilities:
 
 ## Modern Skills
 
-This repository ships **Modern Skills** — a Claude Code / Codex / Cursor plugin with eight ecomm-shaped marketing skills authored by Modern AI:
+This repository ships **Modern Skills** — an interoperable agent plugin (Claude Code, Codex, Cursor, OpenCode) with 13 ecomm-shaped marketing skills authored by Modern AI:
 
 | Skill | Use |
 |---|---|
@@ -58,18 +63,49 @@ This repository ships **Modern Skills** — a Claude Code / Codex / Cursor plugi
 | `bundle-pricing` | SKU affinity, anchor pricing, good-better-best tiering for AOV and margin lift |
 | `cohort-retention` | Survival curve interpretation, cohort impact on LTV, intervention test design |
 | `winback-flows` | Lapse-segment taxonomy, recency-based offer ladders, do-not-contact rules |
+| `cross-sell-mapping` | SKU-affinity-driven cross-sell sequencing |
+| `pricing-discipline` | When to discount and when not to |
+| `referral-program-design` | Double-sided rewards, fraud-resistance, viral coefficient math |
+| `nps-and-detractor-handling` | Detractor recovery, promoter activation, do-not-contact rules |
+| `dunning-deep-dive` | Retry schedule design, reason-code segmentation, recovery flow length |
 
 Each skill ships with 5–8 eval cases, an opinionated framework, and explicit MCP tool dependencies. With the [Modern AI MCP](https://platform.modern.ai/help-center/how-to/connect-claude-desktop) connected, skills pull live data (sales, ad spend, attribution, retention) automatically; without it, they fall back to asking the user.
 
-### Install Modern Skills as a Claude Code plugin
+### Install as a plugin
 
-Inside Claude Code:
+The repository ships four plugin manifests — `.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/`, and `.opencode/` — each declaring the same `skills/` + `hooks/` surface for its host. Pick your agent below.
+
+**Claude Code** — slash-command install:
 
 ```
 /plugin install ohsonerdy/openclaw-frontier-stack
 ```
 
-In Codex / Cursor / any agent that supports the [Agent Skills specification](https://agentskills.io/specification.md): point the plugin loader at this repository or vendor the `skills/` directory directly. See [docs/skills-integration-spec.md](docs/skills-integration-spec.md) for details.
+Manifest: [.claude-plugin/plugin.json](.claude-plugin/plugin.json). Docs: [Claude Code plugins](https://docs.claude.com/en/docs/claude-code/plugins).
+
+**Codex CLI** — open the interactive plugin browser inside the CLI:
+
+```
+codex
+/plugins
+```
+
+Then point the loader at this repository, or vendor `skills/` and `hooks/` into a path Codex reads (project-scoped `.agents/skills/` or the user-scoped equivalent under your home directory). Manifest: [.codex-plugin/plugin.json](.codex-plugin/plugin.json). Docs: [Codex CLI plugins](https://developers.openai.com/codex/plugins).
+
+**Cursor** — install via Cursor Settings → Rules → Add Rule → Remote Rule (GitHub), and point at this repository URL. Alternatively, vendor `skills/` into `.cursor/skills/` at the project root. Manifest: [.cursor-plugin/plugin.json](.cursor-plugin/plugin.json). Docs: [Cursor skills](https://cursor.com/docs/skills).
+
+**OpenCode** — add the plugin to `opencode.json` in your project root:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["openclaw-frontier-stack"]
+}
+```
+
+Manifest: [.opencode/plugin.json](.opencode/plugin.json). Docs: [OpenCode plugins](https://opencode.ai/docs/plugins).
+
+For any other agent that supports the [Agent Skills specification](https://agentskills.io/specification.md), point the plugin loader at this repository or vendor the `skills/` directory directly. See [docs/skills-integration-spec.md](docs/skills-integration-spec.md) for the engineering integration spec.
 
 ### Connect the Modern AI MCP (recommended)
 
@@ -110,6 +146,18 @@ A scheduled GitHub Actions workflow runs the live eval suite against every Moder
 
 - Workflow: [.github/workflows/scheduled-evals.yml](.github/workflows/scheduled-evals.yml)
 - Operator doc: [docs/skill-eval-telemetry.md](docs/skill-eval-telemetry.md)
+
+## Operator Skills
+
+Three host-neutral operator skills ship alongside Modern Skills under `skills/`. Folded in from the frontier-skills companion plugin in v0.4.0, they are agent-host-agnostic and install through the same four manifests above.
+
+| Skill | Use |
+|---|---|
+| `safe-public-release` | Release-time gate before pushing to a public remote. Runs the private-content scanner over the working tree and full git history, verifies the owner upload approval is bound to the candidate hash, and blocks the push on any failure |
+| `durable-task-ledger` | Coordinate multi-step work across subagents and sessions via an append-only JSONL ledger of task claims, path claims, and result receipts so parallel agents do not stomp on each other |
+| `verified-history-scan` | Audit the full git history (every commit's tree) for private-content leaks before publishing a previously-private repo, after a force-push, or any time you need to confirm a history rewrite was complete |
+
+Each operator skill is a procedural runbook — no MCP backend, no eval suite — and works in any agent host that reads the Agent Skills specification.
 
 ## Current status
 

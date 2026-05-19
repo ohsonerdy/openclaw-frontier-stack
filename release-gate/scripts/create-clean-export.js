@@ -23,6 +23,8 @@ const include = [
   '.codex-plugin',
   '.cursor-plugin',
   '.opencode',
+  'agents',
+  'bin',
   'hooks',
   'STATUS.md',
   'docs',

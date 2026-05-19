@@ -1,0 +1,328 @@
+#!/usr/bin/env node
+'use strict';
+
+/**
+ * openclaw — the OpenClaw Frontier Stack engineer CLI.
+ *
+ * Subcommands:
+ *
+ *   openclaw goal "<goal description>"          create a goal from a prompt and run the harness
+ *   openclaw goal --file <path>                 read a structured goal record and run the harness
+ *   openclaw status                             summarize the blackboard ledger
+ *   openclaw dispatch <role> "<task summary>"   write a single task-claim to a role
+ *   openclaw recap [--days N]                   roll up the last N days of activity (default 1)
+ *   openclaw --help                             show this message
+ *
+ * Global flags:
+ *
+ *   --blackboard <path>    Override blackboard ledger path
+ *   --mock-agents          (goal) synthesize agent responses in-process
+ *   --dry-run              (goal) do not write to the ledger
+ *   --max-wait-ms <ms>     (goal) wait budget for live agents
+ *   --json                 emit machine-readable JSON instead of pretty text
+ *   --days N               (recap) days of history to include (default 1)
+ *   --trace-dir <path>     (goal) write the trace JSON to this directory
+ *                          (default: release-gate/orchestration/<goalId>/)
+ *
+ * The CLI works out-of-the-box with no setup. The default `goal` command in
+ * mock-agents mode produces a full synthesis trace immediately without a
+ * live agent, NATS bus, or any external service running.
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const repoRoot = path.resolve(__dirname, '..');
+const {
+  runGoalLoop,
+  goalFromPrompt,
+  normalizeGoal,
+  blackboardSummary,
+  recapBlackboard,
+  GoalValidationError,
+  toSimpleAgentId,
+  toSimpleTaskId,
+} = require(path.join(repoRoot, 'src', 'orchestrator', 'lib', 'goal-loop.js'));
+const { createLedger, BlackboardValidationError } = require(path.join(repoRoot, 'src', 'blackboard', 'lib', 'ledger.js'));
+
+const HELP_TEXT = `openclaw — OpenClaw Frontier Stack engineer CLI
+
+Usage:
+  openclaw goal "<goal description>"          create a goal from a prompt and run the harness
+  openclaw goal --file <path>                 read a structured goal record and run the harness
+  openclaw status                             summarize the blackboard ledger
+  openclaw dispatch <role> "<task summary>"   write a single task-claim to a role
+  openclaw recap [--days N]                   roll up the last N days of activity (default 1)
+  openclaw --help                             show this message
+
+Global flags:
+  --blackboard <path>    Override blackboard ledger path (default ./blackboard.jsonl)
+  --mock-agents          (goal) synthesize agent responses in-process. Default for the
+                         CLI prompt path so the harness produces a complete trace
+                         without a live agent attached.
+  --no-mock-agents       (goal) require live agents
+  --dry-run              (goal) do not write to the ledger
+  --max-wait-ms <ms>     (goal) wait budget for live agents (default 300000)
+  --json                 emit JSON instead of human-readable text
+  --days N               (recap) days of history to include (default 1)
+  --trace-dir <path>     (goal) when set, also persist the full trace JSON
+                         to <path>/trace.json (default: not persisted)
+
+Exit codes:
+  0  Subcommand succeeded
+  1  Goal had at least one non-GREEN lane / runtime error
+  2  Bad arguments
+`;
+
+function help() {
+  process.stdout.write(HELP_TEXT);
+}
+
+function parseGlobal(argv) {
+  const flags = {
+    blackboard: path.resolve(process.cwd(), 'blackboard.jsonl'),
+    mockAgents: null,
+    dryRun: false,
+    maxWaitMs: 300000,
+    json: false,
+    days: 1,
+    file: null,
+    traceDir: null,
+  };
+  const positional = [];
+  for (let i = 2; i < argv.length; i += 1) {
+    const a = argv[i];
+    if (a === '--blackboard') flags.blackboard = path.resolve(process.cwd(), argv[++i]);
+    else if (a === '--mock-agents') flags.mockAgents = true;
+    else if (a === '--no-mock-agents') flags.mockAgents = false;
+    else if (a === '--dry-run') flags.dryRun = true;
+    else if (a === '--max-wait-ms') flags.maxWaitMs = Number(argv[++i]);
+    else if (a === '--json') flags.json = true;
+    else if (a === '--days') flags.days = Math.max(1, Number(argv[++i]) || 1);
+    else if (a === '--file' || a === '-f') flags.file = argv[++i];
+    else if (a === '--trace-dir') flags.traceDir = path.resolve(process.cwd(), argv[++i]);
+    else if (a === '--help' || a === '-h') flags.help = true;
+    else positional.push(a);
+  }
+  return { flags, positional };
+}
+
+function emit(value, json) {
+  if (json) {
+    process.stdout.write(JSON.stringify(value, null, 2) + '\n');
+    return;
+  }
+  if (typeof value === 'string') {
+    process.stdout.write(value.endsWith('\n') ? value : value + '\n');
+    return;
+  }
+  process.stdout.write(JSON.stringify(value, null, 2) + '\n');
+}
+
+function writeTrace(trace, traceDir) {
+  if (!trace || !trace.goalId) return null;
+  const dir = traceDir || path.join(repoRoot, 'release-gate', 'orchestration', trace.goalId);
+  fs.mkdirSync(dir, { recursive: true });
+  const tracePath = path.join(dir, 'trace.json');
+  fs.writeFileSync(tracePath, JSON.stringify(trace, null, 2) + '\n');
+  return tracePath;
+}
+
+function renderTraceText(trace) {
+  const lines = [];
+  lines.push(`goal: ${trace.goalId}`);
+  lines.push(`title: ${trace.title}`);
+  lines.push(`ok: ${trace.ok ? 'YES (all lanes green)' : 'NO'}`);
+  lines.push(`mockAgents: ${trace.mockAgents ? 'true' : 'false'}`);
+  if (trace.dryRun) lines.push('mode: dry-run');
+  lines.push('lanes:');
+  for (const lane of trace.lanes || []) {
+    lines.push(`  - ${lane.name} (${lane.role}) [${lane.status}] ${lane.summary}`);
+  }
+  if (trace.green && trace.green.length) lines.push(`green: ${trace.green.join(', ')}`);
+  if (trace.red && trace.red.length) lines.push(`red: ${trace.red.join(', ')}`);
+  return lines.join('\n');
+}
+
+function renderStatusText(summary) {
+  const lines = [];
+  lines.push(`blackboard: ${summary.ledgerPath}`);
+  lines.push(`exists: ${summary.exists}`);
+  lines.push(`total records: ${summary.totalRecords}`);
+  const counts = summary.counts || {};
+  const countLine = Object.keys(counts).sort().map((k) => `${k}=${counts[k]}`).join(' ');
+  lines.push(`record counts: ${countLine || '(none)'}`);
+  lines.push(`active tasks: ${summary.tasks.active.length}`);
+  for (const t of summary.tasks.active.slice(0, 5)) {
+    lines.push(`  - ${t.taskId} owned-by ${t.agent} :: ${t.summary}`);
+  }
+  lines.push(`completed tasks: ${summary.tasks.done.length}`);
+  lines.push(`failed tasks: ${summary.tasks.failed.length}`);
+  lines.push(`path claims: ${summary.pathClaims.length}`);
+  lines.push(`recent results:`);
+  for (const r of (summary.recentResults || []).slice(0, 5)) {
+    lines.push(`  - ${r.ts} ${r.agent} -> ${r.taskId} ok=${r.ok} ${r.summary.slice(0, 80)}`);
+  }
+  return lines.join('\n');
+}
+
+function renderRecapText(recap) {
+  const lines = [];
+  lines.push(`blackboard: ${recap.ledgerPath}`);
+  lines.push(`window: ${recap.sinceISO} → ${recap.untilISO || 'now'}`);
+  for (const line of recap.narrative || []) lines.push(line);
+  return lines.join('\n');
+}
+
+function cmdGoal(positional, flags) {
+  let goal;
+  if (flags.file) {
+    const resolved = path.resolve(process.cwd(), flags.file);
+    if (!fs.existsSync(resolved)) {
+      process.stderr.write(`goal file not found: ${resolved}\n`);
+      process.exit(2);
+    }
+    try {
+      goal = normalizeGoal(JSON.parse(fs.readFileSync(resolved, 'utf8')));
+    } catch (err) {
+      process.stderr.write(`goal file invalid: ${err.message}\n`);
+      process.exit(2);
+    }
+  } else {
+    const prompt = positional.slice(1).join(' ').trim();
+    if (!prompt) {
+      process.stderr.write('openclaw goal: provide a description (in quotes) or --file <path>\n');
+      process.exit(2);
+    }
+    try {
+      goal = goalFromPrompt(prompt);
+    } catch (err) {
+      process.stderr.write(`goal prompt invalid: ${err.message}\n`);
+      process.exit(2);
+    }
+  }
+  // CLI default: mock-agents=true unless explicitly disabled. This makes
+  // the no-setup path work without a live bus.
+  const mockAgents = flags.mockAgents === null ? true : flags.mockAgents;
+  let trace;
+  try {
+    trace = runGoalLoop({
+      goal,
+      blackboardPath: flags.blackboard,
+      maxWaitMs: flags.maxWaitMs,
+      mockAgents,
+      dryRun: flags.dryRun,
+    });
+  } catch (err) {
+    if (err instanceof GoalValidationError) {
+      process.stderr.write(`goal invalid: ${err.message}\n`);
+      process.exit(2);
+    }
+    if (err instanceof BlackboardValidationError) {
+      process.stderr.write(`blackboard error: ${err.message}\n`);
+      process.exit(1);
+    }
+    process.stderr.write(`runtime error: ${err.stack || err.message || err}\n`);
+    process.exit(1);
+  }
+  // Only persist the trace when an explicit --trace-dir was provided. The
+  // stdout emission is the canonical sink for the CLI; piping a trace into
+  // a file is the caller's call.
+  const tracePath = (!flags.dryRun && flags.traceDir) ? writeTrace(trace, flags.traceDir) : null;
+  if (tracePath) trace.tracePath = path.relative(process.cwd(), tracePath);
+  if (flags.json) emit(trace, true);
+  else emit(renderTraceText(trace));
+  if (flags.dryRun) return;
+  process.exit(trace.ok ? 0 : 1);
+}
+
+function cmdStatus(_positional, flags) {
+  const summary = blackboardSummary(flags.blackboard);
+  if (flags.json) emit(summary, true);
+  else emit(renderStatusText(summary));
+}
+
+function cmdDispatch(positional, flags) {
+  const role = positional[1];
+  const description = positional.slice(2).join(' ').trim();
+  if (!role || !description) {
+    process.stderr.write('openclaw dispatch: usage: openclaw dispatch <role> "<task description>"\n');
+    process.exit(2);
+  }
+  let agent;
+  try {
+    agent = toSimpleAgentId(role, 'role');
+  } catch (err) {
+    process.stderr.write(`role invalid: ${err.message}\n`);
+    process.exit(2);
+  }
+  let taskId;
+  try {
+    taskId = `dispatch-${toSimpleTaskId(description.slice(0, 40), 'task id')}-${Date.now().toString(36)}`;
+  } catch (err) {
+    process.stderr.write(`task description cannot be reduced to a task id: ${err.message}\n`);
+    process.exit(2);
+  }
+  if (flags.dryRun) {
+    const preview = {
+      schema: 'openclaw-frontier.dispatch-preview.v1',
+      dryRun: true,
+      agent,
+      taskId,
+      summary: description.slice(0, 500),
+    };
+    if (flags.json) emit(preview, true);
+    else emit(`would dispatch:\n  taskId: ${taskId}\n  agent: ${agent}\n  summary: ${preview.summary}`);
+    return;
+  }
+  const ledger = createLedger({ ledgerPath: flags.blackboard });
+  let record;
+  try {
+    record = ledger.claimTask({
+      agent: 'orchestrator',
+      taskId,
+      summary: description.slice(0, 500),
+    });
+  } catch (err) {
+    process.stderr.write(`dispatch failed: ${err.message}\n`);
+    process.exit(1);
+  }
+  const result = {
+    schema: 'openclaw-frontier.dispatch-receipt.v1',
+    ok: true,
+    agent,
+    taskId,
+    claimId: record.id,
+    claimedAt: record.ts,
+    blackboard: flags.blackboard,
+    note: 'task-claim written. agent will pick the task off the ledger and respond with a result record.',
+  };
+  if (flags.json) emit(result, true);
+  else emit(`dispatched ${taskId}\n  claim: ${record.id}\n  agent: ${agent}\n  blackboard: ${flags.blackboard}`);
+}
+
+function cmdRecap(_positional, flags) {
+  const recap = recapBlackboard(flags.blackboard, { days: flags.days });
+  if (flags.json) emit(recap, true);
+  else emit(renderRecapText(recap));
+}
+
+function main() {
+  if (process.argv.length <= 2) { help(); process.exit(2); }
+  const { flags, positional } = parseGlobal(process.argv);
+  if (flags.help || positional[0] === 'help') { help(); return; }
+  const sub = positional[0];
+  switch (sub) {
+    case 'goal': return cmdGoal(positional, flags);
+    case 'status': return cmdStatus(positional, flags);
+    case 'dispatch': return cmdDispatch(positional, flags);
+    case 'recap': return cmdRecap(positional, flags);
+    case undefined: help(); process.exit(2); return;
+    default:
+      process.stderr.write(`unknown subcommand: ${sub}\n`);
+      help();
+      process.exit(2);
+  }
+}
+
+main();

@@ -1,0 +1,323 @@
+name: Autonomous loops — eval drift detection
+
+# One concrete autonomous loop for the OpenClaw Frontier Stack:
+# skill-eval-drift-detection-with-auto-PR-proposal.
+#
+# Every Monday at 10:00 UTC (and on workflow_dispatch), this job runs the
+# Modern Skills eval suite against two models:
+#
+#   1. The current default model (DEFAULT_MODEL)
+#   2. A baseline model (EVAL_BASELINE_MODEL repository variable)
+#
+# It then compares the per-skill assertion-pass rate. If any skill has
+# regressed by more than 10 percentage points on the current model relative
+# to the baseline, the loop:
+#
+#   - writes a release-gate/eval-drift/<date>-<skill>.json artifact for each
+#     regressed skill recording both runs and the delta
+#   - opens an issue with label `eval-drift` describing the regressions and
+#     proposes a draft PR (branch eval-drift/<date>) carrying the artifacts
+#
+# Dedup strategy: one issue per ISO date + current model. Same-day reruns
+# update the existing issue. A new day opens a fresh issue.
+#
+# Auth: ANTHROPIC_OAUTH_TOKEN preferred (charges the user's Pro/Max
+# subscription), ANTHROPIC_API_KEY fallback (per-token API billing).
+
+on:
+  schedule:
+    # Monday 10:00 UTC = 06:00 ET, 03:00 PT — weekly cadence so the team
+    # gets one PR per week if drift is present, not noise every day.
+    - cron: "0 10 * * 1"
+  workflow_dispatch:
+    inputs:
+      current_model:
+        description: "Current model under test"
+        required: false
+        default: "claude-opus-4-7"
+        type: choice
+        options:
+          - claude-opus-4-7
+          - claude-sonnet-4-6
+          - claude-haiku-4-5-20251001
+      baseline_model:
+        description: "Baseline model to compare against (overrides EVAL_BASELINE_MODEL var)"
+        required: false
+        default: ""
+        type: string
+      drift_threshold_pct:
+        description: "Regression threshold in percentage points (default 10)"
+        required: false
+        default: "10"
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: autonomous-eval-drift-${{ github.event.inputs.current_model || 'default' }}
+  cancel-in-progress: false
+
+jobs:
+  eval-drift:
+    name: Detect eval drift vs baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CURRENT_MODEL: ${{ github.event.inputs.current_model || 'claude-opus-4-7' }}
+      BASELINE_MODEL: ${{ github.event.inputs.baseline_model || vars.EVAL_BASELINE_MODEL || 'claude-haiku-4-5-20251001' }}
+      DRIFT_THRESHOLD_PCT: ${{ github.event.inputs.drift_threshold_pct || '10' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install (no scripts)
+        run: npm install --ignore-scripts
+
+      - name: Compute report metadata
+        id: meta
+        run: |
+          DATE_UTC="$(date -u +%Y-%m-%d)"
+          SAFE_CURRENT="$(echo "${CURRENT_MODEL}" | tr -c '[:alnum:]._-' '-')"
+          SAFE_BASELINE="$(echo "${BASELINE_MODEL}" | tr -c '[:alnum:]._-' '-')"
+          DRIFT_DIR="release-gate/eval-drift"
+          BRANCH="eval-drift/${DATE_UTC}"
+          mkdir -p "${DRIFT_DIR}"
+          {
+            echo "date_utc=${DATE_UTC}"
+            echo "safe_current=${SAFE_CURRENT}"
+            echo "safe_baseline=${SAFE_BASELINE}"
+            echo "drift_dir=${DRIFT_DIR}"
+            echo "branch=${BRANCH}"
+            echo "current_report=${DRIFT_DIR}/run-${DATE_UTC}-current-${SAFE_CURRENT}.json"
+            echo "baseline_report=${DRIFT_DIR}/run-${DATE_UTC}-baseline-${SAFE_BASELINE}.json"
+            echo "delta_summary=${DRIFT_DIR}/delta-${DATE_UTC}.json"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run evals against current model
+        id: current
+        env:
+          ANTHROPIC_OAUTH_TOKEN: ${{ secrets.ANTHROPIC_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set +e
+          node scripts/run-skill-evals.js --live --model "${CURRENT_MODEL}" \
+            > "${{ steps.meta.outputs.current_report }}"
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Run evals against baseline model
+        id: baseline
+        env:
+          ANTHROPIC_OAUTH_TOKEN: ${{ secrets.ANTHROPIC_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set +e
+          node scripts/run-skill-evals.js --live --model "${BASELINE_MODEL}" \
+            > "${{ steps.meta.outputs.baseline_report }}"
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Compute drift summary
+        id: drift
+        env:
+          CURRENT_REPORT: ${{ steps.meta.outputs.current_report }}
+          BASELINE_REPORT: ${{ steps.meta.outputs.baseline_report }}
+          DELTA_SUMMARY: ${{ steps.meta.outputs.delta_summary }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+          DRIFT_DIR: ${{ steps.meta.outputs.drift_dir }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const path = require("path");
+            const threshold = Number(process.env.DRIFT_THRESHOLD_PCT) || 10;
+            const cur = JSON.parse(fs.readFileSync(process.env.CURRENT_REPORT, "utf8"));
+            const base = JSON.parse(fs.readFileSync(process.env.BASELINE_REPORT, "utf8"));
+            function passRate(skillReport) {
+              if (!skillReport || skillReport.skipped) return null;
+              if (!Array.isArray(skillReport.evals) || skillReport.evals.length === 0) return null;
+              let pass = 0, total = 0;
+              for (const e of skillReport.evals) {
+                if (typeof e.passedAssertions === "number" && typeof e.totalAssertions === "number") {
+                  pass += e.passedAssertions;
+                  total += e.totalAssertions;
+                }
+              }
+              return total === 0 ? null : (pass / total) * 100;
+            }
+            const baseSkills = new Map((base.skills || []).map((s) => [s.name, s]));
+            const regressions = [];
+            for (const cs of cur.skills || []) {
+              const bs = baseSkills.get(cs.name);
+              const curRate = passRate(cs);
+              const baseRate = passRate(bs);
+              if (curRate == null || baseRate == null) continue;
+              const drift = baseRate - curRate;
+              if (drift > threshold) {
+                regressions.push({
+                  skill: cs.name,
+                  baselineRate: Number(baseRate.toFixed(2)),
+                  currentRate: Number(curRate.toFixed(2)),
+                  driftPct: Number(drift.toFixed(2)),
+                });
+                const artifact = {
+                  schema: "openclaw-frontier.eval-drift.v1",
+                  date: process.env.DATE_UTC,
+                  skill: cs.name,
+                  thresholdPct: threshold,
+                  drift,
+                  currentModel: cur.model,
+                  baselineModel: base.model,
+                  current: cs,
+                  baseline: bs,
+                };
+                const skillSafe = cs.name.replace(/[^A-Za-z0-9._-]+/g, "-");
+                const outPath = path.join(process.env.DRIFT_DIR, `${process.env.DATE_UTC}-${skillSafe}.json`);
+                fs.writeFileSync(outPath, JSON.stringify(artifact, null, 2) + "\n");
+              }
+            }
+            const summary = {
+              schema: "openclaw-frontier.eval-drift-summary.v1",
+              date: process.env.DATE_UTC,
+              thresholdPct: threshold,
+              currentModel: cur.model,
+              baselineModel: base.model,
+              regressionCount: regressions.length,
+              regressions,
+            };
+            fs.writeFileSync(process.env.DELTA_SUMMARY, JSON.stringify(summary, null, 2) + "\n");
+            console.log(`regressions=${regressions.length}`);
+          '
+          REGRESSIONS="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.env.DELTA_SUMMARY, "utf8")).regressionCount)')"
+          echo "regressions=${REGRESSIONS}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload eval-drift artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-drift-${{ steps.meta.outputs.date_utc }}
+          path: ${{ steps.meta.outputs.drift_dir }}
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Open or update draft PR with drift artifacts
+        if: steps.drift.outputs.regressions != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.meta.outputs.branch }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+          DRIFT_DIR: ${{ steps.meta.outputs.drift_dir }}
+          DELTA_SUMMARY: ${{ steps.meta.outputs.delta_summary }}
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          # Compose the noreply identity at runtime so this file does not embed a literal address.
+          BOT_USER="41898282+github-actions[bot]"
+          BOT_DOMAIN="users.noreply.github.com"
+          git config user.email "${BOT_USER}""@""${BOT_DOMAIN}"
+          # The artifacts live under release-gate/eval-drift/ which is part of
+          # the repo. Create a branch and commit only the new artifacts.
+          git fetch origin "${BRANCH}" 2>/dev/null || true
+          if git rev-parse --verify "origin/${BRANCH}" >/dev/null 2>&1; then
+            git checkout "${BRANCH}"
+          else
+            git checkout -b "${BRANCH}"
+          fi
+          git add "${DRIFT_DIR}"
+          if git diff --cached --quiet; then
+            echo "No new drift artifacts to commit."
+          else
+            git commit -m "eval-drift: ${DATE_UTC} regressions"
+            git push -u origin "${BRANCH}"
+          fi
+          # Create or update the draft PR.
+          EXISTING_PR="$(gh pr list --head "${BRANCH}" --json number --jq '.[0].number // empty')"
+          BODY_FILE="$(mktemp)"
+          {
+            echo "Automated eval-drift detection by the autonomous-loops workflow."
+            echo ""
+            echo "- Date (UTC): ${DATE_UTC}"
+            echo "- Current model: \`${CURRENT_MODEL}\`"
+            echo "- Baseline model: \`${BASELINE_MODEL}\`"
+            echo "- Threshold: ${DRIFT_THRESHOLD_PCT} percentage points"
+            echo ""
+            echo "### Regressions"
+            node -e '
+              const fs = require("fs");
+              const summary = JSON.parse(fs.readFileSync(process.env.DELTA_SUMMARY, "utf8"));
+              if (!summary.regressions.length) { process.stdout.write("None.\n"); return; }
+              process.stdout.write("| Skill | Baseline pass % | Current pass % | Drift pp |\n");
+              process.stdout.write("|---|---|---|---|\n");
+              for (const r of summary.regressions) {
+                process.stdout.write(`| ${r.skill} | ${r.baselineRate} | ${r.currentRate} | ${r.driftPct} |\n`);
+              }
+            '
+            echo ""
+            echo "Artifacts: see \`${DRIFT_DIR}/${DATE_UTC}-<skill>.json\` for each regressed skill and \`${DELTA_SUMMARY}\` for the rollup."
+          } > "${BODY_FILE}"
+          if [ -n "${EXISTING_PR}" ]; then
+            echo "Updating existing PR #${EXISTING_PR}"
+            gh pr edit "${EXISTING_PR}" --body-file "${BODY_FILE}"
+          else
+            echo "Opening draft PR"
+            gh pr create \
+              --draft \
+              --title "eval-drift ${DATE_UTC}: ${{ steps.drift.outputs.regressions }} skill regressions vs ${BASELINE_MODEL}" \
+              --body-file "${BODY_FILE}" \
+              --label eval-drift \
+              --head "${BRANCH}" \
+              --base "${GITHUB_REF_NAME}"
+          fi
+
+      - name: Open or update tracking issue
+        if: steps.drift.outputs.regressions != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+          BRANCH: ${{ steps.meta.outputs.branch }}
+        run: |
+          TITLE="Eval drift ${DATE_UTC}: ${CURRENT_MODEL} vs ${BASELINE_MODEL}"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY="Automated eval drift detection found ${{ steps.drift.outputs.regressions }} regression(s). Branch: \`${BRANCH}\`. Workflow run: ${RUN_URL}"
+          # Dedup: one open issue per ISO date + current model.
+          EXISTING="$(gh issue list --label eval-drift --state open --search "${DATE_UTC} ${CURRENT_MODEL}" --json number --jq '.[0].number // empty')"
+          if [ -n "${EXISTING}" ]; then
+            gh issue comment "${EXISTING}" --body "${BODY}"
+          else
+            gh issue create --title "${TITLE}" --label eval-drift --body "${BODY}"
+          fi
+
+      - name: Summarize into job summary
+        if: always()
+        env:
+          DELTA_SUMMARY: ${{ steps.meta.outputs.delta_summary }}
+        run: |
+          {
+            echo "## Autonomous eval-drift loop"
+            echo ""
+            echo "- Date (UTC): ${{ steps.meta.outputs.date_utc }}"
+            echo "- Current model: \`${CURRENT_MODEL}\`"
+            echo "- Baseline model: \`${BASELINE_MODEL}\`"
+            echo "- Threshold: ${DRIFT_THRESHOLD_PCT} pp"
+            echo "- Regressions: ${{ steps.drift.outputs.regressions }}"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -s "${DELTA_SUMMARY}" ]; then
+            echo "### Drift rollup" >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat "${DELTA_SUMMARY}" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Fail-soft when regressions exist
+        if: steps.drift.outputs.regressions != '0'
+        run: |
+          echo "${{ steps.drift.outputs.regressions }} regression(s) detected; an issue and draft PR have been opened/updated."
+          exit 1

@@ -16,7 +16,7 @@ The bar is intentionally low — substring-match heuristics, ~7 evals per skill 
 
 ### Auth — OAuth preferred, API key opt-in
 
-The eval runner supports two auth modes for live runs:
+The eval runner supports two auth modes for live runs against the default Anthropic backend:
 
 | Auth | Env var (local) | Repo secret (CI) | Billing |
 |---|---|---|---|
@@ -36,6 +36,79 @@ The runner picks OAuth automatically when an OAuth token is present; it only fal
 If you don't yet have a working OAuth token in CI, set `ANTHROPIC_API_KEY` instead — the workflow will use it without code changes. Migrate to OAuth when ready.
 
 If neither is set, the eval runner exits with code 2 before making any HTTP calls and prints the auth-resolution priority. Dry-run mode (`npm run eval:dry`) does NOT require auth at all and is always free.
+
+## Multi-model backends
+
+The runner supports three backends: the default Anthropic API, any OpenAI-compatible server (vLLM, llama.cpp's `server`, OpenRouter, Together, etc.), and Ollama. The choice is made by two flags (or their env-var equivalents):
+
+| Flag | Env var | Default | Notes |
+|---|---|---|---|
+| `--endpoint <url>` | `OPENCLAW_EVAL_ENDPOINT` | `https://api.anthropic.com` | Base URL, no trailing slash needed. |
+| `--api-format <fmt>` | `OPENCLAW_EVAL_API_FORMAT` | `anthropic` for `api.anthropic.com`, `openai` for everything else | `anthropic` posts `/v1/messages` with the Messages-API shape; `openai` posts `/v1/chat/completions` with the standard `messages: [{role,content}]` shape. |
+
+Auth resolution differs by format:
+
+- **Anthropic format** — unchanged from above: `ANTHROPIC_OAUTH_TOKEN` > `CLAUDE_CODE_OAUTH_TOKEN` > `ANTHROPIC_API_KEY`.
+- **OpenAI format** — `OPENCLAW_EVAL_API_KEY` > `OPENAI_API_KEY`, sent as `Authorization: Bearer <key>`. If neither is set AND the endpoint host is `localhost` or `127.0.0.1`, the runner sends no `Authorization` header (Ollama default). Remote endpoints without a key are rejected with exit code 2.
+
+The report's `auth` field is now an object so traceability is preserved across backends:
+
+```json
+"auth": { "kind": "oauth", "endpoint": "https://api.anthropic.com", "apiFormat": "anthropic" }
+```
+
+`kind` is one of `oauth`, `api-key`, `bearer`, or `none`.
+
+### Ollama
+
+Ollama exposes an OpenAI-compatible API at `http://localhost:11434/v1/...` once `ollama serve` is running.
+
+```bash
+# 1. Make sure Ollama is up and the model is pulled
+ollama pull llama3
+ollama serve   # default port 11434
+
+# 2. Run the evals
+node scripts/run-skill-evals.js --live \
+  --model llama3 \
+  --endpoint http://localhost:11434 \
+  --api-format openai
+```
+
+No `OPENCLAW_EVAL_API_KEY` is required because the endpoint is local. You can still set one — Ollama tolerates arbitrary `Authorization` headers — which is useful if you put Ollama behind a reverse proxy that does enforce a token.
+
+If Ollama is not running, the runner returns clean `endpoint unreachable (ECONNREFUSED): http://localhost:11434` errors per eval rather than crashing.
+
+### vLLM
+
+vLLM ships an OpenAI-compatible server. The default is `http://localhost:8000`, but most production deployments live on an internal hostname and require Bearer auth.
+
+```bash
+# Local, no auth
+node scripts/run-skill-evals.js --live \
+  --model meta-llama/Meta-Llama-3-8B-Instruct \
+  --endpoint http://localhost:8000 \
+  --api-format openai
+
+# Remote, with auth
+export OPENCLAW_EVAL_API_KEY="vllm-shared-secret"
+node scripts/run-skill-evals.js --live \
+  --model mistralai/Mistral-7B-Instruct-v0.3 \
+  --endpoint https://vllm.internal.example.com \
+  --api-format openai
+```
+
+The runner sends the standard `messages: [{role:'system',...},{role:'user',...}]` payload to `/v1/chat/completions` and reads `parsed.choices[0].message.content`. Token usage is captured if vLLM returns the optional `usage` block (it usually does).
+
+### CI wiring
+
+The workflow exposes three new env vars sourced from repo secrets/vars:
+
+- `OPENCLAW_EVAL_ENDPOINT` (repo variable) — base URL of the alternate backend
+- `OPENCLAW_EVAL_API_FORMAT` (repo variable) — usually `openai`
+- `OPENCLAW_EVAL_API_KEY` (repo secret) — Bearer token if required
+
+Leave all three unset to keep the default Anthropic backend.
 
 ### Optional: success-comment target
 
@@ -61,6 +134,11 @@ The eval runner writes a single JSON document to stdout, which the workflow redi
   "generatedAt": "2026-05-17T09:00:01.234Z",
   "mode": "live",
   "model": "claude-sonnet-4-6",
+  "auth": {
+    "kind": "oauth",
+    "endpoint": "https://api.anthropic.com",
+    "apiFormat": "anthropic"
+  },
   "skillsScanned": 8,
   "ok": false,
   "skills": [
@@ -283,7 +361,8 @@ A judge prompt template lives well under `scripts/eval-judges/` and the runner c
 
 When standing this up for the first time:
 
-- [ ] Set `ANTHROPIC_API_KEY` as a repo secret.
+- [ ] Set `ANTHROPIC_OAUTH_TOKEN` (preferred) or `ANTHROPIC_API_KEY` as a repo secret for the default Anthropic backend.
+- [ ] (Optional) Set `OPENCLAW_EVAL_ENDPOINT` / `OPENCLAW_EVAL_API_FORMAT` (repo variables) and `OPENCLAW_EVAL_API_KEY` (repo secret) if running against Ollama, vLLM, or any other OpenAI-compatible backend.
 - [ ] (Optional) Set `EVAL_TRACKING_ISSUE` as a repo variable for green-day notes.
 - [ ] Run `gh workflow run scheduled-evals.yml` once manually to confirm it works end-to-end.
 - [ ] Read the resulting report artifact and confirm the per-skill pass counts look sane against your expectations.

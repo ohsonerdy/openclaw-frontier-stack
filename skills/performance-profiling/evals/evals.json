@@ -1,0 +1,107 @@
+{
+  "skill_name": "performance-profiling",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our API endpoint feels slow. Help me optimize it.",
+      "expected_output": "Refuses to optimize without measurement. Asks for the specific symptom (latency at median, tail, throughput) and a target. Recommends profiling first with the right profiler choice depending on whether the bottleneck is CPU, I/O, or memory. Establishes a baseline measurement before any change. Notes that 'feels slow' is not a goal.",
+      "assertions": [
+        "Refuses to optimize without measurement",
+        "Asks for specific symptom (latency, throughput)",
+        "Asks for target number",
+        "Recommends profiling first",
+        "Asks about CPU vs I/O vs memory suspicion",
+        "Establishes baseline before change",
+        "Notes 'feels slow' is not a goal"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I profiled with a CPU sampler and the result is mostly empty. The endpoint is still slow. What's going on?",
+      "expected_output": "Classic profiler mismatch. Empty CPU sampler with slow code is the signature of I/O wait. Recommends switching to wall-clock or block profiler, or distributed tracing if the call crosses services, or database query profiler if the slow time is in the data layer. Notes the most common profiling mistake is using CPU sampler on I/O-bound code.",
+      "assertions": [
+        "Identifies profiler mismatch",
+        "Empty CPU sampler = signature of I/O wait",
+        "Recommends wall-clock or block profiler",
+        "Recommends distributed tracing for cross-service",
+        "Recommends DB query profiler for data layer",
+        "Notes this is the most common profiling mistake"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We have a function that allocates a lot in a loop. I want to rewrite it to allocate less. Will this make our endpoint faster?",
+      "expected_output": "Asks for the profile before changing anything. Even if the function allocates, it may not be the bottleneck — Amdahl's Law. If the function is 5% of total request time, making allocation free still only gives a 5% win. If it's 60%, the win is real. Refuses to speculate on impact without measurement. Notes that microbenchmark improvements often don't translate to system-level improvements.",
+      "assertions": [
+        "Asks for the profile first",
+        "Cites Amdahl's Law",
+        "Notes 5% of time is at most 5% speedup",
+        "Notes microbenchmark wins often don't translate",
+        "Refuses to predict impact without measurement",
+        "Recommends measuring fraction of total time spent"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We have an O(n^2) loop. Should I add more servers or fix the algorithm?",
+      "expected_output": "Fix the algorithm first. Throwing hardware at an algorithmic problem is the classic mistake — expensive, doesn't scale, and the cost grows with n. Algorithmic improvement is the cheapest layer in the optimization order. Recommends not adding hardware until the algorithm is fixed. Notes that O(n²) gets worse as load grows, while O(n log n) scales gracefully.",
+      "assertions": [
+        "Fix algorithm first",
+        "Throwing hardware at algorithmic problem is the classic mistake",
+        "Algorithmic is cheapest layer",
+        "Doesn't scale as n grows",
+        "Don't add hardware until algorithm is fixed",
+        "O(n^2) gets worse as load grows"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I profiled, found a hot query, added an index, deployed. Latency didn't change. Why?",
+      "expected_output": "Multiple possible reasons. Verify the index is being used (EXPLAIN ANALYZE). Verify the bottleneck is actually the query that you optimized — maybe a different query dominates. Verify the load shape matches the profile (steady-state profile may not represent the load shape that's slow). Check whether the index helps for the actual query pattern (composite vs single-column, order matters). Recommends re-profiling after the change to verify the bottleneck has shifted.",
+      "assertions": [
+        "Lists multiple possible reasons",
+        "Verify index is used (EXPLAIN ANALYZE)",
+        "Maybe different query dominates",
+        "Verify load shape matches profile",
+        "Composite vs single-column index",
+        "Re-profile after change to see shift",
+        "Bottleneck may have shifted to next contender"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Cold-start latency is bad on our serverless function. Tips?",
+      "expected_output": "Cold-start is its own optimization profile, different from steady-state. Common causes: large dep tree (parse and load time), connection pool initialization, JIT warmup, cache fill. Mitigations: minimize dep tree, lazy-load non-critical modules, pre-warm connections at module-load, persistent connections (DynamoDB endpoints etc.), provisioned concurrency. Notes that optimizing steady-state often makes cold-start worse (more code, more deps) — the tradeoff is real.",
+      "assertions": [
+        "Cold-start is different from steady-state",
+        "Lists common causes (dep tree, connection init, JIT)",
+        "Recommends minimize dep tree",
+        "Lazy-load non-critical modules",
+        "Pre-warm connections at module load",
+        "Provisioned concurrency as an option",
+        "Notes tradeoff with steady-state optimization"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I optimized and hit our p99 target. The team wants me to keep optimizing for the next sprint. What should I do?",
+      "expected_output": "Stop. Target met is the stopping criterion. Continuing to optimize past the target is diminishing returns and opportunity cost — there are other things worth working on. Recommends shipping the win, capturing the baseline as the new target floor, and moving on. The exception: if there's an upcoming load increase that will push past the current target, prepare for it. Otherwise stop.",
+      "assertions": [
+        "Recommends stopping",
+        "Target met is the stopping criterion",
+        "Diminishing returns past target",
+        "Opportunity cost on other work",
+        "Ship the win, set new floor",
+        "Exception: known upcoming load increase",
+        "Notes optimizing is fun, stopping is the discipline"
+      ],
+      "files": []
+    }
+  ]
+}

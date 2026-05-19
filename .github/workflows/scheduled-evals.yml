@@ -74,13 +74,22 @@ jobs:
       - name: Run live evals
         id: live
         env:
-          # Auth: OAuth token is preferred (charges Pro/Max subscription).
-          # API key is opt-in fallback (per-token API billing). The runner
-          # picks OAuth automatically when ANTHROPIC_OAUTH_TOKEN is set;
-          # otherwise it uses ANTHROPIC_API_KEY. Configure either secret on
-          # the repo; if both are present, OAuth wins.
+          # Anthropic auth: OAuth token is preferred (charges Pro/Max
+          # subscription). API key is opt-in fallback (per-token API billing).
+          # The runner picks OAuth automatically when ANTHROPIC_OAUTH_TOKEN is
+          # set; otherwise it uses ANTHROPIC_API_KEY. Configure either secret
+          # on the repo; if both are present, OAuth wins.
           ANTHROPIC_OAUTH_TOKEN: ${{ secrets.ANTHROPIC_OAUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Multi-backend support: set OPENCLAW_EVAL_ENDPOINT (repo var) to
+          # point at an OpenAI-compatible server (Ollama, vLLM, etc.).
+          # OPENCLAW_EVAL_API_FORMAT (repo var) overrides the auto-detected
+          # API format ("anthropic" or "openai"). OPENCLAW_EVAL_API_KEY (repo
+          # secret) authenticates against the OpenAI-compatible endpoint.
+          # Leave all three unset to use the default Anthropic backend.
+          OPENCLAW_EVAL_ENDPOINT: ${{ vars.OPENCLAW_EVAL_ENDPOINT }}
+          OPENCLAW_EVAL_API_FORMAT: ${{ vars.OPENCLAW_EVAL_API_FORMAT }}
+          OPENCLAW_EVAL_API_KEY: ${{ secrets.OPENCLAW_EVAL_API_KEY }}
         run: |
           set +e
           ARGS="--live --model ${MODEL}"

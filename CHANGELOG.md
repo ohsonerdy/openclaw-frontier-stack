@@ -2,6 +2,91 @@
 
 All notable public-package changes should be recorded here. This changelog is for the operator-safe OpenClaw Frontier Stack package only; it must not reference private runtimes, personal context, raw logs, credentials, private hosts, or external announcements.
 
+## 2026-05-19 — v0.5.0 — Foundation for engineer-leverage at scale
+
+Status: published.
+
+This release lays the foundation for engineers to orchestrate agent swarms at scale. Three pillars: skill catalog expansion, role contracts, and an orchestration layer.
+
+### Added
+
+#### 12 engineering workflow skills under `skills/`
+
+Complementary to obra/superpowers (does NOT overlap with its TDD / debugging / planning / PR-cycle coverage):
+
+- `incident-response` — severity triage, mitigation order, comms cadence during a Sev 1/2/3
+- `root-cause-analysis` — 5-whys with falsifiable hypotheses, fault tree, contributing-factor-vs-root-cause discipline
+- `post-mortem-writing` — blameless template, action-item discipline, follow-up tracking
+- `architecture-decision-records` — when to write, template, "supersedes" chain, ADR-vs-RFC
+- `api-design` — REST/GraphQL/gRPC tradeoffs, versioning, error shapes, pagination, idempotency, backwards-compat taxonomy
+- `schema-design` — normalization vs deliberate denormalization, primary keys, indexes, FK cascades, online migration safety
+- `dependency-upgrade-safely` — semver discipline, lockfile hygiene, changelog reading, peer-dep traps, rollback planning
+- `security-review` — OWASP top-10 per-category red-flag patterns, secret handling, authn-vs-authz boundary review, data-flow review
+- `threat-modeling` — STRIDE per data flow, attack trees, abuser stories, likelihood-impact prioritization
+- `refactoring-safety` — characterization tests first, refactor-vs-test loop, scope discipline, strangler-fig
+- `performance-profiling` — measure-first discipline, profiler selection, slowdown taxonomy (N+1, blocking I/O, GC, lock contention)
+- `monitoring-and-alerting` — RED/USE/four-golden-signals, SLI-SLO-SLA, alert-on-symptoms-not-causes, runbook-linking discipline
+
+Each ships with 7 eval cases and 38-51 assertions. 2,767 LOC of skill content across the 12. **Skill catalog total now 28.**
+
+#### Agent roster — 8 role contracts under `agents/`
+
+The role-contract layer that the orchestration harness dispatches against. Each is 157-195 LOC with the 9-section structure (Mission / Hard preconditions / Decision authority / Inputs / Outputs / Ack format / Never-do / Failure modes / Done state):
+
+- `agents/orchestrator/CONTRACT.md` — decomposes `/goal`, dispatches lanes, synthesizes receipts. Cannot self-approve releases. Cannot edit release-gate code.
+- `agents/security-sentinel/CONTRACT.md` — ONLY role authorized to issue `PROPOSE_RELEASE` decisions. Operator counter-signs out-of-band.
+- `agents/architect/CONTRACT.md` — owns release-gate code, workflows, plugin manifests, harness shape.
+- `agents/builder/CONTRACT.md` — writes feature code under non-gated paths. Cannot touch release-gate, agents, workflows, or plugin manifests.
+- `agents/reviewer/CONTRACT.md` — gates PRs against conventions. Cannot self-review (author ≠ reviewer enforced).
+- `agents/researcher/CONTRACT.md` — investigates open questions; writes facts only, no code.
+- `agents/marketing-strategist/CONTRACT.md` — proposes Modern Skills briefs; does not author skills directly.
+- `agents/executive-summary/CONTRACT.md` — daily/weekly operator-facing rollups as fact records.
+
+Plus `agents/README.md` — roster overview and activation guide.
+
+#### Orchestration harness + engineer CLI + one autonomous loop
+
+The pillars that turn the skill + role library into a working multi-agent platform:
+
+- **`bin/openclaw`** — engineer CLI. Subcommands: `goal`, `status`, `dispatch`, `recap`. Wired via `package.json#bin`.
+- **`scripts/orchestrate.js`** — 154 LOC harness. Reads a `/goal` JSON, decomposes into lanes per role, writes task-claims to the blackboard, polls for results, synthesizes. Includes `--mock-agents` mode so the harness can run end-to-end without live agents connected.
+- **`.github/workflows/autonomous-loops.yml`** — 323 LOC workflow. ONE concrete autonomous loop: weekly skill-eval-drift detection. Compares current eval pass-rate against the previous week's baseline; if any skill regressed >10%, opens a draft PR + an `eval-drift` issue. Cron schedule plus `workflow_dispatch`.
+- **`docs/orchestration.md`** — 326 LOC operator guide. `/goal` schema, lane→role dispatch model, custom-loop template, failure modes, trust model.
+
+#### Multi-model eval support
+
+`scripts/run-skill-evals.js` now supports three backends:
+
+- **Anthropic** (default) — OAuth-first auth (Pro/Max subscription), API key opt-in fallback
+- **Ollama** — `--endpoint http://localhost:11434 --api-format openai` with optional `OPENCLAW_EVAL_API_KEY`
+- **vLLM** / any OpenAI-compatible server — same flag pattern, Bearer auth via `OPENCLAW_EVAL_API_KEY` or `OPENAI_API_KEY`
+
+`docs/skill-eval-telemetry.md` adds a "Multi-model backends" section with Ollama + vLLM walkthroughs. `.github/workflows/scheduled-evals.yml` accepts the new endpoint/format/key secrets.
+
+The report's `auth` field shape changes from string (`"oauth"`) to object (`{ kind, endpoint, apiFormat }`). Schema version bumped accordingly.
+
+### Changed
+
+- `scripts/validate-skills.sh` — `metadata.data_dependencies` is optional (procedural skills have no MCP backend); scope cross-reference detection accepts `use <skill>` in addition to `see X` / `for X, see Y`.
+- `scripts/run-skill-evals.js` — procedural skills without `evals/evals.json` reported as skipped, not failed.
+- `.github/workflows/release.yml` — switched to `--notes-file` from inline `--notes "..."`, eliminating the shell-escape failure on multi-line CHANGELOG entries with backticks. Future tags auto-release cleanly.
+- Release-tarball builder — include list adds `.codex-plugin/`, `.cursor-plugin/`, `.opencode/`, `hooks/`, `bin/`, and `agents/`.
+- `package.json#files` — ships the new directories. `bin.openclaw` declared.
+- `README.md` — supported-agent badges row (Claude Code, Codex CLI, Cursor, OpenCode), Operator Skills callout, interoperability tagline.
+
+### Notes
+
+- **28 skills validate, all evals dry-run ok, all 44 verifier checks pass against this tree.**
+- The orchestration harness runs in mock mode without any infrastructure. `node bin/openclaw goal "ship X" --mock-agents` produces a synthesized trace immediately. Live agent dispatch requires connecting agents to the blackboard separately.
+- The autonomous-loops workflow is one example. The pattern (CI loop → blackboard fact → conditional PR/issue) is the template for adding more loops (incident-detection, drift-detection-on-deps, etc.) in future releases.
+- The 8 role contracts reference real file paths in this repo — 63 cross-references verified at build time.
+
+### v0.5.1+ candidates surfaced during this release
+
+- More agent roles: `scribe` (CHANGELOG ownership), `dependency-warden` (deps lane), `eval-runner` (drift cadence ownership)
+- More engineering skills: `code-review-giving`, `local-dev-environment`, `feature-flagging`, `load-testing`, `logging-discipline`, `api-deprecation`, `oncall-rotation-design`, `backup-and-restore`
+- IPC-race fix in v0.4.0 was specific to `eval-blackboard-contention.js`. Other evals (`eval-frontier-orchestration-scale.js`, `eval-self-healing-recovery.js`) inspected — they're single-process, no IPC pattern, no fix needed.
+
 ## 2026-05-18 — v0.4.0 — Interoperability + skill expansion
 
 Status: published.

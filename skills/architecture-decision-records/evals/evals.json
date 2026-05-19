@@ -1,0 +1,101 @@
+{
+  "skill_name": "architecture-decision-records",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're picking between Postgres and DynamoDB for the primary store on a new service. Should I write an ADR?",
+      "expected_output": "Yes — the decision is expensive to reverse and future readers will want context. Walks through the template (Context, Decision, Consequences, Alternatives), recommends including both flavors as serious alternatives (not strawman), and reminds the user to include negative consequences. Notes that the ADR should be written at decision time, not after.",
+      "assertions": [
+        "Recommends writing the ADR",
+        "Notes the decision is expensive to reverse",
+        "Walks through the four required sections",
+        "Recommends including both options as serious alternatives",
+        "Reminds to include negative consequences",
+        "Notes the ADR should be written at decision time",
+        "Recommends file naming convention docs/adr/NNNN-title.md"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want to add a TODO comment to remind myself to use bcrypt instead of MD5 for password hashing. ADR?",
+      "expected_output": "Diagnoses this as NOT ADR-worthy. This is a security choice that should be made now, not deferred via TODO, but it's not an architectural decision needing a record — it's the obvious default. Recommends just using bcrypt (or argon2) and skipping the ADR. If the team has competing opinions on which password hash, that's the ADR.",
+      "assertions": [
+        "Says this is NOT ADR-worthy",
+        "Recommends just doing the right thing (bcrypt or argon2)",
+        "Does not propose deferring via TODO",
+        "Notes ADR is for genuine choices, not obvious defaults",
+        "If team disagreed on which hash, that would be the ADR"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Six months ago we decided to use single-region deployment. Now we want to go multi-region. How do I update the ADR?",
+      "expected_output": "Never update an ADR in place. Write a new ADR (next number) that supersedes the old one. Old ADR's status flips to 'superseded by ADR-NNNN'. The supersedes chain preserves the audit trail. The new ADR should not summarize the old decision — it should link to it. Recommends including the reasons the original decision is no longer valid in the new ADR's Context section.",
+      "assertions": [
+        "Says never update an ADR in place",
+        "Writes a new ADR with supersedes pointer",
+        "Old ADR status flips to superseded",
+        "Mentions audit trail / supersedes chain",
+        "New ADR links to old, does not summarize it",
+        "Context section explains why old decision is no longer valid"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "My draft ADR has Context, Decision, and Consequences but only one alternative. Is that fine?",
+      "expected_output": "Calls out that one alternative reads as foregone-conclusion. Recommends adding at least one more real alternative beyond 'do nothing'. The 'do nothing' option should always be included explicitly. Notes that a strawman alternative (mentioned only to dismiss) doesn't count. Asks what real alternatives were considered in the actual decision conversation.",
+      "assertions": [
+        "Says one alternative is too few",
+        "Recommends at least one more real alternative",
+        "Always include the 'do nothing' option",
+        "Calls out strawman pattern as not counting",
+        "Asks what alternatives were genuinely considered"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "My ADR's Consequences section lists 4 positives and no negatives. Is that ok?",
+      "expected_output": "No, consequences with no negatives reads as advocacy not record. Every architectural decision has costs. Recommends thinking through operational consequences (new failure modes, new alerting, new backup story), maintenance consequences (what we now have to keep running), and what we give up. Asks specifically about the negative implications of the chosen option.",
+      "assertions": [
+        "Says no-negatives is a smell",
+        "Frames as advocacy vs record",
+        "Recommends operational consequences (failure modes, alerting, backup)",
+        "Recommends maintenance consequences",
+        "Asks what we give up by choosing this option",
+        "Notes every decision has costs"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "An engineer keeps asking why our API returns UUIDs but the database uses integer IDs. This is the third time this quarter someone asked. Should I write an ADR?",
+      "expected_output": "Yes — the signal of repeated questions is the threshold for retroactive ADR. The decision was made earlier without a record; now write it. Recommends the standard template, with the Context section explaining why the dual-ID pattern was chosen at the time (security through obscurity, decoupling internal IDs from external surface, etc.). Notes that retroactive ADRs are fine but flag them as such with the original decision date if known.",
+      "assertions": [
+        "Recommends writing the ADR retroactively",
+        "Notes repeated questions are the threshold",
+        "Walks through the template",
+        "Context explains why dual-ID pattern was chosen",
+        "Flag as retroactive with original decision date if known",
+        "Notes retroactive ADRs are fine when the question keeps coming up"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We're in early-stage RFC discussion about whether to add an event bus. Should I create an ADR-001 right now?",
+      "expected_output": "Distinguishes ADR from RFC. The decision is still proposed, not made — the right document at this stage is an RFC, not an ADR. Once the decision is made, the RFC's outcome becomes ADR-001. Recommends RFC for the discussion phase, ADR for the record phase. Notes that 'proposed' is a valid ADR status but only when the decision is days from being made, not in active debate.",
+      "assertions": [
+        "Distinguishes ADR from RFC",
+        "Says RFC is the right doc during active discussion",
+        "ADR is the record once the decision is made",
+        "Notes 'proposed' status exists but only days-from-decision",
+        "Recommends RFC for the discussion, ADR for the outcome"
+      ],
+      "files": []
+    }
+  ]
+}
