@@ -22,6 +22,9 @@ const fs = require('fs');
 
 const { createLedger, BlackboardValidationError } = require('../../blackboard/lib/ledger.js');
 const { TaskFlowRuntime, TaskFlowError } = require('../../taskflow/lib/taskflow.js');
+const { PATTERNS } = require('../../../lib/coordination/index.js');
+
+const VALID_PATTERNS = new Set(['fan-out', 'fan-in', 'chain', 'voting']);
 
 const GOAL_SCHEMA = 'openclaw-frontier.goal.v1';
 const TRACE_SCHEMA = 'openclaw-frontier.orchestration-trace.v1';
@@ -110,15 +113,66 @@ function normalizeGoal(input, { idHint } = {}) {
     if (!lane || typeof lane !== 'object') {
       throw new GoalValidationError(`goal.lanes[${index}] must be an object`);
     }
-    const name = toSimpleTaskId(lane.name || `lane-${index + 1}`, `goal.lanes[${index}].name`);
+    const name = toSimpleTaskId(lane.name || lane.id || `lane-${index + 1}`, `goal.lanes[${index}].name`);
     if (seen.has(name)) {
       throw new GoalValidationError(`goal.lanes[${index}].name is a duplicate: ${name}`);
     }
     seen.add(name);
-    const role = toSimpleAgentId(lane.role || lane.owner || 'builder', `goal.lanes[${index}].role`);
+    // Lanes that drive a coordination pattern (fan-out/fan-in/chain/voting)
+    // do NOT require a `role` because they expand into multiple per-task roles.
+    // For backwards compatibility we still default the lane-level role to
+    // 'orchestrator' so the surface shape (name/role/summary) stays valid.
+    const patternRaw = typeof lane.pattern === 'string' ? lane.pattern.trim() : '';
+    let role;
+    if (patternRaw) {
+      if (!VALID_PATTERNS.has(patternRaw)) {
+        throw new GoalValidationError(`goal.lanes[${index}].pattern must be one of fan-out|fan-in|chain|voting`, { value: patternRaw });
+      }
+      role = toSimpleAgentId(lane.role || lane.owner || 'orchestrator', `goal.lanes[${index}].role`);
+    } else {
+      role = toSimpleAgentId(lane.role || lane.owner || 'builder', `goal.lanes[${index}].role`);
+    }
     const summary = String(lane.summary || lane.description || `Lane ${name}`).trim().slice(0, 500);
     const expects = Array.isArray(lane.expects) ? lane.expects.map(String).slice(0, 16) : [];
-    return { name, role, summary, expects };
+    const normalized = { name, role, summary, expects };
+    if (patternRaw) {
+      normalized.pattern = patternRaw;
+      // Pattern-specific payloads. We preserve the raw shape and validate at
+      // runPatternLane time so coordination modules own their own contracts.
+      if (patternRaw === 'fan-out' || patternRaw === 'chain') {
+        const key = patternRaw === 'fan-out' ? 'tasks' : 'steps';
+        const items = Array.isArray(lane[key]) ? lane[key] : [];
+        if (items.length === 0) throw new GoalValidationError(`goal.lanes[${index}].${key} must be a non-empty array for pattern ${patternRaw}`);
+        normalized[key] = items.map((t, i) => ({
+          id: toSimpleTaskId(t.id || `${name}-${i + 1}`, `goal.lanes[${index}].${key}[${i}].id`),
+          role: toSimpleAgentId(t.role || 'builder', `goal.lanes[${index}].${key}[${i}].role`),
+          summary: String(t.summary || t.description || t.id || `${key} ${i + 1}`).trim().slice(0, 500),
+          expects: Array.isArray(t.expects) ? t.expects.map(String).slice(0, 16) : [],
+        }));
+      } else if (patternRaw === 'fan-in') {
+        const sources = Array.isArray(lane.sourceTaskIds) ? lane.sourceTaskIds : [];
+        if (sources.length === 0) throw new GoalValidationError(`goal.lanes[${index}].sourceTaskIds must be a non-empty array for fan-in`);
+        normalized.sourceTaskIds = sources.map((s) => String(s).trim());
+        const joiner = lane.joiner || {};
+        if (!joiner.id || !joiner.role) throw new GoalValidationError(`goal.lanes[${index}].joiner must have { id, role } for fan-in`);
+        normalized.joiner = {
+          id: toSimpleTaskId(joiner.id, `goal.lanes[${index}].joiner.id`),
+          role: toSimpleAgentId(joiner.role, `goal.lanes[${index}].joiner.role`),
+          summary: String(joiner.summary || `join ${name}`).slice(0, 500),
+        };
+      } else if (patternRaw === 'voting') {
+        const voters = Array.isArray(lane.voters) ? lane.voters : [];
+        if (voters.length === 0) throw new GoalValidationError(`goal.lanes[${index}].voters must be a non-empty array for voting`);
+        normalized.voters = voters.map((v, i) => ({
+          id: toSimpleTaskId(v.id || `voter-${i + 1}`, `goal.lanes[${index}].voters[${i}].id`),
+          role: toSimpleAgentId(v.role || 'reviewer', `goal.lanes[${index}].voters[${i}].role`),
+        }));
+        normalized.decision = String(lane.decision || lane.summary || `decision for ${name}`).slice(0, 500);
+        if (lane.quorum != null) normalized.quorum = Number(lane.quorum);
+        if (lane.threshold != null) normalized.threshold = Number(lane.threshold);
+      }
+    }
+    return normalized;
   });
 
   const cadence = input.cadence && typeof input.cadence === 'object'
@@ -152,17 +206,91 @@ function normalizeGoal(input, { idHint } = {}) {
  * verification, release, final-approval). Operators who want a non-standard
  * lane plan should provide a goal file.
  */
-function goalFromPrompt(prompt) {
+function goalFromPrompt(prompt, { pattern = null } = {}) {
   const text = String(prompt || '').trim();
   if (!text) throw new GoalValidationError('goal prompt must be a non-empty string');
   const slug = toSimpleTaskId(text.slice(0, 60), 'goal.id');
   const id = `goal-${slug}-${shortId()}`;
+  const lanes = pattern ? patternLanePlan(pattern, { goalId: id }) : defaultLanePlan();
   return normalizeGoal({
     id,
     title: text.slice(0, 200),
-    source: 'cli-prompt',
-    lanes: defaultLanePlan(),
+    source: pattern ? `cli-prompt:${pattern}` : 'cli-prompt',
+    lanes,
   });
+}
+
+/**
+ * When the operator passes --pattern, swap the default lane plan for a one-
+ * lane goal that exercises the requested coordination pattern. The synthesized
+ * task plan is intentionally small (3 tasks / steps / voters) so the CLI flow
+ * exercises every code path in mock-agents mode.
+ */
+function patternLanePlan(pattern, { goalId = null } = {}) {
+  if (pattern === 'fan-out') {
+    return [{
+      name: 'fan-out-lane',
+      pattern: 'fan-out',
+      summary: 'demo fan-out over 3 independent reviewers',
+      tasks: [
+        { id: 'reviewer-a', role: 'reviewer', summary: 'review file a' },
+        { id: 'reviewer-b', role: 'reviewer', summary: 'review file b' },
+        { id: 'reviewer-c', role: 'reviewer', summary: 'review file c' },
+      ],
+    }];
+  }
+  if (pattern === 'chain') {
+    return [{
+      name: 'chain-lane',
+      pattern: 'chain',
+      summary: 'demo chain: research -> spec -> build',
+      steps: [
+        { id: 'research', role: 'researcher', summary: 'gather context' },
+        { id: 'spec', role: 'architect', summary: 'draft spec' },
+        { id: 'build', role: 'builder', summary: 'implement' },
+      ],
+    }];
+  }
+  if (pattern === 'voting') {
+    return [{
+      name: 'voting-lane',
+      pattern: 'voting',
+      summary: 'demo cross-role vote',
+      decision: 'Ship the demo build?',
+      voters: [
+        { id: 'sec', role: 'sentinel' },
+        { id: 'rev', role: 'reviewer' },
+        { id: 'arch', role: 'architect' },
+      ],
+      quorum: 2,
+      threshold: 2 / 3,
+    }];
+  }
+  if (pattern === 'fan-in') {
+    // fan-in needs upstream taskIds that are *already* on the ledger. In CLI
+    // demo mode we pair it with a small fan-out upstream, then a fan-in
+    // joiner over those taskIds. The upstream task ids must match the shape
+    // that fan-out writes: `${goalId}.${task.id}`.
+    return [
+      {
+        name: 'fan-out-upstream',
+        pattern: 'fan-out',
+        summary: 'demo fan-out feeding the joiner',
+        tasks: [
+          { id: 'u1', role: 'reviewer', summary: 'upstream 1' },
+          { id: 'u2', role: 'reviewer', summary: 'upstream 2' },
+        ],
+      },
+      {
+        name: 'fan-in-lane',
+        pattern: 'fan-in',
+        summary: 'demo joiner over the fan-out outputs',
+        sourceTaskIds: [`${goalId}.u1`, `${goalId}.u2`],
+        joiner: { id: 'synthesize', role: 'architect', summary: 'merge upstream verdicts' },
+      },
+    ];
+  }
+  throw new GoalValidationError(`unknown --pattern: ${pattern}`);
 }
 
 function defaultLanePlan() {
@@ -397,6 +525,135 @@ function buildTaskflowMirror(goal, claims, pollOutcome) {
 }
 
 /**
+ * Drive a single lane through one of the coordination patterns. The lane is
+ * NOT dispatched as a single task — instead it expands into the pattern's own
+ * task plan. The function returns a synthetic lane-level result so the outer
+ * synthesis loop can treat pattern lanes uniformly with simple lanes.
+ *
+ * Mock mode: each coordinator accepts pre-baked mock results so the patterns
+ * close in-process without a live bus. We synthesize those mock entries from
+ * the lane's task plan.
+ */
+async function runPatternLane({ goalId, lane, ledger, taskflow, maxWaitMs, pollIntervalMs, mockAgents, now }) {
+  const fn = PATTERNS[lane.pattern];
+  if (!fn) throw new GoalValidationError(`unknown lane pattern: ${lane.pattern}`);
+  const baseOpts = { goalId, ledger, taskflow, timeoutMs: maxWaitMs, pollIntervalMs, now };
+  if (lane.pattern === 'fan-out') {
+    const mockResults = mockAgents ? lane.tasks.map((t) => ({
+      taskId: `${goalId}.${t.id}`,
+      ok: true,
+      summary: `mock fan-out ${t.role} for ${t.id}: ${t.summary}`.slice(0, 1000),
+    })) : null;
+    return { lane, patternResult: await fn({ ...baseOpts, tasks: lane.tasks, mockResults }) };
+  }
+  if (lane.pattern === 'fan-in') {
+    const mockJoinerResult = mockAgents ? {
+      ok: true,
+      summary: `mock fan-in ${lane.joiner.role} joined ${lane.sourceTaskIds.length} upstreams`.slice(0, 1000),
+    } : null;
+    return { lane, patternResult: await fn({ ...baseOpts, sourceTaskIds: lane.sourceTaskIds, joiner: lane.joiner, mockJoinerResult }) };
+  }
+  if (lane.pattern === 'chain') {
+    const mockResults = mockAgents ? lane.steps.map((s) => ({
+      stepId: s.id,
+      ok: true,
+      summary: `mock chain step ${s.id} (${s.role}): ${s.summary}`.slice(0, 1000),
+    })) : null;
+    return { lane, patternResult: await fn({ ...baseOpts, steps: lane.steps, mockResults }) };
+  }
+  if (lane.pattern === 'voting') {
+    const mockVotes = mockAgents ? lane.voters.map((v) => ({
+      voterId: v.id,
+      ok: true,
+      summary: `mock approve from ${v.role} (${v.id})`,
+    })) : null;
+    return { lane, patternResult: await fn({
+      ...baseOpts,
+      decision: lane.decision || lane.summary,
+      voters: lane.voters,
+      quorum: lane.quorum,
+      threshold: lane.threshold,
+      mockVotes,
+    }) };
+  }
+  throw new GoalValidationError(`pattern handler missing: ${lane.pattern}`);
+}
+
+/**
+ * Reduce a pattern coordinator's return to the lane-level shape used by the
+ * outer synthesis. Pattern lanes do not have a single owning task; we summarize
+ * their internal trace into one row in the lanes array.
+ */
+function summarizePatternLane(lane, patternResult) {
+  if (lane.pattern === 'fan-out') {
+    const status = patternResult.ok ? 'done' : (patternResult.timedOut.length > 0 ? 'pending' : 'failed');
+    return {
+      name: lane.name,
+      role: lane.role,
+      pattern: 'fan-out',
+      taskId: null,
+      status,
+      ok: patternResult.ok,
+      summary: `fan-out: ${patternResult.completed.length} ok / ${patternResult.failed.length} fail / ${patternResult.timedOut.length} timed-out (of ${patternResult.claims.length})`,
+      artifacts: [],
+      patternTrace: patternResult,
+    };
+  }
+  if (lane.pattern === 'fan-in') {
+    const status = patternResult.ok ? 'done' : (patternResult.upstream.missing.length > 0 ? 'pending' : 'failed');
+    return {
+      name: lane.name,
+      role: lane.role,
+      pattern: 'fan-in',
+      taskId: patternResult.joiner.taskId,
+      status,
+      ok: patternResult.ok,
+      summary: `fan-in: ${patternResult.upstream.complete.length} upstream collected; joiner=${patternResult.joiner.dispatched ? (patternResult.joiner.result && patternResult.joiner.result.ok ? 'ok' : 'not-ok') : 'not-dispatched'}`,
+      artifacts: patternResult.joiner.result ? (patternResult.joiner.result.artifacts || []) : [],
+      patternTrace: patternResult,
+    };
+  }
+  if (lane.pattern === 'chain') {
+    const status = patternResult.ok ? 'done' : 'failed';
+    return {
+      name: lane.name,
+      role: lane.role,
+      pattern: 'chain',
+      taskId: null,
+      status,
+      ok: patternResult.ok,
+      summary: `chain: ${patternResult.completedCount}/${patternResult.steps.length} steps done`,
+      artifacts: [],
+      patternTrace: patternResult,
+    };
+  }
+  if (lane.pattern === 'voting') {
+    return {
+      name: lane.name,
+      role: lane.role,
+      pattern: 'voting',
+      taskId: null,
+      status: patternResult.ok ? 'done' : 'failed',
+      ok: patternResult.ok,
+      summary: `voting: ${patternResult.tally.approve} approve / ${patternResult.tally.reject} reject (quorum ${patternResult.quorumMet ? 'met' : 'not met'}, threshold ${patternResult.thresholdMet ? 'met' : 'not met'}); verdict=${patternResult.verdict}`,
+      artifacts: [],
+      patternTrace: patternResult,
+    };
+  }
+  return {
+    name: lane.name,
+    role: lane.role,
+    pattern: lane.pattern,
+    taskId: null,
+    status: 'failed',
+    ok: false,
+    summary: 'unknown pattern',
+    artifacts: [],
+    patternTrace: patternResult,
+  };
+}
+
+/**
  * The orchestration harness entrypoint. Inputs:
  *
  *   - goal: a normalized goal record (or raw input — we'll normalize)
@@ -406,7 +663,7 @@ function buildTaskflowMirror(goal, claims, pollOutcome) {
  *   - dryRun: when true, do not write to the ledger at all; return a
  *     simulated trace describing what would have happened
  */
-function runGoalLoop({
+async function runGoalLoop({
   goal,
   blackboardPath,
   maxWaitMs = 300000,
@@ -428,10 +685,13 @@ function runGoalLoop({
       lanes: normalized.lanes.map((lane) => ({
         name: lane.name,
         role: lane.role,
-        taskId: `${normalized.id}.${lane.name}`,
+        pattern: lane.pattern || null,
+        taskId: lane.pattern ? null : `${normalized.id}.${lane.name}`,
         status: 'would-dispatch',
         ok: false,
-        summary: 'dry-run: no claim written, no result solicited',
+        summary: lane.pattern
+          ? `dry-run: would run ${lane.pattern} coordinator for ${lane.name}`
+          : 'dry-run: no claim written, no result solicited',
         artifacts: [],
       })),
       green: [],
@@ -442,30 +702,96 @@ function runGoalLoop({
   }
 
   const ledger = createLedger({ ledgerPath: blackboardPath });
-  let claims;
-  try {
-    claims = dispatchLanes(ledger, normalized);
-  } catch (err) {
-    if (err instanceof BlackboardValidationError || err instanceof TaskFlowError) {
-      throw new GoalValidationError(`dispatch failed: ${err.message}`, err.details || {});
+
+  // Split lanes into pattern-driven and simple-dispatch lanes. Pattern lanes
+  // are routed through lib/coordination/*; simple lanes use the legacy 1:1
+  // dispatch path.
+  const patternLanes = normalized.lanes.filter((l) => l.pattern);
+  const simpleLanes = normalized.lanes.filter((l) => !l.pattern);
+
+  // 1. Run pattern lanes first (each one is self-contained and writes its own
+  //    task-claims and possibly mock results to the ledger).
+  const patternLaneOutcomes = [];
+  const sharedTaskflow = new TaskFlowRuntime();
+  for (const lane of patternLanes) {
+    try {
+      const outcome = await runPatternLane({
+        goalId: normalized.id,
+        lane,
+        ledger,
+        taskflow: sharedTaskflow,
+        maxWaitMs: mockAgents ? 5000 : maxWaitMs,
+        pollIntervalMs,
+        mockAgents,
+        now,
+      });
+      patternLaneOutcomes.push(outcome);
+    } catch (err) {
+      if (err instanceof BlackboardValidationError || err instanceof TaskFlowError) {
+        throw new GoalValidationError(`pattern lane '${lane.name}' failed: ${err.message}`, err.details || {});
+      }
+      throw err;
     }
-    throw err;
+  }
+
+  // 2. Dispatch simple lanes (the legacy path: one task-claim per lane).
+  let claims = [];
+  if (simpleLanes.length > 0) {
+    try {
+      claims = dispatchLanes(ledger, { ...normalized, lanes: simpleLanes });
+    } catch (err) {
+      if (err instanceof BlackboardValidationError || err instanceof TaskFlowError) {
+        throw new GoalValidationError(`dispatch failed: ${err.message}`, err.details || {});
+      }
+      throw err;
+    }
   }
 
   let synthesized = [];
-  if (mockAgents) {
-    synthesized = synthesizeMockResults(ledger, normalized, claims);
+  if (mockAgents && simpleLanes.length > 0) {
+    synthesized = synthesizeMockResults(ledger, { ...normalized, lanes: simpleLanes }, claims);
   }
-  const pollOutcome = pollForResults(ledger, claims, {
-    maxWaitMs: mockAgents ? 5000 : maxWaitMs,
-    pollIntervalMs,
-    now,
-  });
-  const trace = synthesize(normalized, claims, pollOutcome);
-  trace.mockAgents = mockAgents;
-  trace.dispatchClaims = claims;
-  trace.synthesizedMockResults = synthesized;
-  trace.taskflowSnapshot = buildTaskflowMirror(normalized, claims, pollOutcome);
+  const pollOutcome = simpleLanes.length > 0
+    ? pollForResults(ledger, claims, {
+        maxWaitMs: mockAgents ? 5000 : maxWaitMs,
+        pollIntervalMs,
+        now,
+      })
+    : { done: [], pending: [], results: [] };
+
+  // 3. Compose final trace: simple lanes via existing `synthesize`, pattern
+  //    lanes via `summarizePatternLane`. Preserve original lane order so the
+  //    trace matches the goal authoring order.
+  const simpleTrace = synthesize({ ...normalized, lanes: simpleLanes }, claims, pollOutcome);
+  const simpleByName = new Map(simpleTrace.lanes.map((l) => [l.name, l]));
+  const patternByName = new Map(patternLaneOutcomes.map((o) => [o.lane.name, summarizePatternLane(o.lane, o.patternResult)]));
+  const allLanes = normalized.lanes.map((lane) => simpleByName.get(lane.name) || patternByName.get(lane.name));
+  const overallOk = allLanes.every((l) => l.status === 'done');
+  const greenLanes = allLanes.filter((l) => l.status === 'done').map((l) => l.name);
+  const redLanes = allLanes.filter((l) => l.status !== 'done').map((l) => `${l.name}:${l.status}`);
+  const trace = {
+    schema: TRACE_SCHEMA,
+    goalId: normalized.id,
+    title: normalized.title,
+    ok: overallOk,
+    generatedAt: new Date().toISOString(),
+    lanes: allLanes,
+    green: greenLanes,
+    red: redLanes,
+    definitionOfDone: normalized.definitionOfDone,
+    mockAgents,
+    dispatchClaims: claims,
+    synthesizedMockResults: synthesized,
+    patternLanes: patternLaneOutcomes.map((o) => ({
+      name: o.lane.name,
+      pattern: o.lane.pattern,
+      ok: o.patternResult.ok,
+      patternTrace: o.patternResult,
+    })),
+    taskflowSnapshot: simpleLanes.length > 0
+      ? buildTaskflowMirror({ ...normalized, lanes: simpleLanes }, claims, pollOutcome)
+      : sharedTaskflow.snapshot(),
+  };
   return trace;
 }
 

@@ -125,13 +125,13 @@ function loadGoal(args) {
   }
 }
 
-function main() {
+async function main() {
   const args = parseArgs(process.argv);
   if (args.help) { help(); return; }
   const goal = loadGoal(args);
   let trace;
   try {
-    trace = runGoalLoop({
+    trace = await runGoalLoop({
       goal,
       blackboardPath: args.blackboard,
       maxWaitMs: args.maxWaitMs,
@@ -151,4 +151,7 @@ function main() {
   process.exit(trace.ok ? 0 : 1);
 }
 
-main();
+main().catch((err) => {
+  process.stderr.write(`orchestrate.js: ${err.stack || err.message || err}\n`);
+  process.exit(1);
+});

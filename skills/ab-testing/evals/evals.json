@@ -1,0 +1,97 @@
+{
+  "skill_name": "ab-testing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We have 8,000 monthly sessions on our PDP at 2% conversion. We want to test a new headline. Is it worth running?",
+      "expected_output": "Likely not at common effect sizes. Walks the MDE-sample-size relationship: 2% baseline, 10% relative lift needs ~750k visitors per variant. At 8k monthly sessions, the test cannot reach significance in a year. Recommends focusing on high-leverage changes that don't need statistical proof (value-prop reframe per cro) or running as a directional pilot without significance claim. References cro for the diagnostic approach.",
+      "assertions": [
+        "Walks the MDE-sample-size relationship",
+        "Computes required sample size for 10% lift at 2% baseline",
+        "Recommends not running as a significance-claiming test",
+        "Offers directional pilot or high-leverage non-tested change as alternative",
+        "References cro for the diagnostic approach",
+        "Output names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We've been peeking at our A/B test daily and saw significance at day 4. Should we ship?",
+      "expected_output": "Probably not. Walks the sequential-testing-without-peeking framework. Notes that daily peeking with stop-on-significance inflates false-positive rate to 25-35% under classical inference. Asks whether the testing tool uses sequential methodology. If not, recommends letting the test run to planned sample size before deciding. Explains why peeking inflates false positives.",
+      "assertions": [
+        "Pushes back on shipping based on day-4 peek",
+        "Walks the sequential-testing-without-peeking framework",
+        "Notes daily peeking inflates false-positive rate to 25-35%",
+        "Asks whether the tool uses sequential methodology",
+        "Recommends running to planned sample size if classical inference"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Help me write a strong hypothesis for testing a new homepage hero.",
+      "expected_output": "Walks the X-Y-Z-mechanism hypothesis form. Asks for the specific change (what is the current hero, what is the proposed hero), the metric expected to move, the expected lift band, and the mechanism. Provides a worked example. Notes that 'try a new hero' is not a hypothesis.",
+      "assertions": [
+        "Walks the X-Y-Z-mechanism hypothesis form",
+        "Asks for the specific change and mechanism",
+        "Provides a worked example",
+        "Notes that vague 'try a new hero' is not a hypothesis",
+        "Asks about the expected lift band"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our test ran for 4 weeks and the variant 'tied' with control. The product team wants to ship the variant anyway. Thoughts?",
+      "expected_output": "Pushback. Walks the consider-negative framework: a tie at adequate sample size means the variant did not produce the expected lift, which is information. Recommends not shipping unless there's a non-conversion reason (brand consistency, technical debt cleanup). Documents the result and schedules a 6-month retest if the team still wants to revisit.",
+      "assertions": [
+        "Pushes back on shipping a tied variant by default",
+        "Walks the consider-negative framework",
+        "Notes a tie is information, not permission to ship",
+        "Recommends shipping only if non-conversion reason exists",
+        "Recommends documenting the result and scheduling a retest"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We want to test a new H1 AND a new CTA on the same PDP at the same time. Good idea?",
+      "expected_output": "Bad idea unless designed as a factorial. Walks the test isolation framework. Notes that two simultaneous tests on the same page contaminate each other's measurement. Recommends sequential testing (H1 first, ship the winner, then test CTA) or proper 2x2 factorial design with the right analysis.",
+      "assertions": [
+        "Pushes back on simultaneous unrelated tests on same page",
+        "Walks the test isolation framework",
+        "Recommends sequential testing as the default",
+        "Mentions 2x2 factorial as the rare alternative for true simultaneity",
+        "Notes contamination of measurement"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We shipped a winner 18 months ago. The dashboard still shows we're up. Are we good?",
+      "expected_output": "Should retest. Walks the ship-the-winner-retest-in-6-months framework. Notes that customer behavior shifts and accumulated winners can silently turn into losers over time. Recommends retesting on a 6-month cadence, not 18-month. Asks whether the lift in production replicates the experimental lift.",
+      "assertions": [
+        "Recommends retesting the 18-month-old winner",
+        "Walks the ship-and-retest framework",
+        "Names the 6-month retest cadence",
+        "Asks whether production lift replicates experimental lift",
+        "Notes that accumulated winners can silently turn into losers"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "What's the minimum sample size for a subscription trial-to-paid conversion test? Current rate is 45%.",
+      "expected_output": "Walks the MDE-sample-size relationship at 45% baseline. At higher baseline conversion rates, less traffic is needed: a 5% relative lift (45% to 47.25%) needs ~3,000 trials per variant. Recommends the test as feasible if monthly trial volume permits. References subscription-growth for the trial-mechanics context.",
+      "assertions": [
+        "Walks the MDE-sample-size relationship at 45% baseline",
+        "Computes required sample size for the lift band",
+        "Notes higher baselines need less traffic than rare-event baselines",
+        "References subscription-growth for trial-mechanics context",
+        "Recommends test as feasible if trial volume sufficient"
+      ],
+      "files": []
+    }
+  ]
+}

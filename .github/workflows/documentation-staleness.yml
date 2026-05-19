@@ -1,0 +1,301 @@
+name: Autonomous loop — documentation staleness
+
+# Weekly documentation freshness check. Looks for two staleness signals:
+#
+#   1. Docs in `docs/*.md` that have not been touched in STALE_DAYS days
+#      while their presumed source files (heuristic: same root token in
+#      the filename) HAVE been touched in the same window.
+#   2. `skills/*/SKILL.md` files that have not been touched in
+#      STALE_DAYS days, regardless of source movement.
+#
+# Both signals roll up into a single `documentation-staleness` issue.
+#
+# Dedup strategy: one open issue per calendar quarter. Same-quarter
+# reruns update the existing issue; a new quarter opens a fresh one.
+# This is a deliberately slow cadence — doc staleness is a "review and
+# decide" surface, not a "fire an alert every Friday" surface.
+
+on:
+  schedule:
+    # Friday 09:00 UTC. Friday so the issue is fresh on Monday morning;
+    # 09:00 UTC sits before scheduled-evals.yml on its weekday cadence
+    # and well clear of the Monday loops (10:00 + 11:00 UTC).
+    - cron: "0 9 * * 5"
+  workflow_dispatch:
+    inputs:
+      stale_days:
+        description: "Days without modification before a doc is flagged"
+        required: false
+        default: "180"
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: autonomous-documentation-staleness
+  cancel-in-progress: false
+
+jobs:
+  staleness:
+    name: Detect stale documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      STALE_DAYS: ${{ github.event.inputs.stale_days || '180' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Compute report metadata
+        id: meta
+        run: |
+          DATE_UTC="$(date -u +%Y-%m-%d)"
+          YEAR_UTC="$(date -u +%Y)"
+          MONTH_UTC="$(date -u +%m)"
+          QUARTER="$(( ( (10#${MONTH_UTC} - 1) / 3) + 1 ))"
+          QUARTER_TAG="${YEAR_UTC}-Q${QUARTER}"
+          REPORT_DIR="release-gate/reports"
+          REPORT_PATH="${REPORT_DIR}/doc-staleness-${DATE_UTC}.json"
+          mkdir -p "${REPORT_DIR}"
+          {
+            echo "date_utc=${DATE_UTC}"
+            echo "quarter_tag=${QUARTER_TAG}"
+            echo "report_dir=${REPORT_DIR}"
+            echo "report_path=${REPORT_PATH}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Scan docs and skills for staleness
+        id: scan
+        env:
+          REPORT_PATH: ${{ steps.meta.outputs.report_path }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+          QUARTER_TAG: ${{ steps.meta.outputs.quarter_tag }}
+        run: |
+          node -e '
+            const cp = require("child_process");
+            const fs = require("fs");
+            const path = require("path");
+            const staleDays = Number(process.env.STALE_DAYS) || 180;
+            const today = new Date(`${process.env.DATE_UTC}T00:00:00Z`);
+            const cutoff = new Date(today.getTime() - staleDays * 86400 * 1000);
+            function gitLog(args) {
+              try {
+                return cp.execFileSync("git", args, { encoding: "utf8" }).trim();
+              } catch (err) {
+                return "";
+              }
+            }
+            function lastModifiedDate(file) {
+              const s = gitLog(["log", "-1", "--format=%cs", "--", file]);
+              return s || null;
+            }
+            function listFilesUnder(dir, predicate) {
+              const out = [];
+              function walk(p) {
+                let entries;
+                try { entries = fs.readdirSync(p, { withFileTypes: true }); }
+                catch { return; }
+                for (const e of entries) {
+                  const full = path.join(p, e.name);
+                  if (e.isDirectory()) walk(full);
+                  else if (e.isFile() && predicate(full)) out.push(full.replace(/\\/g, "/"));
+                }
+              }
+              walk(dir);
+              return out;
+            }
+            const docFiles = listFilesUnder("docs", (f) => f.endsWith(".md"));
+            const skillFiles = listFilesUnder("skills", (f) => f.endsWith("SKILL.md"));
+            // Heuristic: extract root word(s) from the docs filename, then look for any
+            // file in the repo whose path contains that root token, excluding the doc itself.
+            function rootTokens(docPath) {
+              const base = path.basename(docPath, ".md");
+              const tokens = base.split("-").filter((t) => t.length >= 4 && !/^[0-9]+$/.test(t));
+              // Take up to the first three tokens; over-broad matches dilute the signal.
+              return tokens.slice(0, 3);
+            }
+            function recentRelatedSourceMovement(docPath, tokens) {
+              if (!tokens.length) return [];
+              // Search the repo for non-doc files matching any of these tokens.
+              // We avoid `git log <pathspec>` with a wildcard pattern; instead we
+              // query the file index once and then check the per-file mtime via git log.
+              let allTracked;
+              try {
+                allTracked = cp.execFileSync("git", ["ls-files"], { encoding: "utf8" }).trim().split(/\r?\n/).filter(Boolean);
+              } catch { return []; }
+              const candidates = allTracked.filter((p) => {
+                if (p === docPath) return false;
+                if (p.startsWith("docs/")) return false;
+                if (p.startsWith("release-gate/reports/")) return false;
+                return tokens.some((t) => p.toLowerCase().includes(t.toLowerCase()));
+              });
+              const recent = [];
+              for (const c of candidates.slice(0, 40)) {
+                const mod = lastModifiedDate(c);
+                if (!mod) continue;
+                const modDate = new Date(`${mod}T00:00:00Z`);
+                if (modDate > cutoff) {
+                  recent.push({ file: c, lastModified: mod });
+                  if (recent.length >= 5) break;
+                }
+              }
+              return recent;
+            }
+            const docFindings = [];
+            for (const doc of docFiles) {
+              const mod = lastModifiedDate(doc);
+              if (!mod) continue;
+              const modDate = new Date(`${mod}T00:00:00Z`);
+              if (modDate >= cutoff) continue;
+              const tokens = rootTokens(doc);
+              const related = recentRelatedSourceMovement(doc, tokens);
+              if (related.length > 0) {
+                docFindings.push({
+                  doc,
+                  docLastModified: mod,
+                  tokens,
+                  recentRelatedSources: related,
+                });
+              }
+            }
+            const skillFindings = [];
+            for (const skill of skillFiles) {
+              const mod = lastModifiedDate(skill);
+              if (!mod) continue;
+              const modDate = new Date(`${mod}T00:00:00Z`);
+              if (modDate < cutoff) {
+                skillFindings.push({ skill, lastModified: mod });
+              }
+            }
+            const report = {
+              schema: "openclaw-frontier.doc-staleness.v1",
+              date: process.env.DATE_UTC,
+              quarter: process.env.QUARTER_TAG,
+              staleDays,
+              docCount: docFiles.length,
+              skillCount: skillFiles.length,
+              staleDocCount: docFindings.length,
+              staleSkillCount: skillFindings.length,
+              staleDocs: docFindings,
+              staleSkills: skillFindings,
+            };
+            fs.writeFileSync(process.env.REPORT_PATH, JSON.stringify(report, null, 2) + "\n");
+            console.log(`staleDocs=${docFindings.length} staleSkills=${skillFindings.length}`);
+          '
+          STALE_DOC_COUNT="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.env.REPORT_PATH, "utf8")).staleDocCount)')"
+          STALE_SKILL_COUNT="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.env.REPORT_PATH, "utf8")).staleSkillCount)')"
+          {
+            echo "stale_doc_count=${STALE_DOC_COUNT}"
+            echo "stale_skill_count=${STALE_SKILL_COUNT}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload staleness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-staleness-${{ steps.meta.outputs.date_utc }}
+          path: ${{ steps.meta.outputs.report_path }}
+          if-no-files-found: warn
+          retention-days: 180
+
+      - name: Open or update doc-staleness issue
+        if: (steps.scan.outputs.stale_doc_count != '' && steps.scan.outputs.stale_doc_count != '0') || (steps.scan.outputs.stale_skill_count != '' && steps.scan.outputs.stale_skill_count != '0')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+          QUARTER_TAG: ${{ steps.meta.outputs.quarter_tag }}
+          REPORT_PATH: ${{ steps.meta.outputs.report_path }}
+          STALE_DOC_COUNT: ${{ steps.scan.outputs.stale_doc_count }}
+          STALE_SKILL_COUNT: ${{ steps.scan.outputs.stale_skill_count }}
+        run: |
+          set -e
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          TITLE="Documentation staleness ${QUARTER_TAG} (${STALE_DOC_COUNT} docs, ${STALE_SKILL_COUNT} skills)"
+          BODY_FILE="$(mktemp)"
+          {
+            echo "Automated documentation staleness scan by the documentation-staleness workflow."
+            echo ""
+            echo "- Quarter: \`${QUARTER_TAG}\`"
+            echo "- Date (UTC): ${DATE_UTC}"
+            echo "- Stale-days threshold: ${STALE_DAYS}"
+            echo "- Stale docs (with recent related source): ${STALE_DOC_COUNT}"
+            echo "- Stale skills: ${STALE_SKILL_COUNT}"
+            echo "- Workflow run: ${RUN_URL}"
+            echo ""
+            echo "### Stale docs"
+            echo ""
+            node -e '
+              const fs = require("fs");
+              const r = JSON.parse(fs.readFileSync(process.env.REPORT_PATH, "utf8"));
+              if (!r.staleDocs.length) { process.stdout.write("None.\n"); return; }
+              process.stdout.write("| Doc | Last modified | Tokens | Recent related sources |\n");
+              process.stdout.write("|---|---|---|---|\n");
+              for (const f of r.staleDocs) {
+                const sources = f.recentRelatedSources.map((s) => `\`${s.file}\` (${s.lastModified})`).join("<br>");
+                process.stdout.write(`| \`${f.doc}\` | ${f.docLastModified} | ${f.tokens.join(", ") || "-"} | ${sources || "-"} |\n`);
+              }
+            '
+            echo ""
+            echo "### Stale skill files"
+            echo ""
+            node -e '
+              const fs = require("fs");
+              const r = JSON.parse(fs.readFileSync(process.env.REPORT_PATH, "utf8"));
+              if (!r.staleSkills.length) { process.stdout.write("None.\n"); return; }
+              process.stdout.write("| SKILL.md | Last modified |\n");
+              process.stdout.write("|---|---|\n");
+              for (const f of r.staleSkills) {
+                process.stdout.write(`| \`${f.skill}\` | ${f.lastModified} |\n`);
+              }
+            '
+            echo ""
+            echo "Triage guide: for each row, either (a) update the doc to reflect the source movement, (b) confirm the doc is intentionally stable and add a noqa-style note, or (c) delete the doc if its subject is gone."
+          } > "${BODY_FILE}"
+          # Dedup: one open issue per calendar quarter.
+          EXISTING="$(gh issue list --label documentation-staleness --state open --search "${QUARTER_TAG}" --json number --jq '.[0].number // empty')"
+          if [ -n "${EXISTING}" ]; then
+            echo "Updating existing quarterly issue #${EXISTING}"
+            gh issue comment "${EXISTING}" --body-file "${BODY_FILE}"
+          else
+            echo "Opening new documentation-staleness issue for ${QUARTER_TAG}"
+            gh issue create --title "${TITLE}" --label documentation-staleness --body-file "${BODY_FILE}"
+          fi
+
+      - name: Summarize into job summary
+        if: always()
+        env:
+          REPORT_PATH: ${{ steps.meta.outputs.report_path }}
+        run: |
+          {
+            echo "## Documentation staleness"
+            echo ""
+            echo "- Date (UTC): ${{ steps.meta.outputs.date_utc }}"
+            echo "- Quarter: ${{ steps.meta.outputs.quarter_tag }}"
+            echo "- Stale-days threshold: ${STALE_DAYS}"
+            echo "- Stale docs: ${{ steps.scan.outputs.stale_doc_count }}"
+            echo "- Stale skills: ${{ steps.scan.outputs.stale_skill_count }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -s "${REPORT_PATH}" ]; then
+            {
+              echo ""
+              echo "### Report"
+              echo '```json'
+              cat "${REPORT_PATH}"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Fail-soft when staleness exists
+        if: (steps.scan.outputs.stale_doc_count != '' && steps.scan.outputs.stale_doc_count != '0') || (steps.scan.outputs.stale_skill_count != '' && steps.scan.outputs.stale_skill_count != '0')
+        run: |
+          echo "Stale documentation candidates found; an issue has been opened/updated."
+          exit 1

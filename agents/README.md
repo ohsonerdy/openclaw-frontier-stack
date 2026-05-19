@@ -22,6 +22,9 @@ The packaged `skills/` tree at the repo root is the public surface; this
 | `researcher` | Investigates open questions, surfaces facts. | No — facts only, no code. |
 | `marketing-strategist` | Drives the Modern Skills product roadmap. | No — briefs only, builder authors. |
 | `executive-summary` | Produces operator-facing rollups. | No — summarizes, never decides. |
+| `scribe` | Owns `CHANGELOG.md` and `release-gate/release-notes/` prose. | No — documents only, never tags. |
+| `dependency-warden` | Bumps a single dep at a time under `package.json`. | No — escalates majors to architect. |
+| `eval-runner` | Triggers and triages scheduled-evals and autonomous-loops runs. | No — proposes workflow tweaks via fact. |
 
 ## When each role activates
 
@@ -44,6 +47,16 @@ The packaged `skills/` tree at the repo root is the public surface; this
 - **executive-summary** — runs on a fixed cadence (daily/weekly), reads the
   blackboard plus recent receipts, writes a summary fact. Also dispatchable
   on demand.
+- **scribe** — activated when a TASK envelope carries
+  `subject: scribe:<narrative-id>`, or when a security-sentinel
+  `release-gate:proposed` FACT signals a candidate manifest awaiting
+  release-notes prose.
+- **dependency-warden** — activated by `subject: dep-warden:<bump-id>`
+  TASKs or by an incoming Dependabot/Renovate PR fact. One dep per turn.
+- **eval-runner** — activated by `subject: eval-runner:<run-id>` TASKs, by
+  scheduled HEARTBEATs for the daily and weekly eval cadences, or by a
+  security-sentinel `release-gate:eval-precheck:<sha>` FACT during a
+  release proposal.
 
 ## Coordination plane
 
@@ -77,6 +90,14 @@ Every role must:
 - The researcher reads and writes facts. It does not write code.
 - The marketing-strategist proposes. It does not author skills.
 - The executive-summary summarizes. It makes no decisions.
+- The scribe writes release narrative. It does not move tags, edit
+  code, or counter-sign a release.
+- The dependency-warden bumps one dep at a time. It escalates
+  majors and peer-deps to the architect; it never touches files
+  outside `package.json` and `package-lock.json`.
+- The eval-runner schedules eval cadence and triages output. It
+  does not edit eval prompts (builder), the runner script
+  (architect), or the workflow YAML (architect).
 
 A role that catches itself drifting into another lane MUST stop, emit an
 `ALERT` envelope tagged `out-of-lane`, and yield to the correct role.
@@ -94,6 +115,9 @@ agents/
   researcher/CONTRACT.md
   marketing-strategist/CONTRACT.md
   executive-summary/CONTRACT.md
+  scribe/CONTRACT.md
+  dependency-warden/CONTRACT.md
+  eval-runner/CONTRACT.md
 ```
 
 ## Contract format

@@ -322,6 +322,47 @@ async function callModel(opts) {
   return callOpenAICompatible(opts);
 }
 
+/**
+ * Public backend dispatcher used by external runners (e.g. bin/openclaw-agent).
+ *
+ * Accepts a denormalised options bag instead of CLI args so it can be called
+ * from contexts that resolve the backend differently. The CLI here goes
+ * through resolveBackend / resolveAuth above; external callers may reuse
+ * those helpers (also exported) or pass their own pre-resolved values.
+ *
+ * Inputs:
+ *   model       string  model id (e.g. "claude-sonnet-4-6", "llama3")
+ *   system      string  system prompt
+ *   userPrompt  string  user-turn content
+ *   auth        object  { kind: 'oauth'|'api-key'|'bearer'|'none', token? }
+ *   apiFormat   string  'anthropic' | 'openai'
+ *   endpointUrl URL     parsed endpoint base URL
+ *
+ * Returns: { output: string, usage: object|null }.
+ * Throws on network failure, non-2xx HTTP, or malformed response body.
+ */
+async function callBackend({ model, system, userPrompt, auth, apiFormat, endpointUrl }) {
+  if (!model) throw new Error('callBackend: model is required');
+  if (typeof system !== 'string') throw new Error('callBackend: system must be a string');
+  if (typeof userPrompt !== 'string') throw new Error('callBackend: userPrompt must be a string');
+  if (!auth || typeof auth.kind !== 'string') throw new Error('callBackend: auth { kind } is required');
+  if (!apiFormat) throw new Error('callBackend: apiFormat is required');
+  if (!endpointUrl || typeof endpointUrl.origin !== 'string') {
+    throw new Error('callBackend: endpointUrl must be a parsed URL');
+  }
+  return callModel({ model, system, userPrompt, auth, apiFormat, endpointUrl });
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = {
+    callBackend,
+    resolveBackend,
+    resolveAuth,
+    isLocalHost,
+    DEFAULT_ANTHROPIC_ENDPOINT,
+  };
+}
+
 function scoreAssertion(output, assertion) {
   // Heuristic: case-insensitive substring search across the assertion's key
   // phrases. The assertion is a human-readable string like "Calls
@@ -388,7 +429,7 @@ async function main() {
   }
 
   const report = {
-    schema: 'modern-skills.eval-report.v1',
+    schema: 'modern-skills.eval-report.v2',
     generatedAt: new Date().toISOString(),
     mode: args.live ? 'live' : 'dry-run',
     model: args.model || null,
@@ -456,7 +497,13 @@ async function main() {
   process.exit(anyError ? 1 : 0);
 }
 
-main().catch((err) => {
-  process.stderr.write(`run-skill-evals: ${err.stack || err.message || err}\n`);
-  process.exit(1);
-});
+// Only run the CLI when invoked directly. When required as a library
+// (e.g. by bin/openclaw-agent) the exports above are sufficient. The
+// require.main === module check is the standard Node idiom; we also
+// guard against node -e contexts where require.main is undefined.
+if (require.main === module || (require.main == null && process.argv[1] && process.argv[1].endsWith('run-skill-evals.js'))) {
+  main().catch((err) => {
+    process.stderr.write(`run-skill-evals: ${err.stack || err.message || err}\n`);
+    process.exit(1);
+  });
+}

@@ -1,0 +1,112 @@
+{
+  "skill_name": "backup-and-restore",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We have daily database snapshots. The last time anyone restored one was 14 months ago. Should I be worried?",
+      "expected_output": "Yes. A backup never restored is a file that costs storage. Schedule a restore drill this quarter — restore the latest snapshot into a clean target environment, run a smoke test, verify row counts and sample records. Set up an automated restore-verification pipeline (daily or weekly) that ingests the latest snapshot into an ephemeral environment and reports pass/fail. Time the drill; the actual restore time is the empirical RTO. The backup-is-meaningless-without-verified-restore rule applies.",
+      "assertions": [
+        "Identifies the situation as worrying",
+        "Names backup-without-restore as not really a backup",
+        "Schedules a restore drill this quarter",
+        "Restores into a clean target, not original",
+        "Verifies row counts and sample records",
+        "Recommends automated daily or weekly restore verification",
+        "Times the restore as the empirical RTO measurement"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "An engineer accidentally ran DELETE without a WHERE clause on the orders table at 2pm. It's 3pm now. What's our recovery path?",
+      "expected_output": "Point-in-time recovery to 1:59pm. Requires snapshot baseline plus log replay up to that point. Restore into a clean target environment, NOT on top of the corrupted production database. Then either swap the production database with the restored copy (acceptable downtime), or selectively re-import the orders table from the restored copy. The hour of legitimate activity between 1:59pm and 3pm will be lost or have to be replayed manually. If you don't have PITR, snapshot-only means restoring from the last snapshot before 2pm and losing everything since.",
+      "assertions": [
+        "Recommends point-in-time recovery to just before 2pm",
+        "Uses snapshot + log replay",
+        "Restores into a clean target, not on top of corrupted DB",
+        "Considers swap-database vs selective-reimport tradeoff",
+        "Notes loss of legitimate activity between 2pm and 3pm",
+        "Notes snapshot-only means losing more without PITR",
+        "Does not propose running queries against corrupted DB to fix"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Compliance says we have to retain backups for seven years. Operations only uses backups within the last week. What's the design?",
+      "expected_output": "Tiered retention. Hot tier (last 7 days, fast restore, expensive storage), warm tier (8-30 days, slower restore, cheaper storage), cold archive (31 days - 7 years, very slow restore, cheapest storage / Glacier-class). Operations uses the hot tier; compliance uses the cold archive. Verify the cold-archive can actually be retrieved — drill it occasionally. Confirm the retention policy matches both compliance and customer contracts; legal sign-off. The cold archive is an exception event for compliance requests, not for operational restore.",
+      "assertions": [
+        "Recommends tiered retention (hot / warm / cold)",
+        "Hot tier last 7 days fast restore",
+        "Warm tier 8-30 days slower restore",
+        "Cold archive 7 years cheapest storage",
+        "Drills the cold archive retrieval occasionally",
+        "Confirms retention matches compliance and customer contracts",
+        "Engages legal sign-off",
+        "Treats cold archive as compliance, not operational"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our backups are encrypted. The decryption key is stored in our production vault. The vault uses production SSO. Is this OK?",
+      "expected_output": "No. If production is down (which is the scenario where you need backups), the vault may also be down, and the SSO may not work either. The decryption key access path depends on production being up — a single point of failure that ruins recovery. Store keys in a separate KMS, accessible without production SSO, with independent recovery credentials documented in the runbook. At least two humans must be able to decrypt; document the procedure; drill the decryption as part of the quarterly restore drill.",
+      "assertions": [
+        "Identifies the circular dependency on production for key recovery",
+        "Recommends a separate KMS from production vault",
+        "Recommends independent recovery credentials",
+        "Documents the decryption procedure",
+        "Ensures at least two humans can decrypt",
+        "Drills the key decryption procedure",
+        "Notes a backup you can't decrypt is not a backup"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We're designing backup-and-restore for a new service. The business says 'we want zero data loss and zero downtime'. How do I respond?",
+      "expected_output": "Push back: zero is the wishlist that produces 'we'll figure it out'. Get real numbers. RPO of zero requires synchronous replication (expensive, write performance impact); RTO of zero requires hot standby with automatic failover (expensive infrastructure). Walk through the cost shape: RPO under 1 minute, 1-15 minutes, 1-24 hours, with the corresponding mechanism and cost. Same for RTO. Let the business choose based on cost vs tolerance. Document the chosen numbers and design to them — and verify the design holds via restore drills.",
+      "assertions": [
+        "Pushes back on the zero/zero ask",
+        "Names zero as a wishlist that produces ambiguity",
+        "Walks through RPO cost shape",
+        "Walks through RTO cost shape",
+        "Lets the business choose based on cost vs tolerance",
+        "Documents chosen numbers",
+        "Verifies design via restore drills"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Ransomware hit our infrastructure. The replicas are encrypted along with the primary. Are we screwed?",
+      "expected_output": "Depends on whether backups are air-gapped or immutable. Replicas typically replicate corruption — they don't help with ransomware. The recovery path is the immutable / air-gapped backup that the attacker couldn't reach. If you have one, restore from it to a clean target environment (the original environment is compromised; clean is required). If you don't have immutable backups, recovery may not be possible without paying. Treat this as a security incident; involve security and legal immediately. Going forward: implement immutable backups as the new minimum.",
+      "assertions": [
+        "Identifies replicas replicate corruption",
+        "Recovery path is immutable or air-gapped backup",
+        "Restore to a clean target, not the compromised environment",
+        "Treats as a security incident",
+        "Involves security and legal",
+        "Notes recovery may not be possible without immutable backups",
+        "Recommends immutable backups going forward"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We need to restore an entire stack — database, cache, application servers, message queue. What order?",
+      "expected_output": "Database first (it's the foundational data). Restart auth and other dependencies. Restart message broker before consumers. Restart application servers. Do NOT restore the cache; let it rebuild from the restored DB (cache is derived data; restored cache is stale data masquerading as fresh). Replay queued work where the queue persisted. Restart background jobs last (they can run wrong against half-recovered systems). Document this dependency graph before the disaster — rediscovering it under pressure is how you sequence wrong.",
+      "assertions": [
+        "Database first",
+        "Auth and dependencies before things that auth-check",
+        "Message broker before consumers",
+        "Does NOT restore cache; rebuilds from restored DB",
+        "Application servers after foundation",
+        "Background jobs last",
+        "Documents dependency graph before disaster",
+        "Replay queued work where queue persisted"
+      ],
+      "files": []
+    }
+  ]
+}

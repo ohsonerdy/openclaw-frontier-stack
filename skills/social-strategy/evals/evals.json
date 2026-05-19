@@ -1,0 +1,97 @@
+{
+  "skill_name": "social-strategy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Should our supplement brand be on TikTok, Instagram, Pinterest, YouTube, Twitter, and LinkedIn?",
+      "expected_output": "No — pick 2-3 primary platforms. Walks the platform-fit decision. Asks about ICP, audience demographics, and production capacity. Recommends 2-3 platforms based on fit (likely Instagram + TikTok + Pinterest for supplements, depending on ICP). Notes that being on 6 platforms produces inconsistent output on all.",
+      "assertions": [
+        "Pushes back on being on all platforms",
+        "Walks the platform-fit decision framework",
+        "Asks about ICP and demographic skew",
+        "Recommends 2-3 primary platforms",
+        "Notes inconsistent output across many platforms",
+        "Output names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We post the same content to TikTok, Instagram Reels, and YouTube Shorts. Why aren't we growing?",
+      "expected_output": "Walks the platform-native discipline. Notes that cross-posted content reads as off-platform and gets scrolled. Recommends designing per platform: TikTok-native for TikTok (vertical, raw, on-trend audio), Reels-native for Reels (slightly polished, lifestyle), Shorts-native for YouTube (narrative-driven, audio-led). References ad-creative for the platform-native creative framework.",
+      "assertions": [
+        "Identifies cross-posting as the issue",
+        "Walks the platform-native discipline",
+        "Names platform-specific cues for each",
+        "Recommends designing per platform",
+        "References ad-creative for platform-native framework"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We have 250k Instagram followers and engagement is at 0.4%. Our partner says we should focus on growing followers. Thoughts?",
+      "expected_output": "Pushback. Walks the engagement-vs-followers metric discipline. Notes 0.4% engagement at 250k followers means roughly 1,000 engaged followers — a 10k-follower account with 5% engagement would be more valuable. Recommends focusing on engagement and revenue attribution, not follower count.",
+      "assertions": [
+        "Pushes back on follower-growth focus",
+        "Walks the engagement-vs-followers metric discipline",
+        "Computes engagement-volume comparison",
+        "Recommends engagement and revenue metrics instead",
+        "Names followers as vanity, engagement as signal, revenue as truth"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Should we hire creators or produce content in-house?",
+      "expected_output": "Mix, depending on brand stage. Walks the creator-collab vs in-house tradeoff framework. Recommends in-house for brand-voice content, paid UGC creators for volume, occasional sponsored partnerships for reach pulses. Provides the control-authenticity-scale-cost matrix.",
+      "assertions": [
+        "Recommends a mix, not single approach",
+        "Walks the creator-collab vs in-house framework",
+        "Provides the matrix (control, authenticity, scale, cost)",
+        "Names specific approaches by stage",
+        "References ad-creative for UGC creative design"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "How often should we post on TikTok?",
+      "expected_output": "5-7 posts/week minimum. Walks the posting-frequency-vs-quality framework. Notes TikTok algorithm punishes inconsistency. Recommends matching production capacity to platform cadence. References content-strategy for the sustainable-cadence framework.",
+      "assertions": [
+        "Names 5-7 posts/week minimum for TikTok",
+        "Walks the posting-frequency-vs-quality framework",
+        "Notes TikTok algorithm punishes inconsistency",
+        "References content-strategy for sustainable cadence",
+        "Recommends matching production capacity to cadence"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our Instagram posts feel random. Each one looks different. Is that a problem?",
+      "expected_output": "Yes. Walks the signature-format framework. Identifies that brands compounding on social have a recognizable recurring format. Asks what format the brand could commit to for 8 weeks. Provides examples (morning ritual clips, ingredient breakdowns, fit checks). Notes that without signature, posts feel disconnected even if individually good.",
+      "assertions": [
+        "Identifies the random-look as a problem",
+        "Walks the signature-format framework",
+        "Provides examples of brand signatures",
+        "Recommends committing to a format for 8 weeks",
+        "References product-marketing-positioning for brand-voice consistency"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We can't track revenue from organic social. How do we know if it's working?",
+      "expected_output": "Walks the metric discipline framework. Acknowledges organic social attribution is notoriously hazy. Recommends UTM tagging for trackable clicks, post-purchase 'how did you hear about us' surveys, attribution-tool aggregation. Notes that engagement and saves/shares are usable signals even when revenue is hazy. References customer-research for the survey approach.",
+      "assertions": [
+        "Acknowledges organic social attribution is hazy",
+        "Walks the metric discipline (vanity, signal, truth)",
+        "Recommends UTM tagging and how-did-you-hear surveys",
+        "Names engagement and saves/shares as usable signals",
+        "References customer-research for the survey approach"
+      ],
+      "files": []
+    }
+  ]
+}

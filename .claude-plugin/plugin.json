@@ -1,8 +1,8 @@
 {
   "name": "openclaw-frontier-stack",
   "displayName": "OpenClaw Frontier Stack",
-  "description": "Interoperable agent skills + hooks: 13 ecomm marketing skills (Modern Skills, integrated with the Modern AI MCP) + 3 operator skills (release-gate, durable task coordination, git history audit). Compatible with any agent that supports the Agent Skills specification (agentskills.io).",
-  "version": "0.4.0",
+  "description": "Interoperable agent skills + hooks + orchestration harness. 51 skills (28 ecomm marketing as Modern Skills + 11 engineering workflow + 3 operator + the v0.5.0 cohort), 11 role contracts, engineer CLI (openclaw), live agent runner daemon (openclaw-agent), 4 coordination patterns (fan-out, fan-in, chain, voting), and 5 autonomous loops. Compatible with any agent that supports the Agent Skills specification (agentskills.io).",
+  "version": "0.6.0",
   "author": {
     "name": "OpenClaw",
     "url": "https://github.com/ohsonerdy/openclaw-frontier-stack"

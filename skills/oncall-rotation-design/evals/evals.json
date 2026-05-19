@@ -1,0 +1,110 @@
+{
+  "skill_name": "oncall-rotation-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're a team of five engineers about to start an on-call rotation. Pager volume is low — maybe one page a week. What should the rotation look like?",
+      "expected_output": "Recommend weekly primary rotation. With 5 engineers and low volume, each engineer is on every 5 weeks. Add a secondary in the same rotation (offset by half the cycle) for safety net. Establish handoff ritual at the start of each shift. Document escalation policy: primary, secondary at 3-5 minute non-ack, lead/manager beyond that. Plan a shadow or co-pilot pattern for the next new hire. Don't skip the handoff; even with low volume, context loss compounds. Watch burnout signals despite the low volume.",
+      "assertions": [
+        "Recommends weekly primary rotation",
+        "Adds a secondary in the rotation",
+        "Establishes handoff ritual",
+        "Documents escalation policy with timing",
+        "Plans shadow or co-pilot for new hires",
+        "Notes handoff matters even at low volume",
+        "Lists burnout signals to watch"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our primary on-call got paged three times last night, including at 2:30am for an alert that turned out to be noise. They start today's shift exhausted. What do I do?",
+      "expected_output": "Three pages in a night is broken. Page the secondary; give the primary a few hours off (or the full day, depending on severity of the previous night). The noise page is a separate issue: alert tuning. Audit which alert fired falsely and tune it. Do a post-shift retro on the night. Watch for further burnout signals in this engineer. The pattern of 'multiple pages in a single night' should trigger an automatic comp-time policy.",
+      "assertions": [
+        "Identifies three pages in a night as broken",
+        "Pages the secondary for the current shift",
+        "Gives the primary recovery time (hours or full day)",
+        "Identifies the noise page as an alert-tuning issue",
+        "Audits the false alert",
+        "Does a post-shift retro",
+        "References automatic comp-time policy for heavy nights"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We have engineers in San Francisco, London, and Singapore. Should we do follow-the-sun?",
+      "expected_output": "Yes — three regions naturally cover the 24-hour clock with business hours each. Nobody is paged at 2am. Tradeoff: handoff overhead is twice a day (San Francisco to Singapore via London, or similar). Discipline on handoffs is critical. Each region needs enough staff (3-4 minimum) to sustain weekly rotation locally. Onboarding new engineers needs extra care across regions. The reduction in nighttime pages typically pays for the handoff cost; teams that have follow-the-sun rarely revert.",
+      "assertions": [
+        "Recommends follow-the-sun across the three regions",
+        "Notes nobody is paged at 2am as the benefit",
+        "Notes handoff overhead doubles",
+        "Requires sufficient staffing in each region",
+        "Disciplines on handoff quality",
+        "Notes context loss across regional boundaries",
+        "Treats the handoff cost as worth the pager-time reduction"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "New engineer joins next week. Their first on-call shift is in three weeks. Anything to do?",
+      "expected_output": "Don't put them solo as their first shift. Two patterns: (1) shadow — they're observer-secondary for a shift or two before going primary; (2) co-pilot — first solo primary shift has a senior engineer as designated explicit backup beyond normal secondary. Either way, ensure the runbooks are current; the new engineer's debrief afterward feeds back into the runbook quality. Don't make first shift first incident at full responsibility.",
+      "assertions": [
+        "Does not put new engineer solo on first shift",
+        "Proposes shadow pattern (observer-secondary)",
+        "OR proposes co-pilot pattern (senior backup)",
+        "Verifies runbooks are current",
+        "Plans a debrief after first solo shift",
+        "Feeds debrief findings into runbook updates",
+        "Names the high-risk-shift framing"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our on-call rotation has 'escalate if it's bad' as the entire escalation policy. We just had an incident where nobody knew when to wake the manager. How do I fix this?",
+      "expected_output": "Vague escalation is the problem. Document a concrete matrix: who pages when, with severity and duration triggers. Examples: primary at all alerts, secondary at non-ack after 3-5 minutes, lead/manager at Sev 1 or non-ack after 15 minutes, director at Sev 1 customer-affecting after 30 minutes, exec at major-customer-affecting or data-loss / breach. Pre-authorize the wake-the-CEO question. The on-call should not have to weigh these decisions mid-incident; the matrix decides.",
+      "assertions": [
+        "Diagnoses vague escalation as the root issue",
+        "Documents a concrete escalation matrix",
+        "Maps severity and duration to escalation tier",
+        "Names triggers for wake-the-manager",
+        "Names triggers for wake-the-CEO",
+        "Pre-authorizes the chain in advance",
+        "Removes the mid-incident judgment burden"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "One of our on-call engineers is asking to skip the next rotation. They cite stress. How should I respond?",
+      "expected_output": "Almost always a burnout signal. Listen, don't shame. Cover their shift with the secondary or a swap. Then investigate: is this an individual issue (personal circumstances) or a system issue (rotation too punishing, alerts too noisy, runbooks too poor)? If system, fix the system before the next engineer hits the same wall. Reduce this engineer's rotation frequency near-term; their long-term recovery depends on the system getting better, not on willpower.",
+      "assertions": [
+        "Listens, does not shame",
+        "Covers the shift via secondary or swap",
+        "Investigates individual vs system issue",
+        "Fixes system issues if surfaced (alerts, runbooks, rotation shape)",
+        "Reduces this engineer's rotation frequency near-term",
+        "Frames recovery as system-dependent, not willpower-dependent",
+        "Treats the ask as a burnout warning, not a complaint"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our pager volume is way too high — 4-5 pages per shift. Should we shorten the rotation length?",
+      "expected_output": "Don't shorten first. High pager volume is almost always an alert-quality problem, not a rotation-length problem. Audit which alerts fire repeatedly: are they actionable? Are they on symptoms or causes? Do they have runbooks? Most teams find that 50% or more of pages can be tuned out or batched. Once alert quality is fixed, the rotation length question becomes moot. Reference monitoring-and-alerting for the deeper audit. Shortening rotation without fixing alerts just spreads the pain.",
+      "assertions": [
+        "Resists shortening as the first move",
+        "Audits alert quality as the primary lever",
+        "Names actionable vs noise pages",
+        "References symptoms vs causes from monitoring-and-alerting",
+        "Notes most teams find significant alert tunability",
+        "Names the 'spreading the pain' anti-pattern",
+        "Defers the rotation-length decision until alerts are fixed"
+      ],
+      "files": []
+    }
+  ]
+}

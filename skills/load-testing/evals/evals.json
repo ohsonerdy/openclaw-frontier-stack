@@ -1,0 +1,107 @@
+{
+  "skill_name": "load-testing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We have a campaign launch in two weeks. We expect 5x our normal traffic for a few hours. How do I prep?",
+      "expected_output": "Recommend running both a spike test (sudden jump from baseline to 5x) and a soak test (sustained 5x for the expected duration). Use a realistic traffic model — captured ratio or replay, not single-endpoint hammer. Write the 'what fails first' hypothesis (DB, cache, application, network, dependency). Verify instrumentation is in place before running. Test in an environment matching prod shape; document any scale gap. Cleanup test data and autoscaled capacity afterward.",
+      "assertions": [
+        "Recommends spike test for the sudden traffic jump",
+        "Recommends soak test for the sustained duration",
+        "Uses realistic traffic model (captured ratio or replay)",
+        "Rejects single-endpoint hammer as inadequate",
+        "Writes a what-fails-first hypothesis",
+        "Verifies instrumentation before running",
+        "Tests in an environment matching prod shape",
+        "Cleans up test data and autoscaled capacity"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We ran a load test at 1000 rps for an hour. The system stayed under p99=200ms and no errors fired. We're declaring it production-ready. Is that enough?",
+      "expected_output": "Push back. SLA-met-at-target is one data point; the test does not tell you the headroom. Need to run a ramp or breakpoint test to find where the system degrades — if breakpoint is 1100 rps, the test 'passed' at 95% of breakpoint and any production noise tips it over. Need to verify with realistic write traffic (the test may be read-heavy). Need to test other shapes (spike, soak) since steady doesn't catch all failure modes. The answer to 'production-ready' is: at this rate with this headroom under these shapes.",
+      "assertions": [
+        "Does not declare production-ready on steady SLA alone",
+        "Requires breakpoint discovery to find headroom",
+        "Warns about passing at 95% of breakpoint",
+        "Asks about write traffic in the load mix",
+        "Recommends other shapes (spike, soak) beyond steady",
+        "Frames production-readiness as rate + headroom + shapes",
+        "Notes that no errors fired does not mean no degradation"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our load test runs against a dev environment with 1/4 the cores and a smaller database instance than prod. The test passes. What should I conclude?",
+      "expected_output": "The test result transfers only if the environment transfers. With 1/4 the cores and a smaller DB, the breakpoint will be at a lower throughput in dev than prod, but the dev test also doesn't predict prod behavior on absolute terms. Recommend either (a) testing against a prod-shaped environment, or (b) documenting the scale gap explicitly and extrapolating with care. A 1/4-scale environment is useful for hypothesis testing (does the bottleneck shape match what we expected?), not for absolute capacity claims.",
+      "assertions": [
+        "Identifies the environment as not matching prod",
+        "Notes the breakpoint differs in scale between dev and prod",
+        "Recommends testing against a prod-shaped environment",
+        "Documents the scale gap explicitly if dev is the only option",
+        "Allows 1/4-scale for hypothesis testing but not absolute claims",
+        "Rejects treating the dev result as prod truth"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our load test generator sends 1000 rps but the requests are all `GET /api/health`. The system handles it fine. What does this tell us?",
+      "expected_output": "Almost nothing about real performance. /health is a trivial endpoint; production traffic is a mix of endpoints, most more expensive. The test is the single-endpoint-hammer anti-pattern. Recommend rebuilding the traffic model — captured ratio from production logs (anonymized) or recorded replay. Specifically check that writes are included, since GETs and writes hit different bottlenecks. Should not draw any conclusion about production capacity from this test.",
+      "assertions": [
+        "Identifies as the single-endpoint-hammer anti-pattern",
+        "Notes that /health is not representative of real traffic",
+        "Recommends captured ratio or recorded replay",
+        "Specifically calls out missing write traffic",
+        "Notes writes hit different bottlenecks than reads",
+        "Draws no production-capacity conclusion from the test"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I want to find our system's breaking point. Should I use a closed-loop or open-loop generator?",
+      "expected_output": "Open-loop (request-rate-driven) is more realistic for external user traffic — incoming requests don't wait for prior responses; the queue grows under overload. Closed-loop (saturating) gives an absolute upper bound but is less realistic for user-facing systems. For breakpoint discovery on an external API, open-loop with a ramp. For an internal synchronous service called by another service, closed-loop matches the source of the load. Add realistic think-time when modeling user behavior; remove it when modeling automated callers.",
+      "assertions": [
+        "Recommends open-loop for external user-facing breakpoint discovery",
+        "Recommends closed-loop for internal synchronous service callers",
+        "Explains open-loop is more realistic for incoming user traffic",
+        "Explains closed-loop gives an absolute upper bound",
+        "Mentions think-time for user-shaped traffic",
+        "Distinguishes user vs automated caller load shape"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our soak test ran for 8 hours and memory grew slowly from 2GB to 6GB. The error rate stayed flat. The team says it's fine. Is it?",
+      "expected_output": "Not fine. Linear memory growth under sustained load is a leak (objects not being released, cache without bound, connection accumulation). Even if errors stayed flat, the leak surfaces eventually — OOM kill, swap thrash, GC pause. The soak found exactly what soaks are for: a slow leak that steady or spike would miss. Recommend profiling memory during sustained load to identify the leak source. Should NOT ship without addressing the leak.",
+      "assertions": [
+        "Identifies linear memory growth as a leak",
+        "Notes that flat error rate does not mean fine",
+        "Predicts eventual failure (OOM, swap, GC pause)",
+        "Recommends memory profiling to find the source",
+        "Confirms the soak test caught what soaks are designed for",
+        "Does not recommend shipping without addressing the leak"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We've never load-tested. We have a hypothesis that the DB will fall over first, then the cache. How do we validate that?",
+      "expected_output": "Good — having a hypothesis is the first step. Design a ramp test that increases load until the system degrades. Instrument the DB (connection pool, query time, lock waits), the cache (hit rate, miss storm patterns), and the application before running. The expected outcome: the DB metric crosses a threshold (connection pool maxes, query time spikes) before the cache metric does. If the actual failure is in a different layer than expected, that's a calibrated learning — investigate why the hypothesis was wrong before scaling the suspected bottleneck.",
+      "assertions": [
+        "Confirms the hypothesis as a productive starting point",
+        "Designs a ramp test to find the degradation point",
+        "Instruments DB, cache, and application before running",
+        "Names DB metrics: connection pool, query time, lock waits",
+        "Names cache metrics: hit rate, miss patterns",
+        "Treats a different-failure-than-expected as a learning, not a fail",
+        "Recommends investigating before scaling the wrong layer"
+      ],
+      "files": []
+    }
+  ]
+}

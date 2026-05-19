@@ -1,0 +1,376 @@
+name: Autonomous loop — performance baseline drift
+
+# Weekly performance regression check. Runs two existing benchmarks
+# (`scripts/eval-frontier-orchestration-scale.js` and
+# `scripts/eval-blackboard-contention.js`), captures wall-clock and
+# assertion score, and compares them against the previous green run
+# stored in `release-gate/reports/perf-baseline.json`.
+#
+# If wall-clock regressed >REGRESSION_TIME_PCT% or score dropped
+# >REGRESSION_SCORE_PCT%, the loop opens a `performance-regression`
+# issue. If the run is green, the loop commits the updated baseline
+# directly onto branch `release-gate/baselines` (no PR — this branch is
+# the durable record of the last green baseline).
+#
+# Dedup strategy: one open issue per ISO date for performance
+# regressions. Same-day reruns update the existing issue.
+
+on:
+  schedule:
+    # Monday 11:00 UTC — sits one hour after autonomous-loops.yml
+    # (eval-drift at 10:00 UTC) so the two weekly loops do not pile
+    # up on the same runner queue.
+    - cron: "0 11 * * 1"
+  workflow_dispatch:
+    inputs:
+      time_threshold_pct:
+        description: "Wall-clock regression threshold in percent (default 20)"
+        required: false
+        default: "20"
+        type: string
+      score_threshold_pct:
+        description: "Score regression threshold in percent (default 15)"
+        required: false
+        default: "15"
+        type: string
+      update_baseline_on_dispatch:
+        description: "When set to 'true' on workflow_dispatch, update the baseline even if regressions exist"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: autonomous-performance-baseline-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    name: Detect performance baseline drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TIME_THRESHOLD_PCT: ${{ github.event.inputs.time_threshold_pct || '20' }}
+      SCORE_THRESHOLD_PCT: ${{ github.event.inputs.score_threshold_pct || '15' }}
+      UPDATE_ON_DISPATCH: ${{ github.event.inputs.update_baseline_on_dispatch || 'false' }}
+      OPENCLAW_FRONTIER_CONTENTION_WORKERS: "32"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install (no scripts)
+        run: npm install --ignore-scripts
+
+      - name: Compute report metadata
+        id: meta
+        run: |
+          DATE_UTC="$(date -u +%Y-%m-%d)"
+          REPORT_DIR="release-gate/reports"
+          BASELINE_PATH="${REPORT_DIR}/perf-baseline.json"
+          RUN_PATH="${REPORT_DIR}/perf-run-${DATE_UTC}.json"
+          DELTA_PATH="${REPORT_DIR}/perf-delta-${DATE_UTC}.json"
+          mkdir -p "${REPORT_DIR}"
+          {
+            echo "date_utc=${DATE_UTC}"
+            echo "report_dir=${REPORT_DIR}"
+            echo "baseline_path=${BASELINE_PATH}"
+            echo "run_path=${RUN_PATH}"
+            echo "delta_path=${DELTA_PATH}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Fetch baseline from baselines branch (if it exists)
+        env:
+          BASELINE_PATH: ${{ steps.meta.outputs.baseline_path }}
+        run: |
+          set -e
+          git fetch origin release-gate/baselines:refs/remotes/origin/release-gate/baselines 2>/dev/null || true
+          if git rev-parse --verify origin/release-gate/baselines >/dev/null 2>&1; then
+            git show "origin/release-gate/baselines:${BASELINE_PATH}" > "${BASELINE_PATH}" 2>/dev/null || true
+          fi
+          if [ ! -s "${BASELINE_PATH}" ]; then
+            echo "No prior baseline; this run will establish one."
+            echo '{}' > "${BASELINE_PATH}"
+          fi
+
+      - name: Run orchestration-scale benchmark
+        id: scale
+        run: |
+          set +e
+          node scripts/eval-frontier-orchestration-scale.js > scale-stdout.json
+          STATUS=$?
+          echo "exit_code=${STATUS}" >> "$GITHUB_OUTPUT"
+          if [ "${STATUS}" -ne 0 ] && [ "${STATUS}" -ne 1 ]; then
+            echo "scale eval crashed (exit ${STATUS})" >&2
+          fi
+
+      - name: Run blackboard-contention benchmark
+        id: contention
+        run: |
+          set +e
+          node scripts/eval-blackboard-contention.js > contention-stdout.json
+          STATUS=$?
+          echo "exit_code=${STATUS}" >> "$GITHUB_OUTPUT"
+          if [ "${STATUS}" -ne 0 ] && [ "${STATUS}" -ne 1 ]; then
+            echo "contention eval crashed (exit ${STATUS})" >&2
+          fi
+
+      - name: Compute run report and drift
+        id: drift
+        env:
+          BASELINE_PATH: ${{ steps.meta.outputs.baseline_path }}
+          RUN_PATH: ${{ steps.meta.outputs.run_path }}
+          DELTA_PATH: ${{ steps.meta.outputs.delta_path }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const timeThr = Number(process.env.TIME_THRESHOLD_PCT) || 20;
+            const scoreThr = Number(process.env.SCORE_THRESHOLD_PCT) || 15;
+            function safeRead(file) {
+              try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; }
+            }
+            function pickStdout(file) {
+              const j = safeRead(file);
+              if (!j || typeof j !== "object") return null;
+              return {
+                ok: j.ok === true,
+                score: typeof j.score === "number" ? j.score : null,
+                elapsedMs: typeof j.elapsedMs === "number" ? j.elapsedMs : null,
+              };
+            }
+            const scale = pickStdout("scale-stdout.json") || { ok: false, score: null, elapsedMs: null };
+            const contention = pickStdout("contention-stdout.json") || { ok: false, score: null, elapsedMs: null };
+            const reportScale = safeRead("release-gate/reports/latest-frontier-orchestration-scale-eval.json");
+            const reportContention = safeRead("release-gate/reports/latest-blackboard-contention-eval.json");
+            const run = {
+              schema: "openclaw-frontier.perf-run.v1",
+              date: process.env.DATE_UTC,
+              benchmarks: {
+                "orchestration-scale": {
+                  ok: scale.ok,
+                  score: scale.score,
+                  elapsedMs: scale.elapsedMs,
+                  agentCount: reportScale && reportScale.agentCount || null,
+                },
+                "blackboard-contention": {
+                  ok: contention.ok,
+                  score: contention.score,
+                  elapsedMs: contention.elapsedMs,
+                  workers: reportContention && reportContention.workers || null,
+                },
+              },
+            };
+            fs.writeFileSync(process.env.RUN_PATH, JSON.stringify(run, null, 2) + "\n");
+            const baseline = safeRead(process.env.BASELINE_PATH) || {};
+            const baseBench = baseline.benchmarks || {};
+            const regressions = [];
+            for (const name of Object.keys(run.benchmarks)) {
+              const cur = run.benchmarks[name];
+              const prev = baseBench[name];
+              if (!prev) continue;
+              if (cur.elapsedMs != null && prev.elapsedMs != null && prev.elapsedMs > 0) {
+                const timePct = ((cur.elapsedMs - prev.elapsedMs) / prev.elapsedMs) * 100;
+                if (timePct > timeThr) {
+                  regressions.push({
+                    benchmark: name,
+                    kind: "wall-clock",
+                    baselineMs: prev.elapsedMs,
+                    currentMs: cur.elapsedMs,
+                    deltaPct: Number(timePct.toFixed(2)),
+                    thresholdPct: timeThr,
+                  });
+                }
+              }
+              if (cur.score != null && prev.score != null && prev.score > 0) {
+                const scoreDropPct = ((prev.score - cur.score) / prev.score) * 100;
+                if (scoreDropPct > scoreThr) {
+                  regressions.push({
+                    benchmark: name,
+                    kind: "score",
+                    baselineScore: prev.score,
+                    currentScore: cur.score,
+                    deltaPct: Number(scoreDropPct.toFixed(2)),
+                    thresholdPct: scoreThr,
+                  });
+                }
+              }
+            }
+            const allOk = Object.values(run.benchmarks).every((b) => b.ok);
+            const delta = {
+              schema: "openclaw-frontier.perf-delta.v1",
+              date: process.env.DATE_UTC,
+              baselineMissing: Object.keys(baseBench).length === 0,
+              allBenchmarksOk: allOk,
+              regressionCount: regressions.length,
+              regressions,
+              run: run.benchmarks,
+              baseline: baseBench,
+            };
+            fs.writeFileSync(process.env.DELTA_PATH, JSON.stringify(delta, null, 2) + "\n");
+            console.log(`regressions=${regressions.length} allOk=${allOk} baselineMissing=${delta.baselineMissing}`);
+          '
+          REGRESSIONS="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.env.DELTA_PATH, "utf8")).regressionCount)')"
+          ALL_OK="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.env.DELTA_PATH, "utf8")).allBenchmarksOk)')"
+          BASELINE_MISSING="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.env.DELTA_PATH, "utf8")).baselineMissing)')"
+          {
+            echo "regressions=${REGRESSIONS}"
+            echo "all_ok=${ALL_OK}"
+            echo "baseline_missing=${BASELINE_MISSING}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload perf artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-baseline-${{ steps.meta.outputs.date_utc }}
+          path: |
+            release-gate/reports/perf-run-${{ steps.meta.outputs.date_utc }}.json
+            release-gate/reports/perf-delta-${{ steps.meta.outputs.date_utc }}.json
+          if-no-files-found: warn
+          retention-days: 180
+
+      - name: Update baseline on baselines branch (green or first run)
+        if: (steps.drift.outputs.regressions == '0' && steps.drift.outputs.all_ok == 'true') || (steps.drift.outputs.baseline_missing == 'true' && steps.drift.outputs.all_ok == 'true') || (github.event_name == 'workflow_dispatch' && env.UPDATE_ON_DISPATCH == 'true')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASELINE_PATH: ${{ steps.meta.outputs.baseline_path }}
+          RUN_PATH: ${{ steps.meta.outputs.run_path }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          BOT_USER="41898282+github-actions[bot]"
+          BOT_DOMAIN="users.noreply.github.com"
+          git config user.email "${BOT_USER}""@""${BOT_DOMAIN}"
+          # The baseline lives on a dedicated branch so main never sees
+          # the recurring auto-bumps and PR diffs stay readable.
+          BRANCH="release-gate/baselines"
+          # Stash the run report so it survives the checkout
+          # (release-gate/reports is gitignored on main but tracked on
+          # the baselines branch).
+          cp "${RUN_PATH}" /tmp/perf-run.json
+          if git rev-parse --verify "origin/${BRANCH}" >/dev/null 2>&1; then
+            git checkout -B "${BRANCH}" "origin/${BRANCH}"
+          else
+            git checkout --orphan "${BRANCH}"
+            git rm -rf . 2>/dev/null || true
+          fi
+          mkdir -p "$(dirname "${BASELINE_PATH}")"
+          # Promote this run into the canonical baseline file.
+          cp /tmp/perf-run.json "${BASELINE_PATH}"
+          git add -f "${BASELINE_PATH}"
+          if git diff --cached --quiet; then
+            echo "Baseline unchanged."
+          else
+            git commit -m "perf-baseline: ${DATE_UTC}"
+            git push -u origin "${BRANCH}"
+          fi
+
+      - name: Open or update performance-regression issue
+        if: steps.drift.outputs.regressions != '0' && steps.drift.outputs.regressions != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+          DELTA_PATH: ${{ steps.meta.outputs.delta_path }}
+        run: |
+          set -e
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          TITLE="Performance regression ${DATE_UTC}: ${{ steps.drift.outputs.regressions }} threshold(s) exceeded"
+          BODY_FILE="$(mktemp)"
+          {
+            echo "Automated performance regression detection by the performance-baseline-drift workflow."
+            echo ""
+            echo "- Date (UTC): ${DATE_UTC}"
+            echo "- Wall-clock threshold: ${TIME_THRESHOLD_PCT}%"
+            echo "- Score threshold: ${SCORE_THRESHOLD_PCT}%"
+            echo "- Workflow run: ${RUN_URL}"
+            echo ""
+            echo "### Regressions"
+            echo ""
+            echo "| Benchmark | Kind | Baseline | Current | Delta % | Threshold % |"
+            echo "|---|---|---|---|---|---|"
+            node -e '
+              const fs = require("fs");
+              const d = JSON.parse(fs.readFileSync(process.env.DELTA_PATH, "utf8"));
+              for (const r of d.regressions) {
+                if (r.kind === "wall-clock") {
+                  process.stdout.write(`| ${r.benchmark} | wall-clock | ${r.baselineMs}ms | ${r.currentMs}ms | ${r.deltaPct} | ${r.thresholdPct} |\n`);
+                } else {
+                  process.stdout.write(`| ${r.benchmark} | score | ${r.baselineScore} | ${r.currentScore} | ${r.deltaPct} | ${r.thresholdPct} |\n`);
+                }
+              }
+            '
+            echo ""
+            echo "Triage guide: re-run the affected benchmark locally with the same node version. If the regression is real, bisect the commits since the last green baseline run. If the regression is environmental (runner variance), wait one cycle and re-evaluate."
+          } > "${BODY_FILE}"
+          EXISTING="$(gh issue list --label performance-regression --state open --search "${DATE_UTC}" --json number --jq '.[0].number // empty')"
+          if [ -n "${EXISTING}" ]; then
+            echo "Updating existing issue #${EXISTING}"
+            gh issue comment "${EXISTING}" --body-file "${BODY_FILE}"
+          else
+            echo "Opening new performance-regression issue"
+            gh issue create --title "${TITLE}" --label performance-regression --body-file "${BODY_FILE}"
+          fi
+
+      - name: Open infra-degraded issue when a benchmark crashes
+        if: (steps.scale.outputs.exit_code != '0' && steps.scale.outputs.exit_code != '1') || (steps.contention.outputs.exit_code != '0' && steps.contention.outputs.exit_code != '1')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+          SCALE_EXIT: ${{ steps.scale.outputs.exit_code }}
+          CONTENTION_EXIT: ${{ steps.contention.outputs.exit_code }}
+        run: |
+          set -e
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          TITLE="infra-degraded ${DATE_UTC}: performance-baseline-drift benchmark crash"
+          BODY="One or more benchmarks crashed before reporting. scale exit=\`${SCALE_EXIT}\`, contention exit=\`${CONTENTION_EXIT}\`. Run: ${RUN_URL}"
+          EXISTING="$(gh issue list --label infra-degraded --state open --search "performance-baseline-drift ${DATE_UTC}" --json number --jq '.[0].number // empty')"
+          if [ -n "${EXISTING}" ]; then
+            gh issue comment "${EXISTING}" --body "${BODY}"
+          else
+            gh issue create --title "${TITLE}" --label infra-degraded --body "${BODY}"
+          fi
+
+      - name: Summarize into job summary
+        if: always()
+        env:
+          DELTA_PATH: ${{ steps.meta.outputs.delta_path }}
+        run: |
+          {
+            echo "## Performance baseline drift"
+            echo ""
+            echo "- Date (UTC): ${{ steps.meta.outputs.date_utc }}"
+            echo "- Wall-clock threshold: ${TIME_THRESHOLD_PCT}%"
+            echo "- Score threshold: ${SCORE_THRESHOLD_PCT}%"
+            echo "- All benchmarks OK: ${{ steps.drift.outputs.all_ok }}"
+            echo "- Regressions: ${{ steps.drift.outputs.regressions }}"
+            echo "- Baseline missing: ${{ steps.drift.outputs.baseline_missing }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -s "${DELTA_PATH}" ]; then
+            {
+              echo ""
+              echo "### Delta"
+              echo '```json'
+              cat "${DELTA_PATH}"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Fail-soft when regressions exist
+        if: steps.drift.outputs.regressions != '0' && steps.drift.outputs.regressions != ''
+        run: |
+          echo "${{ steps.drift.outputs.regressions }} regression(s); an issue has been opened/updated."
+          exit 1

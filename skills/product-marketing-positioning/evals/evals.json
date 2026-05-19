@@ -1,0 +1,98 @@
+{
+  "skill_name": "product-marketing-positioning",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We sell a daily greens powder. We say we're 'the highest-quality greens powder' but we're not differentiated. Help.",
+      "expected_output": "Walks the positioning framework starting with category. Suggests considering adjacent category (afternoon-energy supplement, alternative-to-coffee, parent-fuel) rather than obvious (greens powder). Walks alternatives list (null option likely dominant). Identifies unique attributes and applies 'so what' filter. Names a best-for customer. Drafts a messaging house. References customer-research for the alternatives inputs.",
+      "assertions": [
+        "Walks the category decision first",
+        "Considers adjacent or new category, not just obvious",
+        "Walks the alternatives list including null option",
+        "Applies the 'so what' filter to attributes",
+        "Names a specific best-for customer",
+        "Drafts a messaging house with pillars and proof",
+        "References customer-research for alternatives inputs"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our positioning is 'for women 25-45 interested in wellness.' Why isn't this working?",
+      "expected_output": "Identifies the positioning as too broad. Walks the best-for-customer framework. Notes that 'for everyone' positioning is positioning for no one. Pushes for narrower specifier ICP with specific life stage, behavior, and concern. References customer-research for the JTBD inputs that produce a sharper customer description.",
+      "assertions": [
+        "Identifies the positioning as too broad",
+        "Walks the best-for-customer framework",
+        "Notes the 'for everyone' anti-pattern",
+        "Pushes for narrower specifier ICP",
+        "References customer-research for inputs"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "What's our 'real' competition for our daily greens powder?",
+      "expected_output": "Walks the alternatives list framework. Names direct competitors (other greens brands), adjacent solutions (multivitamins, smoothies, coffee, afternoon snacks), and the null option (doing nothing). Notes that the null option is usually the largest competitor. References customer-research for the interview methodology that surfaces this.",
+      "assertions": [
+        "Walks the alternatives list framework (direct, adjacent, null)",
+        "Names the null option as often the largest competitor",
+        "Provides specific alternatives examples",
+        "References customer-research for the interview methodology",
+        "Calls modern.surveys.nps_distribution or similar for verbatim mining"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our packaging says 'made with premium ingredients.' Is that positioning?",
+      "expected_output": "No — that's marketing language, not unique positioning. Walks the unique-attributes test (would a competitor say the same? if yes, not unique). Pushes for specifics: which farm, which certifications, which formulation. Provides examples of how 'premium ingredients' would be rewritten with specifics. References copywriting for the resulting copy.",
+      "assertions": [
+        "Identifies 'premium ingredients' as undifferentiated marketing language",
+        "Walks the unique-attributes test",
+        "Provides examples of specific replacements",
+        "References copywriting for resulting copy",
+        "Notes that competitors can say the same thing"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We want to launch a new product line. Should we work on positioning first or copy first?",
+      "expected_output": "Positioning first. Walks the positioning-as-input-to-copy framework. Names the flow (research → positioning → messaging house → copy). Notes that starting with copy produces 'sounds good' but doesn't convert. References customer-research for the research step and copywriting for the surface-specific copy. References launch for the launch plan.",
+      "assertions": [
+        "Recommends positioning first, then copy",
+        "Walks the positioning-as-input-to-copy framework",
+        "Names the four-step flow",
+        "References customer-research, copywriting, and launch",
+        "Notes 'sounds good' but doesn't convert as the copy-first failure"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Walk me through a messaging house for a hypothetical sleep supplement brand.",
+      "expected_output": "Constructs a messaging house: positioning statement, 3 pillars, proof points per pillar, stories or applications. Each pillar is grounded in a unique attribute with a 'so what' benefit framing. Names a specific best-for customer. References product-marketing-positioning's own frameworks consistently.",
+      "assertions": [
+        "Constructs a messaging house with positioning statement",
+        "Includes 3 distinct pillars",
+        "Provides proof points per pillar",
+        "Names a specific best-for customer",
+        "Each pillar uses outcome-framed benefit, not feature listing"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Should we pick the 'obvious' category our product is in, or invent a new one?",
+      "expected_output": "Depends. Walks the category-we-want-to-win framework. Notes obvious is easy-to-enter but hard to differentiate; adjacent is usually highest-leverage for established products; new category is expensive but defensible. Asks about brand stage, budget, and current differentiation before recommending. Provides a worked example walking the three options.",
+      "assertions": [
+        "Walks the category-we-want-to-win framework",
+        "Names the three options (obvious, adjacent, new)",
+        "Notes the trade-offs of each",
+        "Asks about brand stage, budget, and differentiation",
+        "Provides a worked example"
+      ],
+      "files": []
+    }
+  ]
+}

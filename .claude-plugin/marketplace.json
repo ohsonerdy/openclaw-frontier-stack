@@ -1,0 +1,28 @@
+{
+  "name": "openclaw-frontier-stack",
+  "owner": {
+    "name": "ohsonerdy",
+    "url": "https://github.com/ohsonerdy"
+  },
+  "plugins": [
+    {
+      "name": "openclaw-frontier-stack",
+      "source": {
+        "source": "github",
+        "owner": "ohsonerdy",
+        "repo": "openclaw-frontier-stack"
+      },
+      "description": "Interoperable agent skills + hooks + orchestration harness. 51 skills (28 ecomm marketing, 20 engineering workflow, 3 operator), 11 role contracts, engineer CLI (openclaw), live agent runner daemon (openclaw-agent), 4 coordination patterns, and 5 autonomous loops.",
+      "version": "0.6.0",
+      "license": "MIT",
+      "categories": [
+        "skills",
+        "hooks",
+        "orchestration",
+        "marketing",
+        "engineering",
+        "release-gates"
+      ]
+    }
+  ]
+}

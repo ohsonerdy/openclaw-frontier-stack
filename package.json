@@ -1,12 +1,13 @@
 {
   "name": "@openclaw/frontier-stack",
-  "version": "0.5.0",
-  "description": "Production-ready, drop-in interoperable agent skills + hooks + orchestration harness for Claude Code, Codex, Cursor, OpenCode, and any agent that supports the Agent Skills specification. Ships 28 skills (13 ecomm marketing, 3 operator, 12 engineering workflow), 8 role contracts (orchestrator, security-sentinel, architect, builder, reviewer, researcher, marketing-strategist, executive-summary), an engineer CLI (openclaw), and the OpenClaw Frontier Stack production core: signed coordination, durable task ownership, memory, observability, fail-closed release gates, and one autonomous skill-eval-drift loop.",
+  "version": "0.6.0",
+  "description": "Production-ready, drop-in interoperable agent skills + hooks + orchestration harness for Claude Code, Codex, Cursor, OpenCode, and any agent that supports the Agent Skills specification. Ships 51 skills (28 ecomm marketing as Modern Skills, 20 engineering workflow, 3 operator), 11 role contracts, an engineer CLI (openclaw), a live agent runner daemon (openclaw-agent), 4 coordination patterns (fan-out, fan-in, chain, voting), and 5 autonomous loops (skill-eval-drift, dependency-vulnerability-scan, performance-baseline-drift, documentation-staleness, prompt-tuning). Plus the OpenClaw Frontier Stack production core: signed coordination, durable task ownership, memory, observability, and fail-closed release gates.",
   "license": "MIT",
   "type": "commonjs",
   "private": false,
   "bin": {
-    "openclaw": "./bin/openclaw"
+    "openclaw": "./bin/openclaw",
+    "openclaw-agent": "./bin/openclaw-agent"
   },
   "engines": {
     "node": ">=20"
@@ -46,7 +47,9 @@
     "docs/",
     "examples/",
     "hooks/",
+    "lib/",
     "release-gate/checklist.md",
+    "release-gate/lib/",
     "release-gate/release-notes/",
     "release-gate/reviewer-decision.template.yaml",
     "release-gate/reviewer-decision-schema.md",

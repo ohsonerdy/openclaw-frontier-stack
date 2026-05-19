@@ -1,0 +1,97 @@
+{
+  "skill_name": "customer-research",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to understand our customers better. Help.",
+      "expected_output": "Pushback on the vague question. Walks the research-question framing: who specifically, what behavior or decision, in service of what operator decision. Asks the user to narrow before designing methodology. Notes that vague questions produce vague research.",
+      "assertions": [
+        "Pushes back on the vague question",
+        "Walks the research-question framing in actionable form",
+        "Asks the user to name specific segment, behavior, and operator decision",
+        "Notes vague questions produce vague research",
+        "Does not jump to methodology before the question is specific"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We need to know why subscribers cancel in the first 30 days. Run 15 interviews?",
+      "expected_output": "Yes, plus mine existing voice-of-customer first. Walks the methodology: exit interviews specifically, JTBD switch structure adapted for the cancel moment. Recommends pulling cancellation reasons and support tickets from the corpus before interviewing. Provides the structured interview guide. References subscription-churn for the broader retention context.",
+      "assertions": [
+        "Recommends mining existing corpus (cancellation reasons, support tickets) first",
+        "Walks the JTBD switch structure adapted for cancellation",
+        "Provides structured interview guide questions",
+        "Recommends 8-15 interviews for discovery",
+        "References subscription-churn for retention context",
+        "Calls modern.surveys.nps_distribution or similar for verbatim mining"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our team has 500 reviews and 200 NPS verbatim responses. Should we read them?",
+      "expected_output": "Yes — that's free research most brands never read systematically. Walks the voice-of-customer mining framework. Recommends reading in one sitting, tagging recurring phrases, and producing a 2-3 page synthesis with top 10 recurring phrases, top 5 pain points, top 5 objections. References copywriting for the language application.",
+      "assertions": [
+        "Recommends reading the existing corpus before new research",
+        "Walks the voice-of-customer mining framework",
+        "Recommends reading in one sitting",
+        "Names the synthesis output (top phrases, pain points, objections)",
+        "References copywriting for application of mined language"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our agency wants to run a survey asking 'Don't you wish we had a vanilla flavor?' to gauge demand. Good idea?",
+      "expected_output": "No — that's a leading question. Walks the avoid-leading-questions framework. Notes that 'don't you wish we had X' produces yes-bias and isn't actionable. Recommends better phrasings: past-tense behavior questions ('what flavor did you choose last and why') or discrete-choice surveys for actual preference signal. Notes that survey-yes does not equal future purchase.",
+      "assertions": [
+        "Identifies the question as leading",
+        "Walks the avoid-leading-questions framework",
+        "Provides better phrasings (past-tense behavior, discrete choice)",
+        "Notes survey-yes does not equal future purchase",
+        "Recommends discrete-choice or actual A/B testing for real signal"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our ICP is 'women 25-45 interested in wellness.' Is that good enough?",
+      "expected_output": "No — too broad to be useful. Walks the 'what would have to be true' framework. Pushes for specifier ICP (age band, household income, life stage, behavioral signals, current habits). Notes that the right ICP is one that can be falsified by data. References product-marketing-positioning for the upstream positioning question.",
+      "assertions": [
+        "Identifies the ICP as too broad",
+        "Walks the 'what would have to be true' framework",
+        "Pushes for narrower specifier ICP with multiple dimensions",
+        "Notes the ICP should be falsifiable by data",
+        "References product-marketing-positioning for upstream work"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "How many interviews do I need to run?",
+      "expected_output": "8-15 for discovery, 20-30 for validation. Walks the validate-not-vibe framework. Notes returns diminish sharply after 30. Distinguishes discovery (interview-driven, hypothesis-producing) from validation (survey or A/B test-driven, hypothesis-confirming). References ab-testing for the validation arm.",
+      "assertions": [
+        "Names 8-15 for discovery, 20-30 for validation",
+        "Walks the validate-not-vibe framework",
+        "Distinguishes discovery from validation phases",
+        "Notes returns diminish after 30 interviews",
+        "References ab-testing for validation"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "After 12 interviews, I have a notebook full of quotes. Now what?",
+      "expected_output": "Synthesize patterns, not anecdotes. Walks the synthesis approach: recurring pain points (5+ interviewees), recurring trigger moments, recurring alternatives, recurring language. Provides output template: top 10 phrases for copy, top 5 pain points for positioning, top 5 objections for FAQ and CRO. References copywriting, product-marketing-positioning, and cro for the downstream application.",
+      "assertions": [
+        "Recommends synthesizing patterns, not anecdotes",
+        "Names recurring-pattern thresholds (5+ interviewees)",
+        "Lists synthesis output categories",
+        "References copywriting, product-marketing-positioning, and cro for application",
+        "Provides output template structure"
+      ],
+      "files": []
+    }
+  ]
+}

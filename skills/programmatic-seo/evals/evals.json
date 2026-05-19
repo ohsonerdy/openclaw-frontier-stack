@@ -1,0 +1,97 @@
+{
+  "skill_name": "programmatic-seo",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to generate 500 programmatic SEO pages for my supplement brand. Where do I start?",
+      "expected_output": "Asks for the proposed dimension before any generation advice. Walks the data-source-first design framework. Identifies the catalog attributes needed for per-page differentiation. Warns about the two failure modes (thinness, cannibalization). Recommends starting with a 20-page pilot before generating 500.",
+      "assertions": [
+        "Asks for the proposed dimension before generation advice",
+        "Walks the data-source-first design framework",
+        "Names the two failure modes (thinness, cannibalization)",
+        "Recommends a pilot batch before generating at scale",
+        "Calls modern.sales.sku_affinity to identify natural dimension pairs",
+        "Output names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our agency proposed generating 'Best [ingredient] supplements in [city]' pages for 50 ingredients x 50 cities = 2,500 pages. Good idea?",
+      "expected_output": "Likely not. Walks search-intent-per-page-type: location intent for DTC supplements is rare and weak. Customers searching '[ingredient] supplements in [city]' usually want local stores, not DTC brands. Recommends a different dimension (ingredient x concern, or ingredient x customer segment) that matches actual DTC search behavior. Warns about cannibalization across 2,500 pages.",
+      "assertions": [
+        "Pushes back on the location dimension for DTC supplements",
+        "Notes the search-intent mismatch (local-store intent vs DTC brand)",
+        "Recommends a different dimension that fits DTC behavior",
+        "Warns about cannibalization at 2,500-page scale",
+        "Walks the search-intent-per-page-type framework"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We generated 300 'X vs Y' comparison pages. Google indexed them but they're getting almost no traffic. Why?",
+      "expected_output": "Likely orphan pages. Walks the internal link graph design framework. Asks whether the pages are linked from navigational pages within 2 clicks of homepage and whether they cross-link to sibling pages. Recommends building the link graph algorithmically and adding a 'see all comparisons' index page to nav or footer.",
+      "assertions": [
+        "Diagnoses orphan-page problem",
+        "Walks the internal link graph design framework",
+        "Asks about linking from navigational pages",
+        "Recommends sibling cross-linking",
+        "Recommends 'see all' index page in nav or footer"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Each of our 500 programmatic pages has the same template content with the keywords swapped. Is that OK?",
+      "expected_output": "No. Walks the data-source-first design and 'is each page actually useful' filter. Identifies the pages as template-thin and at high risk of Helpful Content downweighting. Recommends either thickening per-page content with genuine catalog data variance or pruning the page count and consolidating into fewer, denser pages.",
+      "assertions": [
+        "Identifies the pages as template-thin",
+        "Names Helpful Content / quality update downweighting risk",
+        "Recommends thickening per-page content with genuine variance",
+        "Recommends consolidation as an alternative",
+        "Walks the 'is each page actually useful' filter"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We added FAQ to every programmatic page. Should we add FAQPage schema too?",
+      "expected_output": "Yes. References schema-markup for the FAQPage design. Notes that FAQPage schema + answer text is high-leverage for AI-surface visibility. References ai-seo for the AI-citation logic. Warns about Google's FAQ schema rich result restrictions (only authoritative sources qualify as of 2023+, so the schema is more useful for AI surfaces than for Google rich results).",
+      "assertions": [
+        "Recommends adding FAQPage schema",
+        "References schema-markup for the design",
+        "References ai-seo for AI-citation logic",
+        "Notes Google's FAQ rich result restrictions",
+        "Frames the schema as more useful for AI surfaces than Google rich results"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our 'best greens powder for athletes' and 'best greens powder for runners' pages are cannibalizing each other. Both got crushed.",
+      "expected_output": "Walks the cannibalization risk framework. Recommends collapsing the two into one page ('best greens powder for endurance athletes') or canonicalizing one to the other. Warns that post-launch cannibalization is hard to unwind because pages already have backlinks and signal. Recommends a one-time cleanup followed by tighter dimension design going forward.",
+      "assertions": [
+        "Walks the cannibalization risk framework",
+        "Recommends collapsing into one page or canonical consolidation",
+        "Warns about post-launch cannibalization difficulty",
+        "Recommends tighter dimension design going forward",
+        "Names the high-risk band of cannibalization explicitly"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "How often should we refresh our programmatic pages?",
+      "expected_output": "Depends on what's on the page. Walks the refresh cadence framework: pricing/availability monthly, SKU lists quarterly, reviews monthly, editorial annually. Recommends building the refresh pipeline into the generator. Notes that stale programmatic pages get downweighted faster than stale evergreen pages.",
+      "assertions": [
+        "Walks the refresh cadence framework",
+        "Names monthly for pricing/availability",
+        "Names quarterly for SKU lists",
+        "Names monthly for review counts",
+        "Notes the faster downweighting of stale programmatic pages"
+      ],
+      "files": []
+    }
+  ]
+}

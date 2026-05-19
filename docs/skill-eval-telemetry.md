@@ -59,6 +59,19 @@ The report's `auth` field is now an object so traceability is preserved across b
 
 `kind` is one of `oauth`, `api-key`, `bearer`, or `none`.
 
+### Schema migration: v1 → v2
+
+In `modern-skills.eval-report.v1` (shipped through v0.4.x), the `auth` field was a bare string such as `"oauth"` — sufficient when the only supported backend was the Anthropic API.
+
+In `modern-skills.eval-report.v2` (v0.5.0+), the `auth` field is the object shown above (`{ kind, endpoint, apiFormat }`). This was a meaningful schema change driven by multi-backend support (Anthropic, Ollama, vLLM, any OpenAI-compatible server) — consumers need to know which endpoint and API format produced the report, not just that auth succeeded.
+
+Consumers reading the report:
+
+- Old (v1): `report.auth === "oauth"`
+- New (v2): `report.auth.kind === "oauth"` plus `report.auth.endpoint` and `report.auth.apiFormat`
+
+There is no compatibility shim. Any downstream tool that diffs or aggregates eval reports across versions must branch on `report.schema` and read `auth` accordingly. The version bump is the contract.
+
 ### Ollama
 
 Ollama exposes an OpenAI-compatible API at `http://localhost:11434/v1/...` once `ollama serve` is running.
@@ -126,11 +139,11 @@ The cron is `0 9 * * *` — 09:00 UTC daily. That lands at 05:00 ET / 04:00 CT, 
 
 ## How to read the eval report JSON
 
-The eval runner writes a single JSON document to stdout, which the workflow redirects to `release-gate/reports/eval-report-<date>-<model>.json` and uploads as a workflow artifact named `eval-report-<date>-<model>`. The schema is `modern-skills.eval-report.v1`:
+The eval runner writes a single JSON document to stdout, which the workflow redirects to `release-gate/reports/eval-report-<date>-<model>.json` and uploads as a workflow artifact named `eval-report-<date>-<model>`. The schema is `modern-skills.eval-report.v2`:
 
 ```json
 {
-  "schema": "modern-skills.eval-report.v1",
+  "schema": "modern-skills.eval-report.v2",
   "generatedAt": "2026-05-17T09:00:01.234Z",
   "mode": "live",
   "model": "claude-sonnet-4-6",

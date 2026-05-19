@@ -26,6 +26,7 @@ const include = [
   'agents',
   'bin',
   'hooks',
+  'lib',
   'STATUS.md',
   'docs',
   'EVIDENCE',

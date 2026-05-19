@@ -2,6 +2,87 @@
 
 All notable public-package changes should be recorded here. This changelog is for the operator-safe OpenClaw Frontier Stack package only; it must not reference private runtimes, personal context, raw logs, credentials, private hosts, or external announcements.
 
+## 2026-05-19 — v0.6.0 — Skill catalog doubles, coordination layer, live agent runner, autonomous-loop fleet
+
+Status: published.
+
+Largest single release. Doubles the skill catalog (28 → 51), adds the coordination layer that turns the orchestration harness into a real swarm scheduler, ships the live agent runner daemon, expands the autonomous-loop fleet from 1 to 5, and closes pre-existing rough edges (schema bump, install-path correction, slash-command marketplace catalog).
+
+### Added — skill catalog (28 → 51)
+
+**15 ecomm marketing skills** (Modern Skills doubles from 13 → 28). Broad-surface expansion covering the marketing fundamentals not yet in the catalog: `cro`, `copywriting`, `ai-seo`, `seo-audit`, `programmatic-seo`, `schema-markup`, `ads`, `ad-creative`, `ab-testing`, `customer-research`, `product-marketing-positioning`, `launch`, `content-strategy`, `email-marketing`, `social-strategy`. Each integrates with the Modern AI MCP for live data. `ai-seo` bakes in current-as-of-May-2026 AI-search patterns: Query Fan-Out, agentic-experience optimization, the `llms.txt` framing, what-NOT-to-do anti-patterns.
+
+**8 more engineering workflow skills** (engineering total 12 → 20). Filling gaps complementary to obra/superpowers: `code-review-giving`, `local-dev-environment`, `feature-flagging`, `load-testing`, `logging-discipline`, `api-deprecation`, `oncall-rotation-design`, `backup-and-restore`.
+
+Skill totals: 28 marketing + 20 engineering + 3 operator = **51**. 5,000+ LOC of skill content, ~280 eval cases, ~1,500 assertions. All 51 pass the validator with zero warnings.
+
+### Added — coordination patterns
+
+`lib/coordination/` with 4 standalone modules. Each takes the goal id + tasks + ledger + taskflow as inputs and orchestrates one specific coordination shape:
+
+- `fan-out.js` — N independent tasks in parallel
+- `fan-in.js` — wait for N upstream results, dispatch a joiner with the union
+- `chain.js` — sequential pipeline where each step feeds the next
+- `voting.js` — same decision to multiple voters, verdict by quorum + threshold
+
+All four unit-tested. The orchestration harness (`scripts/orchestrate.js`) reads a `pattern` field on each lane and dispatches via the matching coordinator. Mock-mode works without any live agents.
+
+### Added — live agent runner daemon (`bin/openclaw-agent`)
+
+The piece that turns the mock-mode dispatch into real swarm execution. Single-role daemon: started with `--role <role-name>`, parses `agents/<role>/CONTRACT.md` (via pure regex, no markdown lib), polls the blackboard for task-claims addressed to itself, dispatches to the model backend (via the eval-runner's exported `callBackend`), enforces the contract's hard rules POST-output (two-pass: universal regex + contract-derived tokens), writes `result` records on success and `decision: blocked` records on rule violations. Optionally signs records with an Ed25519 identity key. Every event audit-logged to a configurable path under your home directory (defaults documented in `docs/agent-daemon.md`).
+
+Refactored `scripts/run-skill-evals.js` to export `callBackend`, `resolveBackend`, `resolveAuth`, `isLocalHost`, `DEFAULT_ANTHROPIC_ENDPOINT` so the daemon and the workflows can share auth + backend resolution. CLI behaviour unchanged.
+
+### Added — 3 new agent roles
+
+Filling gaps surfaced by v0.5.0:
+
+- `scribe` — owns `CHANGELOG.md` and release-notes. Documents but cannot ship.
+- `dependency-warden` — bumps one dep at a time after CHANGELOG review. Narrow lane carved out from architect.
+- `eval-runner` — owns scheduled-evals + autonomous-loops cadence; triages drift; cannot modify eval prompts or scripts.
+
+Roster total: 8 (v0.5.0) + 3 = **11 role contracts**.
+
+### Added — 4 new autonomous loops (fleet now 5 total)
+
+- `.github/workflows/dependency-vulnerability-scan.yml` — daily; opens issue on high/critical vulnerabilities
+- `.github/workflows/performance-baseline-drift.yml` — weekly; compares against orphan-branch baseline
+- `.github/workflows/documentation-staleness.yml` — weekly; flags docs older than 180 days while source moved
+- `.github/workflows/prompt-tuning.yml` — monthly; cycles through skills, generates a SKILL.md variant via the model backend, A/Bs it against current evals, opens a draft PR if the variant improves pass rate >10%
+- Plus `release-gate/lib/prompt-tuning-template.md` (template for the variant-generation prompt)
+
+Each loop declares scoped `permissions:`, dedups by date+condition, surfaces a failure as a labeled issue.
+
+### Added — `openclaw watch` subcommand
+
+Tails the blackboard JSONL in operator-readable format. Flags: `--blackboard`, `--filter`, `--agent`, `--since`, `--no-color`, `--json`. Polls via `fs.statSync` size-delta (Windows-safe). Example output: `14:04:38  task-claim  orchestrator  goal-test-fan-out-6fb24e  "[fan-out] review file a"`.
+
+### Added — `.claude-plugin/marketplace.json`
+
+The slash-command install command we'd been advertising in the README (`/plugin install ohsonerdy/openclaw-frontier-stack`) didn't actually match Claude Code's documented syntax. The real syntax requires a `marketplace.json` catalog. Added one. Users can now run `/plugin marketplace add ohsonerdy/openclaw-frontier-stack` then `/plugin install openclaw-frontier-stack@openclaw-frontier-stack`.
+
+### Changed
+
+- `scripts/run-skill-evals.js` — eval-report schema bumped `v1` → `v2` (auth field shape changed from string to object in v0.5.0). Migration note added to `docs/skill-eval-telemetry.md`.
+- README install commands now docs-grounded for all 4 host platforms (verified from Claude Code, Codex CLI, Cursor, OpenCode docs). Modern Skills table updated to 28 rows; Engineering Skills section added with 20 rows.
+- `release-tarball builder` include list adds `lib/`, `release-gate/lib/`, the new manifest dirs.
+- `package.json#files` adds `lib/` and `release-gate/lib/`.
+- `package.json#bin` adds `openclaw-agent`.
+
+### Notes
+
+- 51 skills validate. 44 verifier checks pass. Eval dry-run reports schema v2.
+- 11 role contracts. Strict separation of powers. 60+ cross-referenced file paths verified.
+- Engineering Skills' `logging-discipline` initially used literal example emails that tripped the private-content scanner — replaced with `[redacted email]` style placeholders before this release.
+- The orchestration harness (`scripts/orchestrate.js`) and the live agent runner (`bin/openclaw-agent`) are decoupled: the orchestrator writes task-claims, the daemon reads them. They don't share process state.
+- Mock-mode dispatch (`openclaw goal "..." --mock-agents`) works without any infrastructure — exercise the full pipeline before connecting live agents.
+
+### v0.7.0+ candidates surfaced during this release
+
+- Skills: `secrets-management`, `database-migration-safety`, `code-review-receiving`, `feature-experiment-design`, `disaster-recovery-exercise-design`, `logging-platform-selection`, `oncall-handoff-rituals`, `postdeploy-verification`, `influencer-program-design`, `loyalty-program-design`, `pricing-experiments`, `merchandising-strategy`, `attribution-model-design`, `affiliate-program-design`, `retail-buyer-pitch`
+- AI-creative skills (catalog mentions current model lineup but no dedicated skills): `ai-image-generation`, `ai-video-generation`
+- MCP tools that skills reference but aren't yet in the spec surface table: `modern.sales.sku_affinity` (used in 4 skills), `modern.surveys.nps_distribution` (used in 4 skills), `modern.subscriptions.cancel_reasons`, `modern.subscriptions.dunning_recovery`, `modern.retention.lapsed_count`, `modern.retention.last_purchase_recency`. Modern AI MCP eng backlog item.
+
 ## 2026-05-19 — v0.5.0 — Foundation for engineer-leverage at scale
 
 Status: published.

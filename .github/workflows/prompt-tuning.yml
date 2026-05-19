@@ -1,0 +1,455 @@
+name: Autonomous loop — prompt tuning
+
+# Monthly per-skill prompt-tuning experiment.
+#
+# Cycling logic: skills are iterated in alphabetical directory order
+# under `skills/`. The "next skill to tune" is selected by reading the
+# fact records in `release-gate/reports/prompt-tuning-results-*.json`
+# from the default branch: the skill whose most recent tuning attempt
+# is oldest (or which has never been attempted) wins. Workflow dispatch
+# may override with the `skill` input.
+#
+# Per-run procedure:
+#   1. Capture the current SKILL.md and run the eval suite restricted to
+#      that skill against MODEL. Record per-eval pass/fail.
+#   2. Generate a variant SKILL.md by sending the current file plus
+#      `release-gate/lib/prompt-tuning-template.md` through the eval
+#      runner's model backend.
+#   3. Substitute the variant on disk and rerun the eval suite restricted
+#      to that skill. Restore the original SKILL.md.
+#   4. Compute pass-rate delta. If the variant improves pass rate by
+#      more than IMPROVEMENT_THRESHOLD_PCT, open a draft PR labeled
+#      `prompt-tuning-candidate` with the proposed diff and the eval
+#      scores.
+#   5. Always write a fact record into
+#      `release-gate/reports/prompt-tuning-results-<date>-<skill>.json`
+#      so the cycling logic can find the next skill next month.
+#
+# Failure path: model backend unavailable or eval crashes — open an
+# `infra-degraded` issue and exit without a tuning candidate.
+
+on:
+  schedule:
+    # 1st of every month at 10:00 UTC. This collides with the Monday
+    # eval-drift loop only when the 1st falls on a Monday; the
+    # concurrency groups are distinct so they run on separate jobs.
+    - cron: "0 10 1 * *"
+  workflow_dispatch:
+    inputs:
+      skill:
+        description: "Skill name to tune (leave blank to auto-cycle)"
+        required: false
+        default: ""
+        type: string
+      model:
+        description: "Model to use for variant generation and eval"
+        required: false
+        default: "claude-opus-4-7"
+        type: choice
+        options:
+          - claude-opus-4-7
+          - claude-sonnet-4-6
+          - claude-haiku-4-5-20251001
+      improvement_threshold_pct:
+        description: "Minimum pass-rate improvement (percentage points) to file a PR"
+        required: false
+        default: "10"
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: autonomous-prompt-tuning
+  cancel-in-progress: false
+
+jobs:
+  tune:
+    name: Generate and evaluate prompt-tuning variant
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      INPUT_SKILL: ${{ github.event.inputs.skill || '' }}
+      MODEL: ${{ github.event.inputs.model || 'claude-opus-4-7' }}
+      IMPROVEMENT_THRESHOLD_PCT: ${{ github.event.inputs.improvement_threshold_pct || '10' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install (no scripts)
+        run: npm install --ignore-scripts
+
+      - name: Compute report metadata and select skill
+        id: meta
+        run: |
+          DATE_UTC="$(date -u +%Y-%m-%d)"
+          REPORT_DIR="release-gate/reports"
+          mkdir -p "${REPORT_DIR}"
+          if [ -n "${INPUT_SKILL}" ]; then
+            SKILL="${INPUT_SKILL}"
+            SELECTION_REASON="workflow_dispatch input"
+          else
+            SKILL="$(node -e '
+              const fs = require("fs");
+              const path = require("path");
+              const skillsDir = "skills";
+              const skills = fs.readdirSync(skillsDir, { withFileTypes: true })
+                .filter((e) => e.isDirectory())
+                .map((e) => e.name)
+                .filter((n) => fs.existsSync(path.join(skillsDir, n, "SKILL.md")))
+                .sort();
+              const lastAttempt = new Map();
+              const reportDir = "release-gate/reports";
+              if (fs.existsSync(reportDir)) {
+                for (const entry of fs.readdirSync(reportDir)) {
+                  const m = entry.match(/^prompt-tuning-results-(\d{4}-\d{2}-\d{2})-(.+)\.json$/);
+                  if (!m) continue;
+                  const date = m[1];
+                  const name = m[2];
+                  const prev = lastAttempt.get(name);
+                  if (!prev || prev < date) lastAttempt.set(name, date);
+                }
+              }
+              // Pick the skill with the oldest attempt (or never attempted).
+              const ranked = skills.map((s) => ({ s, last: lastAttempt.get(s) || "0000-00-00" }));
+              ranked.sort((a, b) => a.last.localeCompare(b.last) || a.s.localeCompare(b.s));
+              process.stdout.write((ranked[0] && ranked[0].s) || "");
+            ')"
+            SELECTION_REASON="auto-cycle by oldest tuning attempt"
+          fi
+          if [ -z "${SKILL}" ]; then
+            echo "No skill could be selected." >&2
+            exit 2
+          fi
+          SAFE_SKILL="$(echo "${SKILL}" | tr -c '[:alnum:]._-' '-')"
+          FACT_PATH="${REPORT_DIR}/prompt-tuning-results-${DATE_UTC}-${SAFE_SKILL}.json"
+          ORIGINAL_REPORT="${REPORT_DIR}/prompt-tuning-original-${DATE_UTC}-${SAFE_SKILL}.json"
+          VARIANT_REPORT="${REPORT_DIR}/prompt-tuning-variant-${DATE_UTC}-${SAFE_SKILL}.json"
+          BRANCH="prompt-tuning/${DATE_UTC}-${SAFE_SKILL}"
+          {
+            echo "date_utc=${DATE_UTC}"
+            echo "skill=${SKILL}"
+            echo "safe_skill=${SAFE_SKILL}"
+            echo "selection_reason=${SELECTION_REASON}"
+            echo "fact_path=${FACT_PATH}"
+            echo "original_report=${ORIGINAL_REPORT}"
+            echo "variant_report=${VARIANT_REPORT}"
+            echo "report_dir=${REPORT_DIR}"
+            echo "branch=${BRANCH}"
+            echo "skill_file=skills/${SKILL}/SKILL.md"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verify skill file exists
+        env:
+          SKILL_FILE: ${{ steps.meta.outputs.skill_file }}
+        run: |
+          if [ ! -f "${SKILL_FILE}" ]; then
+            echo "skill file not found: ${SKILL_FILE}" >&2
+            exit 2
+          fi
+          cp "${SKILL_FILE}" /tmp/original-skill.md
+
+      - name: Run evals against original SKILL.md
+        id: original
+        env:
+          ANTHROPIC_OAUTH_TOKEN: ${{ secrets.ANTHROPIC_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENCLAW_EVAL_ENDPOINT: ${{ vars.OPENCLAW_EVAL_ENDPOINT }}
+          OPENCLAW_EVAL_API_FORMAT: ${{ vars.OPENCLAW_EVAL_API_FORMAT }}
+          OPENCLAW_EVAL_API_KEY: ${{ secrets.OPENCLAW_EVAL_API_KEY }}
+          SKILL: ${{ steps.meta.outputs.skill }}
+          ORIGINAL_REPORT: ${{ steps.meta.outputs.original_report }}
+        run: |
+          set +e
+          node scripts/run-skill-evals.js --live --model "${MODEL}" --skill "${SKILL}" \
+            > "${ORIGINAL_REPORT}"
+          STATUS=$?
+          echo "exit_code=${STATUS}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate variant SKILL.md from template
+        id: variant_gen
+        env:
+          ANTHROPIC_OAUTH_TOKEN: ${{ secrets.ANTHROPIC_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENCLAW_EVAL_ENDPOINT: ${{ vars.OPENCLAW_EVAL_ENDPOINT }}
+          OPENCLAW_EVAL_API_FORMAT: ${{ vars.OPENCLAW_EVAL_API_FORMAT }}
+          OPENCLAW_EVAL_API_KEY: ${{ secrets.OPENCLAW_EVAL_API_KEY }}
+          SKILL: ${{ steps.meta.outputs.skill }}
+          SKILL_FILE: ${{ steps.meta.outputs.skill_file }}
+          ORIGINAL_REPORT: ${{ steps.meta.outputs.original_report }}
+        run: |
+          set +e
+          # The variant-generation step uses the same backend wiring as
+          # the eval runner. We invoke it inline rather than adding a new
+          # script: the model-call helper module is exported by
+          # run-skill-evals.js so this stays close to the runner.
+          node -e '
+            const fs = require("fs");
+            const path = require("path");
+            const evalsModule = require(path.resolve("scripts/run-skill-evals.js"));
+            const { callBackend, resolveBackend, resolveAuth } = evalsModule;
+            if (typeof callBackend !== "function" || typeof resolveBackend !== "function" || typeof resolveAuth !== "function") {
+              process.stderr.write("eval runner does not export callBackend/resolveBackend/resolveAuth; variant generation cannot proceed\n");
+              process.exit(3);
+            }
+            const skillName = process.env.SKILL;
+            const skillFile = process.env.SKILL_FILE;
+            const skillBody = fs.readFileSync(skillFile, "utf8");
+            const template = fs.readFileSync("release-gate/lib/prompt-tuning-template.md", "utf8");
+            let evalSummary = "";
+            try {
+              const r = JSON.parse(fs.readFileSync(process.env.ORIGINAL_REPORT, "utf8"));
+              const sk = (r.skills || []).find((s) => s.name === skillName);
+              if (sk && Array.isArray(sk.evals)) {
+                const failing = sk.evals.filter((e) => !e.ok).map((e) => e.id).join(", ");
+                evalSummary = failing
+                  ? `Original run had ${sk.evals.length} evals; failing eval ids: ${failing}.`
+                  : `Original run had ${sk.evals.length} evals; all passed at the assertion level.`;
+              }
+            } catch { /* leave empty */ }
+            const systemPrompt = template;
+            const userPrompt = template.includes("{{SKILL_BODY}}")
+              ? template
+                  .replace("{{SKILL_NAME}}", skillName)
+                  .replace("{{EVAL_SUMMARY}}", evalSummary)
+                  .replace("{{SKILL_BODY}}", skillBody)
+              : `Skill under tuning: ${skillName}\n\nRecent eval signal:\n${evalSummary}\n\nCurrent SKILL.md:\n\n${skillBody}\n`;
+            (async () => {
+              try {
+                const backend = resolveBackend({
+                  endpoint: process.env.OPENCLAW_EVAL_ENDPOINT || null,
+                  apiFormat: process.env.OPENCLAW_EVAL_API_FORMAT || null,
+                });
+                const auth = resolveAuth(backend);
+                const result = await callBackend({
+                  model: process.env.MODEL,
+                  system: systemPrompt,
+                  userPrompt,
+                  auth,
+                  apiFormat: backend.apiFormat,
+                  endpointUrl: backend.endpointUrl,
+                });
+                const out = (result && typeof result.output === "string") ? result.output : null;
+                if (!out) {
+                  process.stderr.write("model backend returned no output\n");
+                  process.exit(4);
+                }
+                fs.writeFileSync("/tmp/variant-skill.md", out);
+                console.log("variant generated, length:", out.length);
+              } catch (err) {
+                process.stderr.write(`variant generation failed: ${err && err.stack || err}\n`);
+                process.exit(5);
+              }
+            })();
+          '
+          STATUS=$?
+          echo "exit_code=${STATUS}" >> "$GITHUB_OUTPUT"
+
+      - name: Run evals against variant SKILL.md
+        id: variant
+        if: steps.variant_gen.outputs.exit_code == '0'
+        env:
+          ANTHROPIC_OAUTH_TOKEN: ${{ secrets.ANTHROPIC_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENCLAW_EVAL_ENDPOINT: ${{ vars.OPENCLAW_EVAL_ENDPOINT }}
+          OPENCLAW_EVAL_API_FORMAT: ${{ vars.OPENCLAW_EVAL_API_FORMAT }}
+          OPENCLAW_EVAL_API_KEY: ${{ secrets.OPENCLAW_EVAL_API_KEY }}
+          SKILL: ${{ steps.meta.outputs.skill }}
+          SKILL_FILE: ${{ steps.meta.outputs.skill_file }}
+          VARIANT_REPORT: ${{ steps.meta.outputs.variant_report }}
+        run: |
+          set +e
+          cp /tmp/variant-skill.md "${SKILL_FILE}"
+          node scripts/run-skill-evals.js --live --model "${MODEL}" --skill "${SKILL}" \
+            > "${VARIANT_REPORT}"
+          STATUS=$?
+          # Always restore the original immediately so any later step
+          # operates on the canonical tree.
+          cp /tmp/original-skill.md "${SKILL_FILE}"
+          echo "exit_code=${STATUS}" >> "$GITHUB_OUTPUT"
+
+      - name: Compute pass-rate delta and write fact record
+        id: delta
+        if: steps.original.outputs.exit_code != '' && steps.variant.outputs.exit_code != ''
+        env:
+          ORIGINAL_REPORT: ${{ steps.meta.outputs.original_report }}
+          VARIANT_REPORT: ${{ steps.meta.outputs.variant_report }}
+          FACT_PATH: ${{ steps.meta.outputs.fact_path }}
+          SKILL: ${{ steps.meta.outputs.skill }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const threshold = Number(process.env.IMPROVEMENT_THRESHOLD_PCT) || 10;
+            function readReport(file) {
+              try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; }
+            }
+            function passRate(report, skillName) {
+              if (!report || !Array.isArray(report.skills)) return null;
+              const sk = report.skills.find((s) => s.name === skillName);
+              if (!sk || !Array.isArray(sk.evals) || sk.evals.length === 0) return null;
+              let pass = 0, total = 0;
+              for (const e of sk.evals) {
+                if (typeof e.passedAssertions === "number" && typeof e.totalAssertions === "number") {
+                  pass += e.passedAssertions;
+                  total += e.totalAssertions;
+                }
+              }
+              return total === 0 ? null : (pass / total) * 100;
+            }
+            const original = readReport(process.env.ORIGINAL_REPORT);
+            const variant = readReport(process.env.VARIANT_REPORT);
+            const originalRate = passRate(original, process.env.SKILL);
+            const variantRate = passRate(variant, process.env.SKILL);
+            const delta = (originalRate != null && variantRate != null) ? variantRate - originalRate : null;
+            const variantWins = delta != null && delta > threshold;
+            const fact = {
+              schema: "openclaw-frontier.prompt-tuning-result.v1",
+              date: process.env.DATE_UTC,
+              skill: process.env.SKILL,
+              model: process.env.MODEL,
+              improvementThresholdPct: threshold,
+              originalPassRate: originalRate != null ? Number(originalRate.toFixed(2)) : null,
+              variantPassRate: variantRate != null ? Number(variantRate.toFixed(2)) : null,
+              deltaPct: delta != null ? Number(delta.toFixed(2)) : null,
+              variantWins,
+            };
+            fs.writeFileSync(process.env.FACT_PATH, JSON.stringify(fact, null, 2) + "\n");
+            console.log(`variantWins=${variantWins} delta=${delta}`);
+          '
+          VARIANT_WINS="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.env.FACT_PATH, "utf8")).variantWins)')"
+          DELTA_PCT="$(node -e 'const r=JSON.parse(require("fs").readFileSync(process.env.FACT_PATH, "utf8")); console.log(r.deltaPct == null ? "" : r.deltaPct)')"
+          {
+            echo "variant_wins=${VARIANT_WINS}"
+            echo "delta_pct=${DELTA_PCT}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload tuning artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prompt-tuning-${{ steps.meta.outputs.date_utc }}-${{ steps.meta.outputs.safe_skill }}
+          path: |
+            ${{ steps.meta.outputs.original_report }}
+            ${{ steps.meta.outputs.variant_report }}
+            ${{ steps.meta.outputs.fact_path }}
+          if-no-files-found: warn
+          retention-days: 180
+
+      - name: Open draft PR with variant when it wins
+        if: steps.delta.outputs.variant_wins == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.meta.outputs.branch }}
+          SKILL: ${{ steps.meta.outputs.skill }}
+          SKILL_FILE: ${{ steps.meta.outputs.skill_file }}
+          FACT_PATH: ${{ steps.meta.outputs.fact_path }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+          DELTA_PCT: ${{ steps.delta.outputs.delta_pct }}
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          BOT_USER="41898282+github-actions[bot]"
+          BOT_DOMAIN="users.noreply.github.com"
+          git config user.email "${BOT_USER}""@""${BOT_DOMAIN}"
+          git checkout -b "${BRANCH}"
+          # Stage the variant SKILL.md and the fact record.
+          cp /tmp/variant-skill.md "${SKILL_FILE}"
+          git add "${SKILL_FILE}" "${FACT_PATH}"
+          if git diff --cached --quiet; then
+            echo "No diff after variant overwrite; restoring original and exiting."
+            cp /tmp/original-skill.md "${SKILL_FILE}"
+            exit 0
+          fi
+          git commit -m "prompt-tuning: ${SKILL} variant (+${DELTA_PCT} pp)"
+          git push -u origin "${BRANCH}"
+          BODY_FILE="$(mktemp)"
+          {
+            echo "Automated prompt-tuning candidate for skill \`${SKILL}\`."
+            echo ""
+            echo "- Date (UTC): ${DATE_UTC}"
+            echo "- Model: \`${MODEL}\`"
+            echo "- Pass-rate delta: +${DELTA_PCT} percentage points (threshold: ${IMPROVEMENT_THRESHOLD_PCT})"
+            echo ""
+            echo "### Eval scores"
+            node -e '
+              const fs = require("fs");
+              const f = JSON.parse(fs.readFileSync(process.env.FACT_PATH, "utf8"));
+              process.stdout.write(`Original: ${f.originalPassRate} %\n`);
+              process.stdout.write(`Variant: ${f.variantPassRate} %\n`);
+            '
+            echo ""
+            echo "The variant was generated by the eval runner using the fixed template in \`release-gate/lib/prompt-tuning-template.md\`. Please review the diff for tone, scope creep, and any unintended drift in the YAML front matter."
+          } > "${BODY_FILE}"
+          gh pr create \
+            --draft \
+            --title "prompt-tuning ${DATE_UTC}: ${SKILL} (+${DELTA_PCT} pp)" \
+            --body-file "${BODY_FILE}" \
+            --label prompt-tuning-candidate \
+            --head "${BRANCH}" \
+            --base "${GITHUB_REF_NAME}"
+
+      - name: Open infra-degraded issue on backend/eval failure
+        if: (steps.variant_gen.outputs.exit_code != '' && steps.variant_gen.outputs.exit_code != '0') || (steps.original.outputs.exit_code != '' && steps.original.outputs.exit_code != '0' && steps.original.outputs.exit_code != '1') || (steps.variant.outputs.exit_code != '' && steps.variant.outputs.exit_code != '0' && steps.variant.outputs.exit_code != '1')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+          SKILL: ${{ steps.meta.outputs.skill }}
+          ORIGINAL_EXIT: ${{ steps.original.outputs.exit_code }}
+          VARIANT_GEN_EXIT: ${{ steps.variant_gen.outputs.exit_code }}
+          VARIANT_EVAL_EXIT: ${{ steps.variant.outputs.exit_code }}
+        run: |
+          set -e
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          TITLE="infra-degraded ${DATE_UTC}: prompt-tuning loop failure (${SKILL})"
+          BODY="The prompt-tuning loop could not complete for skill \`${SKILL}\`. original-eval exit=\`${ORIGINAL_EXIT}\`, variant-gen exit=\`${VARIANT_GEN_EXIT}\`, variant-eval exit=\`${VARIANT_EVAL_EXIT}\`. Run: ${RUN_URL}"
+          EXISTING="$(gh issue list --label infra-degraded --state open --search "prompt-tuning ${DATE_UTC}" --json number --jq '.[0].number // empty')"
+          if [ -n "${EXISTING}" ]; then
+            gh issue comment "${EXISTING}" --body "${BODY}"
+          else
+            gh issue create --title "${TITLE}" --label infra-degraded --body "${BODY}"
+          fi
+
+      - name: Restore original SKILL.md (safety net)
+        if: always()
+        env:
+          SKILL_FILE: ${{ steps.meta.outputs.skill_file }}
+        run: |
+          if [ -f /tmp/original-skill.md ] && [ -n "${SKILL_FILE}" ] && [ -f "${SKILL_FILE}" ]; then
+            cp /tmp/original-skill.md "${SKILL_FILE}"
+          fi
+
+      - name: Summarize into job summary
+        if: always()
+        env:
+          FACT_PATH: ${{ steps.meta.outputs.fact_path }}
+        run: |
+          {
+            echo "## Prompt-tuning loop"
+            echo ""
+            echo "- Date (UTC): ${{ steps.meta.outputs.date_utc }}"
+            echo "- Skill: \`${{ steps.meta.outputs.skill }}\`"
+            echo "- Selection: ${{ steps.meta.outputs.selection_reason }}"
+            echo "- Model: \`${MODEL}\`"
+            echo "- Improvement threshold: ${IMPROVEMENT_THRESHOLD_PCT} pp"
+            echo "- Variant wins: ${{ steps.delta.outputs.variant_wins }}"
+            echo "- Delta: ${{ steps.delta.outputs.delta_pct }} pp"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -s "${FACT_PATH}" ]; then
+            {
+              echo ""
+              echo "### Fact record"
+              echo '```json'
+              cat "${FACT_PATH}"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

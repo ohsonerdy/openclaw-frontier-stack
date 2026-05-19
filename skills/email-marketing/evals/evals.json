@@ -1,0 +1,97 @@
+{
+  "skill_name": "email-marketing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our email open rate dropped from 32% to 18% over 3 months. What's happening?",
+      "expected_output": "Walks the deliverability and list-health diagnostic. Asks about SPF/DKIM/DMARC status, recent list-acquisition sources, broadcast cadence by segment, and suppression discipline. Diagnoses possible causes: list rot, deliverability degradation, content fatigue. Provides a sequenced fix list starting with deliverability checks and suppression of unengaged.",
+      "assertions": [
+        "Walks the deliverability fundamentals checklist",
+        "Asks about SPF, DKIM, DMARC status",
+        "Asks about list acquisition sources and suppression discipline",
+        "Diagnoses possible causes (list rot, deliverability, content fatigue)",
+        "Provides sequenced fix list",
+        "Output names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our list has 250k subscribers. Should we keep growing it?",
+      "expected_output": "Asks about engaged percentage first. Walks the list-health discipline framework. Notes that list size without engagement is vanity. If engaged percentage is low (under 25%), recommends suppression before growth. References winback-flows for the lapsed-customer reactivation.",
+      "assertions": [
+        "Asks about engaged percentage first",
+        "Walks the list-health discipline framework",
+        "Notes list size without engagement is vanity",
+        "Recommends suppression before growth if engaged is low",
+        "References winback-flows for reactivation"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We send the same daily email to our entire list. Is that bad?",
+      "expected_output": "Yes. Walks the broadcast cadence by segment framework. Recommends cadence varying by engagement: 2-3/week for highly engaged, 1-2/week for moderately, 1/month for lapsed, suppress cold. Notes daily-to-everyone trains the lapsed cohort to spam-flag, which degrades deliverability for the engaged.",
+      "assertions": [
+        "Identifies daily-to-everyone as harmful",
+        "Walks the broadcast cadence framework",
+        "Names cadence per engagement segment",
+        "Notes spam-flagging by lapsed degrades engaged deliverability",
+        "References segmentation framework"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our subject line for tomorrow's broadcast is 'Happy Tuesday!' Help me write a better one.",
+      "expected_output": "Pushback on the entire premise — 'Happy Tuesday' is filler. Walks the would-I-unsubscribe filter. Asks what the email's actual purpose is (offer, education, story). Recommends writing the subject line from the email's real value. References copywriting for the specificity premium and the three filters.",
+      "assertions": [
+        "Pushes back on 'Happy Tuesday' as filler",
+        "Walks the would-I-unsubscribe filter",
+        "Asks what the email's actual purpose is",
+        "References copywriting for subject-line specifics",
+        "Recommends writing subject from real value"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We segment by lifecycle only. Should we add behavioral segmentation?",
+      "expected_output": "Yes, especially above ~10k engaged subscribers where the setup cost is justified. Walks the segmentation strategy framework. Names the four layers (lifecycle, RFM, behavioral, declared). Recommends adding behavioral and declared layers. Provides examples of content differentiation per segment.",
+      "assertions": [
+        "Recommends adding behavioral segmentation",
+        "Walks the four-layer segmentation framework",
+        "Names the threshold (~10k engaged subscribers)",
+        "Provides content-differentiation examples",
+        "References declared preference layer"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "What's BIMI and should I set it up?",
+      "expected_output": "Walks the deliverability fundamentals framework. Names BIMI as a logo-placement system requiring DMARC at p=quarantine+ and a Verified Mark Certificate. Recommends setup if the brand has Gmail audience and brand recognition matters. Notes the prerequisites (DMARC, VMC) and the cost.",
+      "assertions": [
+        "Names BIMI and explains its purpose",
+        "Names the DMARC prerequisite",
+        "Names the Verified Mark Certificate requirement",
+        "Recommends based on Gmail audience and brand-recognition value",
+        "Notes the prerequisites and cost"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our email revenue is 18% of total revenue. Is that good?",
+      "expected_output": "Depends. Benchmarks vary by category but 25-40% is the typical healthy band for DTC ecomm. 18% suggests under-investment. Walks the owned-channel-leverage framework. Recommends investigating which flows or broadcasts are missing. References cart-abandonment-recovery, winback-flows, and subscription-churn (if applicable) for the missing-flow audit.",
+      "assertions": [
+        "Names 25-40% as typical healthy band for DTC ecomm",
+        "Identifies 18% as under-investment",
+        "Walks the owned-channel-leverage framework",
+        "References specific flow skills (cart-abandonment-recovery, winback-flows)",
+        "Recommends auditing for missing flows"
+      ],
+      "files": []
+    }
+  ]
+}

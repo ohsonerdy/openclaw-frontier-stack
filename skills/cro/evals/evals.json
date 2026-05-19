@@ -1,0 +1,104 @@
+{
+  "skill_name": "cro",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our PDP for our flagship daily greens powder is converting at 1.2%. Industry benchmark is 2-3%. What's broken?",
+      "expected_output": "Diagnosis grounded in the value-prop, message-match, and friction frameworks. Should run the 5-second value-prop test first, then check message-match between paid traffic creatives and PDP H1, then walk the PDP-specific friction taxonomy. Should pull device-split conversion before recommending fixes. Should not lead with button-color or theme changes.",
+      "assertions": [
+        "Checks for .agents/modern-ai-context.md",
+        "Runs the 5-second value-prop test as the first diagnostic",
+        "Calls modern.attribution.first_touch grouped by landing_page",
+        "Calls modern.sales.aov segmented by traffic_source and device",
+        "Walks PDP-specific friction taxonomy (images, variant selector, trust signals)",
+        "Asks about mobile vs desktop conversion split",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections",
+        "Names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Cart conversion rate dropped from 68% to 54% over the past month. Nothing else changed.",
+      "expected_output": "Diagnosis that walks the cart-specific friction taxonomy: shipping reveal, payment options, account-required friction, trust signals at cart. Should pull traffic-source and device split to check whether mix shifted. Should reference cart-abandonment-recovery for the deeper recovery-flow design. Should not assume the cart itself broke without checking the upstream mix.",
+      "assertions": [
+        "Pulls device split and traffic source split before assuming the cart broke",
+        "Walks cart-specific friction taxonomy",
+        "References cart-abandonment-recovery for recovery-flow design",
+        "Checks whether channel mix shifted in the past month",
+        "Asks about any pricing or shipping changes in the window",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Mobile conversion is 0.8%. Desktop is 2.4%. Why?",
+      "expected_output": "Activates the mobile-first CRO framework. Should note that a 3x gap (200% gap, far above the 25-40% healthy range) indicates the page is desktop-designed and mobile-shrunk. Should walk the mobile-first checklist: 5-second value prop on mobile, sticky-bottom add-to-cart, single-column forms, tap target size, wallet payment availability. Should recommend fixing the mobile experience before any other CRO work.",
+      "assertions": [
+        "Identifies the 3x gap as severe (well above 25-40% healthy band)",
+        "Walks the mobile-first CRO framework",
+        "Recommends sticky-bottom add-to-cart as a Quick Win",
+        "Checks Apple Pay / Google Pay availability and tap path",
+        "Recommends fixing mobile before any desktop-focused CRO",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We're running Meta ads promoting a 30-day skincare reset, and the landing page is just our homepage. Conversion is bad. Help.",
+      "expected_output": "Diagnoses message-match failure between ad creative and landing page. Should walk the message-match framework, recommend building a campaign-specific landing page with the H1 echoing the ad headline. Should reference ad-creative for the upstream creative-traffic pairing question and programmatic-seo when many ad variants need many pages.",
+      "assertions": [
+        "Identifies the issue as message-match failure",
+        "Walks the message-match framework",
+        "Recommends a campaign-specific landing page with H1 echoing ad headline",
+        "References ad-creative for upstream creative-traffic pairing",
+        "Does not recommend changing the homepage to match every ad",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We're redesigning our entire PDP. What should we test first?",
+      "expected_output": "Pushback against the 'redesign everything at once' approach because it isolates nothing. Should recommend testing the value-prop hierarchy, then message-match, then trust signal placement, then friction taxonomy in order. Should reference ab-testing for sample-size discipline. Should warn that a redesign with no holdout will not reveal which change drove the result.",
+      "assertions": [
+        "Pushes back against a full redesign with no isolation",
+        "Recommends a sequence of isolated tests starting with value-prop",
+        "References ab-testing for sample-size discipline",
+        "Warns against changing everything at once",
+        "Recommends a redesign-vs-control holdout if a full redesign ships",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our PDP has 5 CTAs above the fold: add to cart, subscribe and save, find my shade quiz, free shipping ticker, and join rewards. People aren't converting.",
+      "expected_output": "Diagnoses CTA-hierarchy failure. Walks the one-primary-CTA framework. Recommends elevating one CTA (likely add-to-cart or subscribe-and-save depending on subscription mix) and visually subordinating the rest. Should not recommend removing the secondary modules entirely — they have value, just not at primary-CTA visual weight.",
+      "assertions": [
+        "Identifies CTA-hierarchy failure as the dominant leak",
+        "Walks the one-primary-CTA framework",
+        "Recommends elevating one CTA and subordinating others",
+        "Does not recommend deleting all secondary modules",
+        "Considers subscription-vs-one-time mix in choosing the primary CTA",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our supplement PDP says 'Maximum Bioavailability Daily Greens Powder Complex.' Should I change it?",
+      "expected_output": "Yes — the H1 fails the 5-second test for first-time visitors who don't know the product. Should recommend rewriting the H1 to lead with category + outcome + one trust signal. Provides a worked example. References copywriting for the deeper headline-as-promise framing.",
+      "assertions": [
+        "Identifies that the H1 fails the 5-second test",
+        "Recommends rewriting H1 to lead with category + outcome + trust signal",
+        "Provides a worked rewrite example",
+        "References copywriting for deeper headline framing",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

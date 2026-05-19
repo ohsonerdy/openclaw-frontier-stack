@@ -155,6 +155,190 @@ Mock mode is opt-in for `node scripts/orchestrate.js` (you must pass `--mock-age
 
 To require live agents, pass `--no-mock-agents` (CLI) or simply omit the flag for the underlying script.
 
+## Coordination patterns
+
+The default lane → role dispatch is 1:1 (one task-claim per lane). For more
+complex coordination, lanes can declare a `pattern` field. Four patterns ship
+in `lib/coordination/`:
+
+| Pattern    | Use when                                                                 |
+| ---------- | ------------------------------------------------------------------------ |
+| `fan-out`  | N independent tasks run in parallel; you need all of them to finish.     |
+| `fan-in`   | A joiner consumes the outputs of N upstream tasks (often a prior fan-out). |
+| `chain`    | Step N+1 strictly depends on step N's output; pipeline ordering matters. |
+| `voting`   | A decision needs a cross-role quorum + threshold (e.g. 3-of-4 approve). |
+
+Patterns sit ABOVE the blackboard + taskflow primitives. They emit `task-claim`
+records and read back `result` records — they do not manage the FSM directly.
+Each pattern module exports a single async function and is independently
+testable (see `lib/coordination/test/*.test.js`).
+
+### Lane shape with patterns
+
+A lane that uses a pattern carries its task plan inline. The lane-level
+`role` defaults to `orchestrator` for pattern lanes (the per-task roles are
+specified inside the pattern payload). Examples:
+
+#### fan-out
+
+```json
+{
+  "name": "review-files",
+  "pattern": "fan-out",
+  "summary": "Review three files in parallel",
+  "tasks": [
+    { "id": "review-a", "role": "reviewer", "summary": "review file a" },
+    { "id": "review-b", "role": "reviewer", "summary": "review file b" },
+    { "id": "review-c", "role": "reviewer", "summary": "review file c" }
+  ]
+}
+```
+
+The harness writes one `task-claim` per task with id `<goalId>.<task.id>` and
+waits until every task has a matching `result` record (or the lane budget
+elapses). `ok` is true iff every task returned `ok: true`.
+
+#### fan-in
+
+```json
+{
+  "name": "synthesize",
+  "pattern": "fan-in",
+  "summary": "Merge upstream verdicts into one recommendation",
+  "sourceTaskIds": [
+    "goal-foo.review-a",
+    "goal-foo.review-b",
+    "goal-foo.review-c"
+  ],
+  "joiner": {
+    "id": "synthesize",
+    "role": "architect",
+    "summary": "merge upstream verdicts"
+  }
+}
+```
+
+The coordinator does NOT dispatch the upstream tasks itself — it assumes a
+prior lane (often a fan-out) already wrote them and waits for their results.
+Once all upstream results are present, the joiner task-claim is written; its
+`summary` lists the upstream taskIds so the joiner agent can fetch their
+artifacts off the ledger.
+
+#### chain
+
+```json
+{
+  "name": "research-then-build",
+  "pattern": "chain",
+  "summary": "Research, draft a spec, then implement",
+  "steps": [
+    { "id": "research", "role": "researcher", "summary": "gather context" },
+    { "id": "spec", "role": "architect", "summary": "draft a spec" },
+    { "id": "build", "role": "builder", "summary": "implement against the spec" }
+  ]
+}
+```
+
+The harness dispatches step 1, waits for its result, then dispatches step 2
+with the prior step's taskId embedded in the next step's summary. If any step
+returns `ok: false` or times out, subsequent steps are NOT dispatched and the
+lane records them as `skipped`.
+
+#### voting
+
+```json
+{
+  "name": "ship-release-vote",
+  "pattern": "voting",
+  "summary": "Cross-role approval to ship v0.6.0",
+  "decision": "Approve release of v0.6.0?",
+  "voters": [
+    { "id": "sec", "role": "security_sentinel" },
+    { "id": "rev", "role": "reviewer" },
+    { "id": "arch", "role": "architect" },
+    { "id": "build", "role": "builder" }
+  ],
+  "quorum": 3,
+  "threshold": 0.667
+}
+```
+
+Each voter receives the same `decision` prompt in their own role lane and
+writes a `result` record. The coordinator counts approve / reject votes,
+applies `quorum` (minimum voters needed) and `threshold` (fraction of cast
+votes required to approve), and returns the verdict. `ok` is `decided &&
+verdict === 'approve'`.
+
+### Mixing pattern and simple lanes
+
+A goal can have both pattern lanes and simple (no-pattern) lanes; the harness
+runs the pattern lanes first, then dispatches the simple lanes via the
+existing 1:1 path. The final `lanes` array in the trace preserves the goal
+authoring order. Existing goals without any `pattern` field continue to work
+identically.
+
+### Mock mode for patterns
+
+The CLI defaults to `--mock-agents`, which synthesizes one `result` per
+pattern-internal task / step / voter so the loop closes without a live bus.
+The CLI's `--pattern <name>` flag pairs the default-prompt path with a small
+production smoke-test lane plan that exercises each pattern:
+
+```bash
+node bin/openclaw goal "test fan-out" --mock-agents --pattern fan-out
+node bin/openclaw goal "test chain"   --mock-agents --pattern chain
+node bin/openclaw goal "test voting"  --mock-agents --pattern voting
+node bin/openclaw goal "test fan-in"  --mock-agents --pattern fan-in
+```
+
+Each emits a trace where the pattern-driven lane is marked `[done]` with a
+one-line summary (e.g. `fan-out: 3 ok / 0 fail / 0 timed-out (of 3)`). The
+full internal pattern trace is available under
+`trace.patternLanes[].patternTrace` when the harness is invoked with
+`--json`.
+
+## Watching execution
+
+`openclaw watch` tails the blackboard ledger in real time. It is useful when
+multiple agents are running concurrently and you want to see the dispatch /
+result flow as it happens.
+
+```bash
+openclaw watch
+openclaw watch --blackboard ./blackboard.jsonl --no-color
+openclaw watch --filter result --agent reviewer
+openclaw watch --since 5m
+```
+
+Flags:
+
+| Flag                | Default                  | Behavior                                       |
+| ------------------- | ------------------------ | ---------------------------------------------- |
+| `--blackboard <p>`  | `./blackboard.jsonl`     | path to the blackboard ledger JSONL            |
+| `--filter <kind>`   | (none)                   | only show records of this kind                 |
+| `--agent <name>`    | (none)                   | only show records emitted by this agent        |
+| `--since <when>`    | (none)                   | ISO timestamp or relative (`5m`, `1h`, `30s`)  |
+| `--no-color`        | color enabled in a TTY   | disable ANSI color (use when piping)           |
+| `--json`            | text                     | emit raw JSON records, one per line            |
+
+Example output:
+
+```
+13:42:17  task-claim    orchestrator  goal-foo.review-a         "[goal-foo][fan-out] review file a"
+13:42:17  task-claim    orchestrator  goal-foo.review-b         "[goal-foo][fan-out] review file b"
+13:42:18  path-claim    builder       goal-foo.review-a         src/router.js (write)
+13:42:22  result        reviewer      goal-foo.review-a         ok lgtm
+13:42:23  path-release  builder       goal-foo.review-a         src/router.js
+13:42:24  result        reviewer      goal-foo.review-b         FAIL stale comment on line 42
+```
+
+If the blackboard file does not exist yet, `watch` polls every 500ms until it
+appears. Use Ctrl-C to stop.
+
+The watch command READS the ledger; it never writes. It is safe to run
+concurrently with agents that are appending records — watch is a passive
+observer.
+
 ## How to write a custom autonomous loop
 
 An autonomous loop is a recurring orchestrated check that detects drift, regression, or new state and proposes a remediation PR or issue. The shipped instance is `skill-eval-drift-detection-with-auto-PR-proposal`, defined in `.github/workflows/autonomous-loops.yml`.
@@ -214,9 +398,13 @@ Rules for an autonomous loop:
 4. **All knobs are workflow_dispatch inputs or repo variables.** Never bake values into the YAML.
 5. **Auth via `secrets.ANTHROPIC_OAUTH_TOKEN` first, `secrets.ANTHROPIC_API_KEY` second.** OAuth charges the user's Pro/Max subscription. Never log either secret.
 
-### The shipped instance: eval-drift detection
+### The shipped instances
 
-`.github/workflows/autonomous-loops.yml` runs every Monday at 10:00 UTC:
+The stack ships five autonomous loops. Each is a separate workflow file under `.github/workflows/`; none collide on schedule or concurrency group.
+
+#### 1. Eval-drift detection (Monday 10:00 UTC)
+
+`.github/workflows/autonomous-loops.yml`:
 
 1. Runs `npm run eval:live --model $CURRENT_MODEL` and `--model $BASELINE_MODEL` against the Modern Skills eval suite.
 2. Computes the per-skill assertion pass rate for both runs.
@@ -224,6 +412,47 @@ Rules for an autonomous loop:
 4. Commits the artifacts on branch `eval-drift/<date>`, opens a draft PR, and opens or updates a tracking issue with label `eval-drift`.
 
 `EVAL_BASELINE_MODEL` is a repository variable; the default if unset is `claude-haiku-4-5-20251001`. Override at dispatch time via the `baseline_model` input.
+
+#### 2. Dependency vulnerability scan (daily 06:00 UTC)
+
+`.github/workflows/dependency-vulnerability-scan.yml`:
+
+1. Runs `npm install --package-lock-only` and then `npm audit --json`.
+2. Filters findings to severity `high` and `critical` (override via the `min_severity` dispatch input).
+3. Opens or updates an issue labeled `dependency-vulnerability` with the affected packages, severities, advisory links, and suggested fix versions. Dedup: one open issue per ISO date + highest severity.
+4. When a scan is clean, comments "Resolved in commit \<sha\>" on every previously open issue and closes it.
+5. If `npm audit` itself fails (network, malformed lockfile), opens a separate `infra-degraded` issue instead of a false-positive vulnerability report.
+
+#### 3. Performance baseline drift (Monday 11:00 UTC)
+
+`.github/workflows/performance-baseline-drift.yml`:
+
+1. Runs `scripts/eval-frontier-orchestration-scale.js` and `scripts/eval-blackboard-contention.js`, capturing wall-clock and assertion score for each.
+2. Reads the previous green baseline from `release-gate/reports/perf-baseline.json` on branch `release-gate/baselines` (the loop maintains this branch).
+3. If wall-clock regressed by more than `time_threshold_pct` (default 20%) OR score dropped by more than `score_threshold_pct` (default 15%), opens or updates a `performance-regression` issue. Dedup: one open issue per ISO date.
+4. If the run is green, force-pushes the new baseline onto `release-gate/baselines` — no PR, no diff against main.
+
+#### 4. Documentation staleness (Friday 09:00 UTC)
+
+`.github/workflows/documentation-staleness.yml`:
+
+1. For each `docs/*.md`, checks `git log -1 --format=%cs` against the `stale_days` threshold (default 180).
+2. For each stale doc, looks for non-doc tracked files containing the same root tokens (heuristic) modified inside the same window. A doc only flags if its presumed source has moved while the doc itself stayed put.
+3. For each `skills/*/SKILL.md`, flags any SKILL.md untouched in the same window, regardless of source movement.
+4. Opens or updates a `documentation-staleness` issue summarizing both lists. Dedup: one open issue per calendar quarter (e.g. `2026-Q2`).
+
+#### 5. Prompt tuning (1st of month 10:00 UTC)
+
+`.github/workflows/prompt-tuning.yml`:
+
+1. Picks one skill per run. Cycling logic: read `release-gate/reports/prompt-tuning-results-<date>-<skill>.json` fact records and select the skill whose most recent tuning attempt is oldest (or which has never been attempted). Override with the `skill` dispatch input.
+2. Runs the eval suite restricted to that skill against the current SKILL.md.
+3. Generates a variant SKILL.md by feeding the current file plus `release-gate/lib/prompt-tuning-template.md` through the eval runner's model backend.
+4. Runs the eval suite restricted to that skill against the variant (then immediately restores the original on disk).
+5. If pass-rate improves by more than `improvement_threshold_pct` (default 10 pp), opens a draft PR labeled `prompt-tuning-candidate` with the variant diff and the eval scores. Otherwise writes a fact record and exits clean.
+6. If the model backend is unavailable or an eval crashes, opens an `infra-degraded` issue.
+
+Auth for the prompt-tuning loop follows the same `ANTHROPIC_OAUTH_TOKEN` → `ANTHROPIC_API_KEY` → `OPENCLAW_EVAL_*` fallback chain as the scheduled-evals workflow.
 
 ## How to extend the CLI
 

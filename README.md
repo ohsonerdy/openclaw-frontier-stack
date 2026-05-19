@@ -13,7 +13,7 @@
 
 > Current release status: see [STATUS.md](STATUS.md).
 
-OpenClaw Frontier Stack is a **production-ready, drop-in multi-agent coding orchestration stack** — interoperable across Claude Code, Codex, Cursor, and OpenCode — for shared state, signed coordination, durable task ownership, memory, observability, and fail-closed release gates. It also ships **Modern Skills** — ecomm marketing skills for AI agents, integrated with the Modern AI MCP — and **Operator Skills** for safe public releases, durable task coordination, and full-history audits.
+OpenClaw Frontier Stack is a **production-ready, drop-in multi-agent coding orchestration stack** — interoperable across Claude Code, Codex, Cursor, and OpenCode — for shared state, signed coordination, durable task ownership, memory, observability, and fail-closed release gates. It also ships **Modern Skills** (13 ecomm marketing skills, integrated with the Modern AI MCP), **Operator Skills** (safe public releases, durable task coordination, full-history audits), **12 engineering workflow skills** (incident response, ADRs, schema design, threat modeling, performance profiling, monitoring, and more), and an **8-role agent roster** with an `openclaw` CLI for orchestrating multi-lane work across them.
 
 This repository is the public source package. It ships production core modules, operator-ready templates, local acceptance scenarios, and release harnesses that can be installed and verified from a fresh checkout. Private runtime state is intentionally excluded: operators provide their own credentials, hosts, policy bindings, and deployment configuration.
 
@@ -73,37 +73,48 @@ Each skill ships with 5–8 eval cases, an opinionated framework, and explicit M
 
 ### Install as a plugin
 
-The repository ships four plugin manifests — `.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/`, and `.opencode/` — each declaring the same `skills/` + `hooks/` surface for its host. Pick your agent below.
+The repository ships four plugin manifests — `.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/`, and `.opencode/` — each declaring the same `skills/` + `hooks/` surface for its host. Pick your agent below. Every block names either a docs-confirmed install command or an explicit manifest-pointer fallback; commands that the host's docs do not currently document are flagged.
 
-**Claude Code** — slash-command install:
+**Claude Code** — clone the repo and load it as a plugin directory (the `--plugin-dir` flag is the path documented in [Claude Code plugins docs](https://code.claude.com/docs/en/plugins#test-your-plugins-locally) for loading a plugin from a local path; the manifest at `.claude-plugin/plugin.json` is auto-detected):
 
-```
-/plugin install ohsonerdy/openclaw-frontier-stack
-```
-
-Manifest: [.claude-plugin/plugin.json](.claude-plugin/plugin.json). Docs: [Claude Code plugins](https://docs.claude.com/en/docs/claude-code/plugins).
-
-**Codex CLI** — open the interactive plugin browser inside the CLI:
-
-```
-codex
-/plugins
+```bash
+git clone https://github.com/ohsonerdy/openclaw-frontier-stack.git
+claude --plugin-dir ./openclaw-frontier-stack
 ```
 
-Then point the loader at this repository, or vendor `skills/` and `hooks/` into a path Codex reads (project-scoped `.agents/skills/` or the user-scoped equivalent under your home directory). Manifest: [.codex-plugin/plugin.json](.codex-plugin/plugin.json). Docs: [Codex CLI plugins](https://developers.openai.com/codex/plugins).
+For session-persistent install via the official marketplace flow, see [Claude Code marketplace docs](https://code.claude.com/docs/en/discover-plugins) — `/plugin install <plugin-name>@<marketplace>` requires the source repo to publish a `.claude-plugin/marketplace.json` catalog; this repo currently ships only a single plugin manifest, so the `--plugin-dir` path is the docs-grounded route until a marketplace catalog is added.
 
-**Cursor** — install via Cursor Settings → Rules → Add Rule → Remote Rule (GitHub), and point at this repository URL. Alternatively, vendor `skills/` into `.cursor/skills/` at the project root. Manifest: [.cursor-plugin/plugin.json](.cursor-plugin/plugin.json). Docs: [Cursor skills](https://cursor.com/docs/skills).
+Manifest: [.claude-plugin/plugin.json](.claude-plugin/plugin.json).
 
-**OpenCode** — add the plugin to `opencode.json` in your project root:
+**Codex CLI** — the Codex plugin docs ([developers.openai.com/codex/plugins](https://developers.openai.com/codex/plugins)) currently describe an interactive flow only (`codex` then `/plugins`, then **Install plugin** from a marketplace listing), and do not document a one-liner install command for an arbitrary GitHub repository. Until that ships, the manifest-pointer fallback is to vendor the manifest into a path Codex reads:
 
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": ["openclaw-frontier-stack"]
-}
+```bash
+git clone https://github.com/ohsonerdy/openclaw-frontier-stack.git
+# Project-scoped: copy or symlink .codex-plugin/ and skills/ into the
+# Codex plugin path documented by your Codex CLI version.
 ```
 
-Manifest: [.opencode/plugin.json](.opencode/plugin.json). Docs: [OpenCode plugins](https://opencode.ai/docs/plugins).
+Manifest: [.codex-plugin/plugin.json](.codex-plugin/plugin.json).
+
+**Cursor** — the Cursor docs ([cursor.com/docs/skills](https://cursor.com/docs/skills)) describe a UI-based install only: **Cursor Settings → Rules → Project Rules → Add Rule → Remote Rule (GitHub)**, then paste this repository's URL. No command-line install command is documented. Manifest-pointer fallback for project-local install:
+
+```bash
+git clone https://github.com/ohsonerdy/openclaw-frontier-stack.git
+# Vendor skills/ into .cursor/skills/ at the project root, or point the
+# Remote Rule at this repository's GitHub URL.
+```
+
+Manifest: [.cursor-plugin/plugin.json](.cursor-plugin/plugin.json).
+
+**OpenCode** — OpenCode supports plugins via npm package name in `opencode.json` or as local files under `.opencode/plugins/` ([opencode.ai/docs/plugins](https://opencode.ai/docs/plugins)). This repository is not currently published to npm, so the docs-grounded route is the local-files path:
+
+```bash
+git clone https://github.com/ohsonerdy/openclaw-frontier-stack.git
+# Either vendor .opencode/ into your project (it ships the plugin manifest),
+# or symlink the cloned tree under .opencode/plugins/ at the project root.
+```
+
+Manifest: [.opencode/plugin.json](.opencode/plugin.json).
 
 For any other agent that supports the [Agent Skills specification](https://agentskills.io/specification.md), point the plugin loader at this repository or vendor the `skills/` directory directly. See [docs/skills-integration-spec.md](docs/skills-integration-spec.md) for the engineering integration spec.
 
@@ -158,6 +169,33 @@ Three host-neutral operator skills ship alongside Modern Skills under `skills/`.
 | `verified-history-scan` | Audit the full git history (every commit's tree) for private-content leaks before publishing a previously-private repo, after a force-push, or any time you need to confirm a history rewrite was complete |
 
 Each operator skill is a procedural runbook — no MCP backend, no eval suite — and works in any agent host that reads the Agent Skills specification.
+
+## Engineering Skills
+
+Twelve engineering workflow skills ship under `skills/`, added in v0.5.0. Each is a host-neutral procedural skill with 7 eval cases and 38–51 assertions. They are complementary to other engineering skill libraries (no overlap with TDD / debugging / planning / PR-cycle coverage in obra/superpowers) and install through the same four manifests as the marketing and operator skills above.
+
+| Skill | Use |
+|---|---|
+| `incident-response` | Severity triage, mitigation order, comms cadence during a Sev 1/2/3 |
+| `root-cause-analysis` | 5-whys with falsifiable hypotheses, fault tree, contributing-factor-vs-root-cause discipline |
+| `post-mortem-writing` | Blameless template, action-item discipline, follow-up tracking |
+| `architecture-decision-records` | When to write, template, "supersedes" chain, ADR-vs-RFC |
+| `api-design` | REST/GraphQL/gRPC tradeoffs, versioning, error shapes, pagination, idempotency, backwards-compat taxonomy |
+| `schema-design` | Normalization vs deliberate denormalization, primary keys, indexes, FK cascades, online migration safety |
+| `dependency-upgrade-safely` | Semver discipline, lockfile hygiene, changelog reading, peer-dep traps, rollback planning |
+| `security-review` | OWASP top-10 per-category red-flag patterns, secret handling, authn-vs-authz boundary review, data-flow review |
+| `threat-modeling` | STRIDE per data flow, attack trees, abuser stories, likelihood-impact prioritization |
+| `refactoring-safety` | Characterization tests first, refactor-vs-test loop, scope discipline, strangler-fig |
+| `performance-profiling` | Measure-first discipline, profiler selection, slowdown taxonomy (N+1, blocking I/O, GC, lock contention) |
+| `monitoring-and-alerting` | RED/USE/four-golden-signals, SLI-SLO-SLA, alert-on-symptoms-not-causes, runbook-linking discipline |
+
+Together with the 13 Modern Skills and 3 Operator Skills, the public skill catalog is **28 skills total**.
+
+## Agent roster and orchestration CLI
+
+An eight-role agent roster ships under [`agents/`](agents/), added in v0.5.0. Each role is a host-neutral CONTRACT.md with explicit mission, hard preconditions, decision authority, ack format, and forbidden paths — the orchestration harness reads these contracts when dispatching multi-lane work. The roster is `orchestrator`, `security-sentinel`, `architect`, `builder`, `reviewer`, `researcher`, `marketing-strategist`, and `executive-summary`. Separation of powers is enforced at the contract layer (the orchestrator dispatches but does not approve releases; the security-sentinel proposes releases but does not counter-sign its own proposals; the builder writes feature code but cannot touch release-gate code, workflows, or plugin manifests; and so on). See [`agents/README.md`](agents/README.md) for the roster overview, activation triggers, and the nine-section contract template every role follows.
+
+The engineer CLI lives at [`bin/openclaw`](bin/openclaw) (wired via `package.json#bin`) with subcommands `goal`, `status`, `dispatch`, and `recap`. The orchestration harness at [`scripts/orchestrate.js`](scripts/orchestrate.js) reads a `/goal` JSON, decomposes into per-role lanes, writes task-claims to the blackboard, polls for results, and synthesizes. A `--mock-agents` mode runs the harness end-to-end without live agents connected, so `node bin/openclaw goal "ship X" --mock-agents` produces a synthesized trace immediately. Full operator guide: [`docs/orchestration.md`](docs/orchestration.md).
 
 ## Current status
 

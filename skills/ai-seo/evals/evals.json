@@ -1,0 +1,111 @@
+{
+  "skill_name": "ai-seo",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want my supplement brand to show up when people ask ChatGPT or Perplexity for product recommendations. Where do I start?",
+      "expected_output": "Walks the four AI-SEO surface layers in order: llms.txt, schema markup, conversational-query optimization, entity-and-relationship modeling. Recommends generating an llms.txt as the highest-leverage Quick Win. Surveys current visibility on the four major AI surfaces (ChatGPT, Claude, Perplexity, Google AI Overviews). References schema-markup for the Product schema design.",
+      "assertions": [
+        "Walks the four AI-SEO surface layers",
+        "Recommends llms.txt creation as a Quick Win",
+        "Names the four major AI surfaces (ChatGPT, Claude, Perplexity, Google AI Overviews)",
+        "References schema-markup for Product schema design",
+        "Notes the manual sampling method for measuring AI-surface visibility",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "What's query fan-out and how do I design content for it?",
+      "expected_output": "Explains that AI surfaces paraphrase the user's query into multiple sub-queries and synthesize from the union. Recommends content design that anticipates 4-5 sub-queries per seed query within a single page, rather than the classic 'one page one keyword' model. Provides a worked example. References content-strategy for the broader content production implications.",
+      "assertions": [
+        "Defines query fan-out explicitly",
+        "Recommends multi-sub-query content within a single page",
+        "Critiques the classic 'one page one keyword' model",
+        "Provides a worked example of fan-out for a sample query",
+        "References content-strategy for production implications"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Should I create an llms.txt file? What goes in it?",
+      "expected_output": "Yes. Notes that as of May 2026 Google does not enforce or reward llms.txt, but ChatGPT, Claude, and Perplexity do. Walks the structure: brand summary, products with citation-shaped descriptions, about/reviews/press, policies. Warns against putting marketing copy in it. Provides a worked template.",
+      "assertions": [
+        "Notes Google does not enforce llms.txt but ChatGPT, Claude, Perplexity do reward it",
+        "Walks the recommended llms.txt structure",
+        "Warns against marketing copy in llms.txt",
+        "Provides a worked template with citation-shaped product entries",
+        "Names the companion llms-full.txt"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our agency wants us to add 50 instances of our top keyword across the homepage and put hidden white text with related keywords. Should I do this?",
+      "expected_output": "No. Walks the anti-pattern audit: keyword stuffing, hidden text, and similar tactics are detected and downweighted by LLMs faster than they were by Google. Notes LLMs were trained on manipulation tactics so they recognize the signatures. Recommends firing or re-educating the agency. Reframes toward conversational-query optimization and entity modeling instead.",
+      "assertions": [
+        "Rejects keyword stuffing and hidden text as anti-patterns",
+        "Notes LLMs detect these faster than Google did",
+        "Walks the anti-pattern list explicitly",
+        "Recommends conversational-query optimization as the right alternative",
+        "Suggests firing or re-educating the agency"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "AI agents like ChatGPT Operator and Perplexity Comet might shop on my site. How do I make sure they can?",
+      "expected_output": "Walks the agentic-experience SEO framework. Recommends clean HTML, inline content (not modal-hidden), explicit attributes via schema, structured price/availability/rating. References schema-markup for the Product schema design. Notes that PDPs hidden behind heavy SPAs are agent-hostile.",
+      "assertions": [
+        "Walks the agentic-experience SEO framework",
+        "Recommends clean HTML and inline content",
+        "Warns against modal-hidden or tab-hidden content",
+        "References schema-markup for Product schema design",
+        "Notes that heavy SPAs are agent-hostile"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our 'founded year' is 2019 on the about page but 2020 on a press citation and 2021 on Wikipedia. Does this matter for AI SEO?",
+      "expected_output": "Yes — entity disambiguation problems get the brand downweighted by AI surfaces because LLMs reason about entities and consistent attributes. Walks the entity-and-relationship modeling framework. Recommends auditing top brand-fact statements (founded year, founder, HQ, key SKU, review count) and reconciling across the site, Wikipedia, and major press.",
+      "assertions": [
+        "Identifies the inconsistency as an entity disambiguation problem",
+        "Walks the entity-and-relationship modeling framework",
+        "Recommends auditing top brand-facts and reconciling across surfaces",
+        "Explicitly names Wikipedia and press as reconcile targets",
+        "Notes that consistent attributes lift AI-surface visibility"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "How do I measure whether my AI SEO efforts are working?",
+      "expected_output": "Notes that as of May 2026 there is no credible AI-surface ranking tracker at scale, so manual sampling is the state of the art. Recommends a top-20-query sample asked monthly to ChatGPT, Claude, Perplexity, and Google AI Overviews, with visibility recorded. Layers traffic measurement: track chatgpt.com / perplexity.ai / claude.ai referrers in attribution. Recommends conversion-rate tracking because AI-search traffic typically converts 3-5x classic search.",
+      "assertions": [
+        "Notes the lack of credible AI-surface ranking tools",
+        "Recommends manual sampling of top queries monthly",
+        "Names ChatGPT, Claude, Perplexity, Google AI Overviews as sampled surfaces",
+        "Recommends tracking AI-surface referrers in attribution",
+        "Notes the higher conversion rate of AI-search traffic"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Should I add FAQ sections to every PDP?",
+      "expected_output": "Yes. Walks the conversational-query optimization framework. Recommends 5-8 customer-shaped questions per PDP with direct answers, plus FAQPage schema. Notes the combination of answer-text + schema is the highest-leverage AI-citation move available. Sources questions from review mining and support ticket themes. References customer-research for the JTBD inputs.",
+      "assertions": [
+        "Recommends FAQ sections on every PDP",
+        "Walks the conversational-query optimization framework",
+        "Notes FAQPage schema as part of the combination",
+        "Names the answer-text + schema combo as the highest-leverage move",
+        "References customer-research for question inputs",
+        "Recommends 5-8 questions per PDP"
+      ],
+      "files": []
+    }
+  ]
+}
