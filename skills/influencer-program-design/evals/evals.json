@@ -1,0 +1,110 @@
+{
+  "skill_name": "influencer-program-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're a skincare DTC brand at $4M/year. Should we be doing influencer marketing?",
+      "expected_output": "Diagnosis grounded in the tier-selection framework. Should ask which platform-first the program would be (TikTok vs Instagram vs YouTube) and which tier is being considered. Should recommend micro tier as the highest-leverage starting point for a brand at this revenue scale, with whitelisting rights as the unit-economics multiplier. Should reference creator-fit-with-brand filter as the primary qualifier over follower count.",
+      "assertions": [
+        "Checks for .agents/modern-ai-context.md",
+        "Asks which platform and tier before designing",
+        "Recommends micro tier as the highest-leverage starting point",
+        "Names whitelisting rights as the unit-economics multiplier",
+        "Applies the creator-fit-with-brand filter over follower count",
+        "Calls modern.sales.by_channel via modern-mcp if connected",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections",
+        "Names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We've been paying macro creators $40k per post and the ROAS looks terrible. What are we doing wrong?",
+      "expected_output": "Diagnosis that macro-tier ROAS rarely justifies the spend through direct-response measurement; macro is a brand-impression purchase. Should recommend either reframing the macro spend as a brand campaign (and measuring on lift studies) or shifting budget toward micro tier at volume with whitelisting. Should walk through the tier-selection framework and explain why follower count is misleading.",
+      "assertions": [
+        "Names that macro tier rarely justifies direct-response ROAS",
+        "Reframes macro as brand-impression purchase, not performance",
+        "Recommends shifting budget toward micro tier with whitelisting",
+        "Walks through tier-selection framework",
+        "Explains why follower count is overweighted",
+        "Calls modern.ads.roas grouped by creator_id",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "How do I write a brief for creators? I keep getting content that doesn't fit our brand.",
+      "expected_output": "Walks the brief-design framework: product context, hook prompts as suggestions not scripts, what-NOT-to-say section explicitly, disclosure requirements, specific deliverables, exclusivity window, usage rights. Should emphasize that the what-NOT-to-say section is the single biggest brief upgrade for most programs. Should warn against script-style briefs that produce flat content.",
+      "assertions": [
+        "Walks brief-design framework explicitly",
+        "Names what-NOT-to-say as the single biggest brief upgrade",
+        "Recommends suggesting hooks rather than scripting",
+        "Names disclosure requirements as non-negotiable",
+        "Names specific deliverables (count, format, length, aspect ratio)",
+        "Names usage rights as the high-value clause",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We give creators a unique discount code. Is that enough to measure if the program is working?",
+      "expected_output": "Diagnosis that unique codes are cheap and directionally useful but imperfect due to code leakage on aggregator sites. Should walk the measurement-methodology stack: codes, unique landing pages, pre/post lift around posting windows, whitelisted-creative ROAS, lift studies for mid/macro. Should recommend whitelisted-paid ROAS as the cleanest signal when whitelisting is in the contract.",
+      "assertions": [
+        "Names unique codes as directionally useful but imperfect",
+        "Identifies code leakage on aggregator sites as a limitation",
+        "Walks the measurement-methodology stack",
+        "Recommends whitelisted-paid ROAS as the cleanest signal",
+        "Names pre/post sales-lift analysis for volume programs",
+        "Recommends lift studies for mid/macro tier",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "A creator I sponsored posted without saying it was an ad. What's our exposure?",
+      "expected_output": "Direct answer that the brand is liable under FTC rules even though the creator made the omission. Should walk the FTC-disclosure compliance floor: visible in the post, not buried in bio or comments, early in long-form content, on-screen for short-form video. Should recommend immediate remediation (have the creator update the post with proper disclosure), strengthening of disclosure language in the contract for future creators, and monitoring process. Should flag platform-specific risks.",
+      "assertions": [
+        "States that the brand is liable under FTC rules",
+        "Walks the FTC-disclosure compliance floor explicitly",
+        "Recommends immediate remediation with disclosure update",
+        "Recommends strengthening disclosure language in contracts",
+        "Recommends a monitoring process going forward",
+        "Notes that disclosure is the floor, not a feature to opt out of",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Should I pay creators flat fee or performance-based?",
+      "expected_output": "Walks the pay-structure framework: flat fee (predictable, dominant for micro/mid), performance-based (aligns incentives but operationally complex, requires clean attribution), hybrid (right default for whitelisted micro tier), gifting-only (nano scale). Should recommend hybrid as the right default for micro-tier programs with whitelisting. Should warn against performance-only at micro tier because it misaligns creator incentives.",
+      "assertions": [
+        "Walks the pay-structure framework with all four variants",
+        "Recommends hybrid as default for micro-tier with whitelisting",
+        "Warns against performance-only at micro tier",
+        "Names gifting-only for nano-scale seeding",
+        "Discusses attribution-cleanliness as a prerequisite for performance pay",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I want to start an influencer program from scratch. How do I find the right creators?",
+      "expected_output": "Applies the creator-fit-with-brand filter framework. Should recommend audience-overlap analysis using platform creator portals (TikTok Creator Marketplace, Instagram Insights), the would-they-buy-you-anyway heuristic, and the seed-first-pay-second cadence (gift product without strings before paid deals). Should NOT recommend agency-curated macro-creator lists as the starting point.",
+      "assertions": [
+        "Applies the creator-fit-with-brand filter as the primary qualifier",
+        "Recommends audience-overlap analysis using platform portals",
+        "Names the would-they-buy-you-anyway heuristic",
+        "Recommends the seed-first-pay-second cadence",
+        "Does not lead with macro-creator agency lists",
+        "Calls modern.attribution.first_touch to scope discovery-platform mix",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

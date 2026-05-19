@@ -2,6 +2,91 @@
 
 All notable public-package changes should be recorded here. This changelog is for the operator-safe OpenClaw Frontier Stack package only; it must not reference private runtimes, personal context, raw logs, credentials, private hosts, or external announcements.
 
+## 2026-05-19 — v0.7.0 — Rust core workspace, ticketing FSM, goal refinement, public-surface hardening
+
+Status: published.
+
+The next-level pass surfaced by v0.6.0. Lands the Rust core crates (envelope + blackboard + taskflow), the standalone ticketing FSM as a peer to taskflow, goal-template + state-persistence + cost-estimate features on the engineer CLI, 17 new skills (8 engineering + 9 marketing/creative), a Hermes-agent gap audit with prioritized port targets, and a substantial expansion of the public-surface harness (semver consistency, script/bin/files-glob existence checks, agent-contract cross-references, plugin-manifest path checks).
+
+### Added — Rust core workspace (`crates/`)
+
+Three crates under a Cargo workspace, in operator-safe parity with the Node implementations:
+
+- `crates/openclaw-envelope` — Ed25519 envelope signing/verification with a hand-rolled canonical-JSON encoder that matches Node's `JSON.stringify` byte-for-byte. Includes a 15-entry canonical-corpus fixture validated against the Node encoder. The same H2 separation lives here — top-level `signature` stripped only at depth 0, nested `signature` preserved.
+- `crates/openclaw-blackboard` — JSONL ledger with mkdir-based lock + public-safety scan parity. Same record shape, same lock semantics.
+- `crates/openclaw-taskflow` — FSM transitions matching the Node TaskFlow (queued/claimed/waiting/done/failed/blocked) with the same legal-transition table.
+
+Operator-safe surface only. `cargo` is not a hard build dependency of the Node package; the workspace is shipped for downstream Rust callers and future Rust agent runners.
+
+### Added — agent ticketing FSM (`src/tickets/`)
+
+A peer to taskflow but at a different level of abstraction. Ticketing is the durable record of *human work intent* (request → review → done) while taskflow handles *agent task execution* (claim → done). Both write JSONL ledgers, both have transition tables, but they answer different questions.
+
+- `src/tickets/lib/ticket-store.js` (691 LOC) — FSM with states `open / in-progress / review / done / archived` plus a derived `blocked` flag (any unresolved `depends-on` upstream). JSONL persistence at `release-gate/tickets.jsonl`. Custom error classes: `TicketStateError`, `TicketValidationError`. Idempotent transitions guarded by event hashes.
+- `openclaw ticket <action>` subcommand on the engineer CLI — `create`, `assign`, `move`, `block`, `unblock`, `comment`, `archive`, `show`, `list`. Filters: `--status`, `--blocked`, `--assigned-to`, `--priority`.
+- `.github/workflows/ticket-sla-escalation.yml` — hourly check; opens an escalation issue when any ticket exceeds its SLA deadline.
+- `docs/ticketing.md` — operator guide.
+
+### Added — goal refinement (`bin/openclaw goal`)
+
+- **Goal templates.** 5 prebuilt templates under `lib/goal-templates/templates/*.json`: `ship-release`, `fix-bug`, `build-feature`, `audit-repo`, `daily-summary`. Each binds lanes to roles + coordination patterns and accepts a context string. CLI: `openclaw goal --template ship-release "v0.8.0"` and `openclaw goal --list-templates`.
+- **State persistence.** Every goal run writes `<goalsDir>/<goal_id>.json` with the full trace, partial completion state, and last-known lane status. CLI: `--list`, `--show <goal_id>`, `--resume <goal_id>`, `--no-persist`, `--goals-dir <path>`.
+- **Cost estimates.** `lib/cost-table.json` with per-MTok USD rates for the current model lineup (claude-opus-4-7, claude-sonnet-4-6, claude-haiku-4-5-20251001). `openclaw recap --cost` rolls per-goal USD spend into the recap.
+- **Progress emitter.** `--quiet` / `--verbose` flags control per-lane progress on stderr.
+- **Live-path integration test** at `test/integration/goal-live-path.test.js` — spawns a live mock agent, runs a goal through the full dispatch → claim → result loop, verifies the persisted state and ledger records. Runs under the package verifier.
+
+### Added — skill catalog (51 → 68)
+
+**8 engineering workflow skills** (engineering total 20 → 28):
+`secrets-management`, `database-migration-safety`, `code-review-receiving`, `feature-experiment-design`, `disaster-recovery-exercise-design`, `logging-platform-selection`, `oncall-handoff-rituals`, `postdeploy-verification`.
+
+**9 marketing + AI-creative skills** (Modern Skills 28 → 37):
+`influencer-program-design`, `loyalty-program-design`, `pricing-experiments`, `merchandising-strategy`, `attribution-model-design`, `affiliate-program-design`, `retail-buyer-pitch`, `ai-image-generation`, `ai-video-generation`.
+
+The two AI-creative skills bake in current model lineup notes for image (gpt-image-1, ideogram, midjourney) and video (sora, runway, veo, kling, hailuo, pika) generation with operator-safe placeholders. All 68 pass the validator with zero warnings.
+
+Skill totals: 37 marketing + creative + 28 engineering + 3 operator = **68**.
+
+### Added — public-surface harness expansion (`release-gate/scripts/verify-public-surface-harness.js`)
+
+Substantial expansion of the harness with 7 new check categories. Caught real version drift during this release — the `.codex-plugin`, `.cursor-plugin`, and `.opencode` plugin.json files were stale at 0.4.0 while `package.json` was at 0.6.0. The harness now blocks that class of mismatch.
+
+- **Semver consistency.** All 4 plugin manifests + the CHANGELOG top dated header + the latest `vX.Y.Z` git tag must equal `package.json#version`.
+- **Script existence.** Every `package.json#scripts` entry that references a path must point at a real file.
+- **Bin existence.** Every `package.json#bin` entry must point at a real file with a `#!` shebang.
+- **Files-glob existence.** Every `package.json#files` entry must exist on disk.
+- **Agent-contract cross-references.** Each `agents/*/CONTRACT.md` cross-reference to another role must resolve.
+- **Plugin-manifest skills path.** Each manifest's `skills` field must point at the same real directory.
+- **Plugin-manifest hooks path.** Each manifest's `hooks` field must point at a real `hooks.json`.
+
+### Added — Hermes-agent gap audit (`docs/hermes-agent-audit.md`)
+
+1,131-LOC capability gap analysis comparing OpenClaw Frontier Stack against `NousResearch/hermes-agent`. 47 capability rows in each direction, prioritized port targets, and parity notes. The 5 highest-priority Hermes capabilities flagged for v0.8.0 porting: cron-style schedule subsystem, `openclaw doctor` health check, supply-chain advisory check via `osv-scanner`, webhook subscription system, gateway-style event-hook lifecycle.
+
+### Changed
+
+- `scripts/verify-package.js` — `FRONTIER_CHILD_TIMEOUT_MS` default bumped 120000 → 240000 to accommodate the 68-skill validator runtime.
+- `scripts/verify-package.js` — adds `ticket-store-test` and `goal-live-path-integration` to the verifier suite.
+- `package.json#files` — adds `crates/` and `test/`.
+- `release-gate/scripts/create-clean-export.js#include` — adds `crates` and `test`.
+- `package.json#description` — updated for v0.7.0 surface.
+- `agents/executive-summary/CONTRACT.md` — adds the ticket store as a read source for rollups.
+
+### Notes
+
+- 68 skills validate. Verifier passes after the timeout bump.
+- The Rust workspace ships as operator-safe parity, not a Node-side requirement. `cargo test` is opt-in.
+- Goal state and ticket store both write JSONL under the same blackboard family; the public-safety scan covers both.
+
+### v0.8.0+ candidates surfaced during this release
+
+- Hermes ports (HIGH priority): cron-style schedule, `openclaw doctor`, supply-chain advisory via osv-scanner, webhook subscriptions, gateway-style event-hook lifecycle.
+- Engineering skills: `runbook-writing`, `change-management-policy`, `slo-design`, `query-performance-tuning`, `observability-pillars-integration`, `service-ownership-boundaries`, `capacity-planning`, `data-classification-and-handling`.
+- Marketing skills: `customer-data-platform-strategy`, `headless-commerce-tradeoffs`, `tiktok-shop-strategy`, `marketplace-strategy`, `international-expansion`, `crm-strategy`, `post-purchase-experience`, `community-program-design`, `inventory-and-demand-planning`, `accessibility-compliance`.
+- Ticketing: templates, multi-assignee, watchers, attachments, SLA pause windows, ticket→goal binding, bulk transitions.
+- Goal: pattern-lane failure recovery, streaming progress, cost-table auto-refresh, `--diff`, cancellation tokens, sub-goals, `--gantt`.
+- Rust: openclaw-agent Rust binary, Rust eval runner, N-API FFI for the Node harness, harness rewrite.
+
 ## 2026-05-19 — v0.6.0 — Skill catalog doubles, coordination layer, live agent runner, autonomous-loop fleet
 
 Status: published.

@@ -1,0 +1,44 @@
+{
+  "schema": "openclaw-frontier.goal.v1",
+  "description": "Standard repo-audit flow: scan current tree, scan git history, review dependencies, run a security review, write a report. Most of the audit is parallelisable so we fan-out across the four scanners and then chain into the report.",
+  "titleTemplate": "Audit repo: ${context}",
+  "definitionOfDone": "Every scanner returned a verdict, a single audit report is on disk for \"${context}\", and at least one reviewer signed off on the conclusions.",
+  "cadence": { "operatorUpdateMinutes": 60, "channel": "operator-chat" },
+  "lanes": [
+    {
+      "name": "audit-scans",
+      "pattern": "fan-out",
+      "summary": "Parallel audit scans of ${context}",
+      "tasks": [
+        { "id": "scan-current", "role": "researcher", "summary": "Scan the current working tree of ${context} for risk surface", "expects": ["scan-report"] },
+        { "id": "scan-history", "role": "researcher", "summary": "Scan git history of ${context} for leaked secrets and shape drift", "expects": ["history-report"] },
+        { "id": "review-deps", "role": "dependency_warden", "summary": "Review the dependency surface of ${context}", "expects": ["deps-report"] },
+        { "id": "security-review", "role": "security_sentinel", "summary": "Run a security review against ${context}", "expects": ["sec-report"] }
+      ]
+    },
+    {
+      "name": "audit-report",
+      "pattern": "fan-in",
+      "summary": "Synthesize the ${context} audit findings into one report",
+      "sourceTaskIds": [
+        "${goalId}.scan-current",
+        "${goalId}.scan-history",
+        "${goalId}.review-deps",
+        "${goalId}.security-review"
+      ],
+      "joiner": {
+        "id": "write-report",
+        "role": "scribe",
+        "summary": "Write the audit report for ${context}"
+      }
+    },
+    {
+      "name": "audit-review",
+      "role": "reviewer",
+      "summary": "Reviewer sign-off on the ${context} audit report",
+      "expects": ["review-decision"]
+    }
+  ],
+  "green": [],
+  "red": ["scanners have not run for ${context}"]
+}

@@ -1,0 +1,115 @@
+{
+  "skill_name": "postdeploy-verification",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our deploy pipeline shows green. The health check returned 200. CI is all passing. Are we done verifying the deploy?",
+      "expected_output": "No. 'Deploy succeeded' is not the same as 'deploy worked'. The pipeline's success criterion is much weaker than verification. Specific gaps: the health check is usually shallow (the process is running, not 'the application can serve traffic correctly'), the deploy may be a percentage rollout (only some users affected), background jobs and cron tasks may not be exercised, and slow-burn issues (memory leaks, gradual queue growth) take hours to surface. Recommend automated smoke tests against production paths immediately after deploy, canary metric watch for the monitoring window (30-60 min for web services), and an explicit all-clear signal at the end of the window. The pipeline succeeding is the start of verification, not the end.",
+      "assertions": [
+        "Identifies that 'deploy succeeded' is not 'deploy worked'",
+        "Identifies the shallow health check gap",
+        "Identifies percentage rollout as a gap",
+        "Identifies background jobs / cron tasks as a gap",
+        "Identifies slow-burn issues (memory leaks) as a gap",
+        "Recommends automated smoke tests after deploy",
+        "Recommends canary metric monitoring for a defined window",
+        "Recommends explicit all-clear signal"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We have a canary deploy that runs 1% traffic. The canary error rate is 0.3% and the baseline is 0.1%. Should we rollback?",
+      "expected_output": "Yes, this is a 3x error rate regression on the canary vs baseline; the threshold is typically 1.5x-2x sustained for 5 minutes. Three times baseline is clearly above either threshold. Recommend triggering rollback now if the elevation has been sustained for 5 minutes; if it's just spiked in the last 30 seconds, watch for another minute or two but be prepared to rollback. The rollback should be automatic if you've configured automated rollback on this threshold; if not, the on-call should pull the trigger with pre-authorization, not wait for approval. Do NOT proceed to higher traffic percentages while the canary is regressing.",
+      "assertions": [
+        "Identifies the 3x regression as exceeding typical rollback threshold",
+        "Recommends rollback (now or imminent)",
+        "References the typical 1.5x-2x sustained-for-5-minutes threshold",
+        "Recommends automated rollback if configured",
+        "Recommends on-call pulls trigger without approval chain",
+        "Does not recommend proceeding to higher traffic percentages",
+        "Recommends watching for sustained elevation if just spiked"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We deployed at 4pm Friday. Our smoke tests passed. The team is leaving for the weekend. Anything we should do?",
+      "expected_output": "Don't declare all-clear yet. Smoke tests passing is the immediate check, but the monitoring window (30-60 minutes for a web service, longer for slow-burn issues) is still open. The weekend recovery capacity is lower, so a slow-burn regression discovered Saturday morning has fewer responders. Recommend: (a) the deploy owner watches the monitoring window before going off; (b) the weekend on-call is paged in and briefed on the recent deploy (the handoff includes 'recent deploy still in monitoring window'); (c) rollback authority is pre-authorized for the on-call; (d) if the deploy is high-risk, defer the all-clear until Monday rather than declaring before the weekend. Friday-afternoon deploys with weekend exposure should be the exception, not the default.",
+      "assertions": [
+        "Does not declare all-clear after smoke tests alone",
+        "Identifies the monitoring window as still open",
+        "Recommends watching the window before going off-shift",
+        "Recommends briefing the weekend on-call",
+        "Connects to oncall-handoff-rituals (handoff includes recent deploy)",
+        "Recommends pre-authorized rollback authority",
+        "Identifies Friday-afternoon deploys as a risk",
+        "Considers deferring all-clear until Monday for high-risk deploys"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We had an incident yesterday: a deploy introduced a memory leak that surfaced 6 hours after the deploy. Our smoke tests passed, canary metrics were fine. How do we prevent this next time?",
+      "expected_output": "The slow-burn category isn't catchable by immediate smoke tests or short-window canary metrics. The fixes: (a) extend the monitoring window for memory/resource metrics — watch for several hours or longer; (b) add memory consumption to the canary metric set, with a longer-window threshold (e.g., 10 minute window for resource regressions); (c) post-deploy resource trend dashboards monitored for the day after deploy, not just the deploy window. The post-mortem-driven verification addition: this specific incident's pattern (memory leak surfacing at hour N) becomes a check the verification system can catch next time. Recommend filing the action item with an owner and a deadline; the verification only improves if the action items close.",
+      "assertions": [
+        "Identifies slow-burn as the failure category",
+        "Notes immediate smoke tests can't catch this",
+        "Recommends extended monitoring window for resource metrics",
+        "Adds memory/resource consumption to canary metric set",
+        "Recommends longer-window threshold for resource regressions",
+        "References post-mortem-driven verification addition",
+        "Requires action item with owner and deadline",
+        "Notes the verification only improves if action items close"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our deploy succeeded but it included a feature flag for a new behavior. The flag is currently off. When should we flip it on?",
+      "expected_output": "Not yet. The flag flip is a separate operation from the deploy. Sequence: (a) deploy with flag off; (b) verify the deploy doesn't regress baseline (smoke tests pass, canary metrics fine); (c) only after verification, flip the flag for 1% of users; (d) watch the canary metrics for the flagged behavior; (e) progressive rollout (10%, 50%, 100%). The deploy verification is the precondition for the flag rollout. Don't couple them — flipping the flag during the deploy loses the safety of separating 'code shipped' from 'behavior shipped'. For flag rollout details, reference feature-flagging.",
+      "assertions": [
+        "Identifies flag flip as separate from deploy",
+        "Recommends verifying deploy first (flag off)",
+        "Recommends progressive rollout (1%, 10%, 50%, 100%) after verification",
+        "Watches canary metrics for the flagged behavior at each step",
+        "Identifies the safety of separating code-shipped from behavior-shipped",
+        "References feature-flagging for the rollout details",
+        "Does not recommend flipping the flag during the deploy"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our manual post-deploy checklist has 12 items. The deployer always 'completes' it in 30 seconds and clicks all-good. What's the issue?",
+      "expected_output": "The checklist is being rubber-stamped, not executed. Useful only if actually performed; rubber-stamping is worse than no checklist because it produces false confidence. Two diagnoses: (a) the checklist content is wrong — the items aren't catching anything, so the deployer learned the checklist doesn't matter; (b) the discipline is broken — items would catch things but nobody runs them. Fix: review the checklist quarterly against actual deploy incidents — items that don't predict incidents get cut or restructured; items that would have caught real incidents get added. Also: require evidence per item (screenshot, link, timestamp) rather than just a checkbox. If items genuinely take 30 seconds for 12 items, the items are too shallow.",
+      "assertions": [
+        "Identifies rubber-stamping as the issue",
+        "Notes rubber-stamping is worse than no checklist",
+        "Diagnoses both bad content and broken discipline",
+        "Recommends quarterly review against actual deploy incidents",
+        "Adds items that would have caught real incidents",
+        "Removes items that don't predict incidents",
+        "Recommends per-item evidence (not just checkbox)",
+        "Identifies 30 seconds for 12 items as too fast"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our canary metric thresholds have been the same since the system was built 3 years ago. The baseline error rate has crept up to 0.4% over that time. Should we adjust?",
+      "expected_output": "Yes. The thresholds were calibrated for an older baseline; with current baseline at 0.4%, the existing threshold may be either too tight (false positives) or too loose (missed regressions) relative to current behavior. The discipline: canary thresholds are calibrated to current baseline, not absolute. Recommend (a) review baseline noise (variance, daily patterns, weekly patterns) and set the threshold at a sustained 1.5x-2x multiple of that baseline; (b) keep an absolute floor (e.g., error rate > 5% regardless of baseline) for catastrophic failures; (c) revisit thresholds quarterly or after significant baseline shifts. The 0.4% creep is itself a signal — is the system actually degrading slowly? That deserves investigation regardless of canary calibration.",
+      "assertions": [
+        "Recommends adjusting thresholds for current baseline",
+        "Notes the thresholds are relative to baseline, not absolute",
+        "Recommends reviewing baseline noise and variance",
+        "Recommends sustained 1.5x-2x multiplier of current baseline",
+        "Keeps an absolute floor for catastrophic failures",
+        "Recommends quarterly threshold review",
+        "Identifies the 0.4% creep as a separate signal worth investigating",
+        "Does not recommend keeping the same thresholds indefinitely"
+      ],
+      "files": []
+    }
+  ]
+}

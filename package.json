@@ -1,7 +1,7 @@
 {
   "name": "@openclaw/frontier-stack",
-  "version": "0.6.0",
-  "description": "Production-ready, drop-in interoperable agent skills + hooks + orchestration harness for Claude Code, Codex, Cursor, OpenCode, and any agent that supports the Agent Skills specification. Ships 51 skills (28 ecomm marketing as Modern Skills, 20 engineering workflow, 3 operator), 11 role contracts, an engineer CLI (openclaw), a live agent runner daemon (openclaw-agent), 4 coordination patterns (fan-out, fan-in, chain, voting), and 5 autonomous loops (skill-eval-drift, dependency-vulnerability-scan, performance-baseline-drift, documentation-staleness, prompt-tuning). Plus the OpenClaw Frontier Stack production core: signed coordination, durable task ownership, memory, observability, and fail-closed release gates.",
+  "version": "0.7.0",
+  "description": "Production-ready, drop-in interoperable agent skills + hooks + orchestration harness for Claude Code, Codex, Cursor, OpenCode, and any agent that supports the Agent Skills specification. Ships 68 skills (37 marketing + creative as Modern Skills, 28 engineering workflow, 3 operator), 11 role contracts, an engineer CLI (openclaw) with goal templating + state persistence + ticketing, a live agent runner daemon (openclaw-agent), 4 coordination patterns (fan-out, fan-in, chain, voting), 5 autonomous loops, a Rust core workspace (envelope, blackboard, taskflow crates with canonical-JSON parity), and the public-surface harness with semver consistency + script/bin/files-glob existence checks. Plus the OpenClaw Frontier Stack production core: signed coordination, durable task ownership, ticketing FSM, memory, observability, and fail-closed release gates.",
   "license": "MIT",
   "type": "commonjs",
   "private": false,
@@ -44,6 +44,7 @@
     "LICENSE",
     "README.md",
     "bin/",
+    "crates/",
     "docs/",
     "examples/",
     "hooks/",
@@ -58,6 +59,7 @@
     "skills/",
     "src/",
     "templates/",
+    "test/",
     "STATUS.md",
     "docs/security/"
   ],

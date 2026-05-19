@@ -1,0 +1,115 @@
+{
+  "skill_name": "retail-buyer-pitch",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're a DTC supplement brand at $6M/year and want to pitch Whole Foods. How do we approach this?",
+      "expected_output": "Walks the retail-buyer-pitch framework. Should diagnose retail-readiness. Should explain the buyer's-job framing (predict velocity, not love the brand). Should require a linesheet, velocity proof translated to in-store geographies, marketing co-op plan, and slotting-fee budget. Should warn that Whole Foods expects co-op marketing contribution. Should ask about gross margin to confirm wholesale viability.",
+      "assertions": [
+        "Checks for .agents/modern-ai-context.md",
+        "Applies the buyer's-job framing (predict velocity, not love brand)",
+        "Requires a complete linesheet",
+        "Translates DTC velocity to in-store geographies",
+        "Names marketing co-op plan as required",
+        "Names slotting-fee budget for Whole Foods specifically",
+        "Asks about gross margin for wholesale viability",
+        "Calls modern.sales.aov and modern.sales.margin_by_product",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections",
+        "Names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our DTC gross margin is 55%. Can we do wholesale?",
+      "expected_output": "Direct answer with the keystone-math walk: at 55% DTC gross margin, COGS is 45% of MSRP, wholesale price is 50% of MSRP, wholesale margin is 5 percentage points. This is structurally unviable. Should walk the math explicitly. Should recommend either restructuring COGS, raising MSRP (with the DTC-conversion tradeoff), or considering a different wholesale price (some specialty retailers accept higher than keystone). Should warn that mass retailers will demand keystone or worse.",
+      "assertions": [
+        "Walks the keystone-math framework explicitly",
+        "Computes wholesale margin from DTC gross margin of 55%",
+        "Identifies the result as structurally unviable",
+        "Recommends restructuring COGS or raising MSRP",
+        "Warns about DTC conversion tradeoff of raising MSRP",
+        "Warns mass retailers demand keystone or worse",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "What should our linesheet include?",
+      "expected_output": "Walks the linesheet framework. Should list every required element: SKU list with names/descriptions, MSRP, wholesale price, MOQ (per SKU and total), case pack, lead time, packaging dimensions and weight, UPC, payment terms (Net 30 standard), returns/damages policy, MAP policy. Should emphasize that the linesheet is the buyer's evaluation tool and missing fields signal the brand is not retail-ready.",
+      "assertions": [
+        "Walks the linesheet framework",
+        "Lists SKU list, MSRP, wholesale price",
+        "Lists MOQ, case pack, lead time",
+        "Lists packaging dimensions and weight",
+        "Lists UPC and payment terms",
+        "Lists returns/damages policy and MAP",
+        "Notes the linesheet as the buyer's evaluation tool",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Should we hire a broker or go to trade shows ourselves?",
+      "expected_output": "Walks the trade-show, broker, cold-email framework. Should not give a single answer; should recommend trade shows for category-leader retailers, brokers for distributed retail (regional, specialty), cold outreach for specific targets. Should warn that broker quality varies widely and that brands should reference-check brokers. Should name the broker commission typical band (5-15% of wholesale revenue).",
+      "assertions": [
+        "Walks the trade-show, broker, cold-email framework",
+        "Recommends trade shows for category-leader retailers",
+        "Recommends brokers for distributed retail (regional, specialty)",
+        "Recommends cold outreach for specific targets",
+        "Warns about variable broker quality",
+        "Names broker commission band (5-15%)",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Target wants us to pay $30k in slotting fees. Is that normal?",
+      "expected_output": "Walks the slotting-fee-reality framework. Yes, $30k is within typical band for Target ($5k-$50k per SKU per chain). Should explain that slotting fees are not negotiable to zero at major retailers. Should walk alternatives (guaranteed-sale arrangements, co-op marketing instead). Should warn that slotting does not guarantee shelf retention; sell-through still drives the velocity-or-out decision at the next reset. Should recommend budgeting for slotting as part of wholesale launch cost from the start.",
+      "assertions": [
+        "Walks the slotting-fee-reality framework",
+        "Confirms $30k is within typical Target band ($5k-$50k)",
+        "States slotting fees are not negotiable to zero at major retailers",
+        "Names alternatives (guaranteed-sale, co-op marketing)",
+        "Warns slotting does not guarantee shelf retention",
+        "Recommends budgeting slotting in launch cost",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We got our first PO from Sprouts! Now what?",
+      "expected_output": "Walks the 'first retail order is a test, not a relationship' framework and the velocity-or-out cadence. Should warn against treating the launch as a revenue event. Should recommend the first-6-months marketing plan: paid social in store geographies, in-store sampling, end-cap contribution, weekly UPSW monitoring, co-op marketing spend. Should warn that Sprouts reset cycles are typically 6 months and that sub-velocity SKUs are removed at reset. Should recommend operating as an active retail-marketing function from week one.",
+      "assertions": [
+        "Applies the first-retail-order-is-a-test framing",
+        "Warns against treating launch as revenue event",
+        "Recommends marketing plan with paid social in store geographies",
+        "Recommends weekly UPSW monitoring",
+        "Recommends co-op marketing spend",
+        "Names reset cycle and velocity-or-out cadence",
+        "Recommends active retail-marketing function from week one",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "How do I prove velocity to a buyer when we've only sold DTC?",
+      "expected_output": "Walks the velocity-translation methodology. Should recommend translating DTC sales to in-store velocity prediction by retailer geography. Should suggest segmenting DTC sales by zip code or DMA matching the retailer's store locations. Should also suggest piloting with smaller specialty retail before pitching mass to build real in-store velocity data. Should reference high repeat rate as a velocity-prediction signal. Should ask about marketing in the retailer's geographies.",
+      "assertions": [
+        "Recommends DTC-to-in-store velocity translation",
+        "Recommends segmenting DTC sales by retailer geography",
+        "Suggests specialty-retail pilot before mass pitch",
+        "Names repeat rate as velocity-prediction signal",
+        "Asks about marketing in retailer geographies",
+        "Calls modern.retention.repeat_rate via modern-mcp",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 {
   "name": "openclaw-frontier-stack",
   "displayName": "OpenClaw Frontier Stack",
-  "description": "Interoperable agent skills + hooks + orchestration harness. 51 skills (28 ecomm marketing as Modern Skills + 11 engineering workflow + 3 operator + the v0.5.0 cohort), 11 role contracts, engineer CLI (openclaw), live agent runner daemon (openclaw-agent), 4 coordination patterns (fan-out, fan-in, chain, voting), and 5 autonomous loops. Compatible with any agent that supports the Agent Skills specification (agentskills.io).",
-  "version": "0.6.0",
+  "description": "Interoperable agent skills + hooks + orchestration harness. 68 skills (37 marketing + creative as Modern Skills, 28 engineering workflow, 3 operator), 11 role contracts, engineer CLI (openclaw) with goal templating + state persistence + ticketing, live agent runner daemon (openclaw-agent), 4 coordination patterns (fan-out, fan-in, chain, voting), 5 autonomous loops, and a Rust core workspace. Compatible with any agent that supports the Agent Skills specification (agentskills.io).",
+  "version": "0.7.0",
   "author": {
     "name": "OpenClaw",
     "url": "https://github.com/ohsonerdy/openclaw-frontier-stack"

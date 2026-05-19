@@ -1,0 +1,110 @@
+{
+  "skill_name": "logging-platform-selection",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our Datadog bill just hit $80k/month, mostly from log ingest. We're at about 800 GB/day of logs. Should we switch to self-hosted?",
+      "expected_output": "Likely yes, given the volume. At 800 GB/day, Datadog's per-GB pricing is significant; self-hosted ELK / OpenSearch / Loki becomes competitive. But the migration isn't free: budget for engineer time to run the cluster, and assign a dedicated owner. Also consider a tiered architecture: keep Datadog for the most-queried subset (recent operational logs, alerts), and ship the bulk to cheaper self-hosted storage. Check whether the team has the operational bandwidth to run a self-hosted cluster; if not, the savings aren't real. Also identify whether all 800 GB/day actually needs to be in a queryable platform — some debug logs may be archive-only.",
+      "assertions": [
+        "Recommends self-hosted as worth considering at this volume",
+        "Notes the migration is not free and requires dedicated ownership",
+        "Considers tiered architecture (Datadog for hot, self-hosted for bulk)",
+        "Identifies the engineer-time cost of self-hosted",
+        "Questions whether all 800 GB/day needs to be queryable (some may be archive-only)",
+        "Does not recommend switching without modeling total cost including engineer time",
+        "Identifies tiered retention as a potential cost win"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We're a 6-engineer team starting a new project. Logs will be maybe 5 GB/day to start. What logging platform should we pick?",
+      "expected_output": "At this volume, almost anything works. The binding constraint is operational simplicity, not per-GB cost. Default to a managed service: Datadog, Logflare, or even CloudWatch Logs with a UI layer like Grafana. Self-hosted is overkill for a 6-engineer team at this volume — the operational cost of running an ELK cluster exceeds any savings. Pick based on (a) the platform's query power for the queries the team will actually run, (b) integration with the team's other tools, (c) the cost trajectory as volume grows. Avoid self-hosting unless the team has a dedicated infra engineer who wants to own it.",
+      "assertions": [
+        "Recommends managed service for this team size and volume",
+        "Names specific options (Datadog, Logflare, CloudWatch with UI)",
+        "Identifies self-hosted as overkill at this volume and team size",
+        "Notes operational cost of self-hosted exceeds savings at this scale",
+        "Selection criteria: query power, integrations, cost trajectory",
+        "Considers volume growth in the selection",
+        "Does not recommend self-hosted ELK"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We're picking between Loki and Elasticsearch. We do mostly grep-style queries for incident response, but we also have some dashboards that aggregate by status code over time. Which fits?",
+      "expected_output": "Loki is good for the grep-style use case but weak for analytical queries that require aggregation across high-cardinality fields. Elasticsearch handles both but at higher operational and resource cost. The honest middle: Loki for the grep queries (cheaper, simpler) plus a separate metrics system (Prometheus) for the aggregation queries, since you're aggregating by status code over time — that's a metrics workload, not a log workload. Or, if you want one platform, Elasticsearch / OpenSearch handles both at higher cost. Recommend deriving the metrics from the logs at ingestion time (forwarder emits both raw log and pre-aggregated metric) rather than aggregating logs at query time.",
+      "assertions": [
+        "Identifies Loki as good for grep but weak for analytical aggregation",
+        "Identifies Elasticsearch as handling both at higher cost",
+        "Suggests separating into Loki (logs) plus Prometheus (metrics)",
+        "Recognizes status-code-over-time aggregation as a metrics workload, not a log workload",
+        "Suggests deriving metrics at ingestion time as an architecture",
+        "Considers the multi-platform option as a legitimate answer",
+        "Does not recommend Loki without acknowledging the aggregation weakness"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We have no retention policy. We just keep everything in our log platform forever. Our bill is going up linearly. What should we do?",
+      "expected_output": "Implement tiered retention. Classify logs by type: security/audit (typically 7y, cheap archival storage), operational (30-90 days, queryable hot tier), debug (7-14 days, hot tier), access (varies, often 90 days to 1 year). Move the long tail to cold storage (S3 or equivalent); hot-tier cost is often 10-50x cold-tier cost. If the platform supports tiered retention natively, configure it. If not, build the tiering: ship logs to both the hot platform and S3, drop old hot-tier logs, query S3 directly for old data. Recommend this as a cost-driven project; expect significant savings without losing access to old data.",
+      "assertions": [
+        "Recommends tiered retention",
+        "Classifies logs by type with different retention windows",
+        "Quotes specific retention windows (security 7y, ops 30-90d, debug 7-14d)",
+        "Identifies hot vs cold tier cost difference (10-50x)",
+        "Suggests S3 or equivalent for cold storage",
+        "Offers both native-platform-tiered and built-tiering options",
+        "Frames as cost-driven project with expected savings"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We had an incident last night and the on-call couldn't query the logs fast enough — queries were taking 2-3 minutes each. The platform is fine for daily use but slow during incidents. What's going on?",
+      "expected_output": "The platform is failing at its highest-value moment. Possible causes: (a) incident-response queries scan more data than daily queries (longer time range, broader filters); (b) the platform's query optimizer is poor for the specific query shape the on-call needs; (c) the queries are hitting cold-tier data; (d) the platform is index-light and re-scans on every query. Diagnose by benchmarking the specific incident-response queries against the platform on production-scale data. Either fix the platform configuration (more aggressive indexing, ensure incident-range data is in hot tier), or switch to a platform that's faster for these queries. Incident-response speed should be the headline benchmark for selection.",
+      "assertions": [
+        "Identifies the platform as failing at its highest-value moment",
+        "Lists possible causes (data scanned, optimizer, cold tier, indexing)",
+        "Recommends benchmarking the specific incident-response queries",
+        "Suggests configuration fixes (indexing, hot-tier coverage of incident window)",
+        "Suggests platform change if configuration won't fix it",
+        "Frames incident-response speed as the headline benchmark",
+        "Does not accept 'fast for daily queries' as sufficient"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We're emitting plain-text logs from a legacy app. Our new platform wants JSON. Is parsing on the platform side okay?",
+      "expected_output": "Acceptable as a transition but not the long-term goal. Platform-side parsing (regex-based) is fragile — log format changes break the parsing silently, and the platform may not extract all the fields. The ingest cost is also higher because parsing is computationally expensive at scale. Recommend a phased migration: short-term, accept the platform-side parsing with explicit monitoring of parse failure rate; medium-term, update the application to emit structured (JSON) logs. The migration is a separate project but should be on the roadmap. Until then, alert on parse failure rate and budget for the extra ingest cost.",
+      "assertions": [
+        "Identifies platform-side parsing as transitional, not long-term",
+        "Notes fragility: log format changes break parsing silently",
+        "Notes higher ingest cost from parsing",
+        "Recommends phased migration to structured logs at the application",
+        "Recommends monitoring parse failure rate during the transition",
+        "Identifies the migration as a separate project to budget for",
+        "Does not endorse plain-text logs as a sustainable approach"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our log forwarder buffers locally if the platform is unreachable. We've never checked whether it's dropping logs. Is that fine?",
+      "expected_output": "Almost certainly not fine. Forwarder buffer drops are a silent failure mode: the application emits logs, the forwarder fills its buffer, the platform is briefly slow, the forwarder drops logs without surfacing the drop, and the team doesn't know until an incident investigation finds the missing window. Monitor: (a) the forwarder's lag (logs behind real-time), (b) the forwarder's drop rate, (c) the forwarder's buffer fill level. Alert on all three. Also verify the buffer survives a forwarder restart (some forwarders lose unflushed buffer on restart). If you've never checked, do it now — there are likely silent gaps.",
+      "assertions": [
+        "Identifies forwarder buffer drops as a silent failure mode",
+        "Recommends monitoring lag, drop rate, and buffer fill",
+        "Recommends alerting on all three",
+        "Notes the drops surface during incident investigation, too late",
+        "Recommends verifying buffer survives restart",
+        "Recommends checking immediately since the team hasn't checked before",
+        "Treats this as a real risk, not a hypothetical"
+      ],
+      "files": []
+    }
+  ]
+}

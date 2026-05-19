@@ -1,0 +1,23 @@
+{
+  "schema": "openclaw-frontier.goal.v1",
+  "description": "Standard bug-fix flow: reproduce, find root cause, patch, test, review. Sequential chain because every step strictly depends on the previous one.",
+  "titleTemplate": "Fix bug: ${context}",
+  "definitionOfDone": "Reproducer is on disk, root cause is documented, patch lands with green tests, and a reviewer approves the fix for \"${context}\".",
+  "cadence": { "operatorUpdateMinutes": 30, "channel": "operator-chat" },
+  "lanes": [
+    {
+      "name": "bugfix-pipeline",
+      "pattern": "chain",
+      "summary": "End-to-end bugfix pipeline for ${context}",
+      "steps": [
+        { "id": "reproduce", "role": "researcher", "summary": "Build a minimal reproducer for ${context}", "expects": ["reproducer", "repro-log"] },
+        { "id": "root-cause", "role": "architect", "summary": "Identify the root cause for ${context} (one-paragraph diagnosis)", "expects": ["root-cause-note.md"] },
+        { "id": "patch", "role": "builder", "summary": "Author the minimal patch for ${context}", "expects": ["patch", "tests-run"] },
+        { "id": "test", "role": "verifier", "summary": "Run the regression test for ${context} and capture receipts", "expects": ["test-report"] },
+        { "id": "review", "role": "reviewer", "summary": "Review the ${context} patch end-to-end", "expects": ["review-decision"] }
+      ]
+    }
+  ],
+  "green": [],
+  "red": ["reproducer not yet captured for ${context}"]
+}

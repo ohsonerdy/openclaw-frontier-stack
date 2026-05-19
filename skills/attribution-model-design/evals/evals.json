@@ -1,0 +1,111 @@
+{
+  "skill_name": "attribution-model-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Which attribution model should we use?",
+      "expected_output": "Should not directly recommend a model. Should first ask 'what decision is the attribution model going to inform?' Should walk the what-question-are-you-answering framework: channel weighting, incremental lift, or holdout-validated causal truth. Should explain that different questions require different methodologies. Should NOT recommend a single model as universally correct.",
+      "assertions": [
+        "Checks for .agents/modern-ai-context.md",
+        "Does NOT directly recommend a model first",
+        "Walks the what-question-are-you-answering framework",
+        "Distinguishes channel weighting from incremental lift from causal truth",
+        "Explains that different questions require different methodologies",
+        "Does not recommend a single model as universally correct",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections",
+        "Names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our last-touch attribution says Meta drives 35% of revenue. Should we double down?",
+      "expected_output": "Diagnosis that 35% last-touch credit does not equal 35% incremental contribution. Should explain that the channel might be 90% redundant (customer would have converted anyway) or fully incremental. Should recommend an incrementality test (audience holdout in Meta or geo holdout) before doubling spend. Should also recommend comparing against first-touch attribution to see whether Meta is upper-funnel or closer.",
+      "assertions": [
+        "Identifies that last-touch credit does not equal incremental contribution",
+        "Explains the redundancy possibility",
+        "Recommends an incrementality test before scaling",
+        "Names audience holdout or geo holdout as methodologies",
+        "Recommends first-touch vs last-touch comparison",
+        "Calls modern.attribution.first_touch and modern.attribution.last_touch",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "What's the difference between MMM and MTA?",
+      "expected_output": "Walks the MMM-vs-MTA-tradeoffs framework. MMM is aggregate, slower, durable to tracking loss, best for top-of-funnel and offline channels. MTA is granular, real-time, biased by tracking gaps, best for direct-response with clean tracking. Should recommend the hybrid: MTA for direct-response paid channels, MMM for top-of-funnel and offline, incrementality tests for triangulation. Should warn against MTA alone for tracking-weak channels.",
+      "assertions": [
+        "Walks the MMM-vs-MTA framework with both approaches",
+        "Names MMM as aggregate, durable to tracking loss",
+        "Names MTA as granular, biased by tracking gaps",
+        "Recommends the hybrid approach",
+        "Warns against MTA alone for tracking-weak channels",
+        "Names incrementality tests as triangulation",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our Meta ROAS has been dropping since iOS-14. Is the platform broken or are we?",
+      "expected_output": "Walks the post-iOS-14-reality framework. Should explain that iOS 14 permanently degraded clickstream-based attribution; reported ROAS dropped because signal completeness dropped, not necessarily because actual performance dropped. Should recommend server-side tracking (CAPI), Enhanced Conversions, first-party data investment, and triangulation with MMM or incrementality tests. Should warn that 2019-era assumptions about deterministic last-touch attribution are systematically misallocating budget.",
+      "assertions": [
+        "Walks the post-iOS-14-reality framework",
+        "Explains the signal-degradation cause of the ROAS drop",
+        "Recommends server-side tracking (CAPI)",
+        "Recommends Enhanced Conversions or modeled conversions",
+        "Recommends first-party data investment",
+        "Recommends triangulation with MMM or incrementality tests",
+        "Calls modern.ads.roas via modern-mcp",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "How do I actually run an incrementality test on Meta?",
+      "expected_output": "Walks the incrementality-testing framework with the three approaches. Should recommend audience holdout in Meta as the most accessible (Meta supports random audience exclusion). Should explain the design: random subset excluded from campaign, measure conversion difference. Should recommend running at least once per quarter on the top channels. Should reference ab-testing for the underlying methodology.",
+      "assertions": [
+        "Walks the incrementality-testing framework",
+        "Recommends audience holdout in Meta as accessible methodology",
+        "Explains the design (random subset excluded, measure difference)",
+        "Recommends at least quarterly cadence on top channels",
+        "References ab-testing for the underlying methodology",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We've been using the same attribution model for two years. When should we update it?",
+      "expected_output": "Walks the revisit-cadence framework. Should name the triggering conditions: channel mix shift of 20%+, ad-platform attribution methodology changes, tracking environment changes (privacy regs, iOS/Android updates), strategic-question shifts, and the quarterly minimum. Should warn that set-and-forget attribution leads to misalignment and that budget-allocation decisions go badly when the model is stale.",
+      "assertions": [
+        "Walks the revisit-cadence framework",
+        "Names channel mix shift threshold (20%+)",
+        "Names ad-platform changes as triggers",
+        "Names tracking environment changes as triggers",
+        "Names quarterly minimum review",
+        "Warns that set-and-forget leads to misallocation",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "What's wrong with just using last-touch attribution? It's simple and the platform supports it.",
+      "expected_output": "Walks the attribution-model-taxonomy and your-attribution-is-wrong-embrace-the-directional-truth frameworks. Should explain that last-touch is biased toward direct, branded search, and retargeting (channels that capture the final touch). It systematically underweights upper-funnel demand creators. Should not advocate against it categorically but should explain the bias and recommend triangulation with first-touch (and incrementality where the decision matters). Should note all attribution is directionally wrong.",
+      "assertions": [
+        "Walks the attribution-model-taxonomy framework",
+        "Explains last-touch's bias toward direct, branded, retargeting",
+        "Names that last-touch underweights upper-funnel demand creators",
+        "Does not advocate against last-touch categorically",
+        "Recommends triangulation with first-touch and incrementality",
+        "Notes all attribution is directionally wrong",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

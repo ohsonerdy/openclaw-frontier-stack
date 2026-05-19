@@ -1,0 +1,41 @@
+{
+  "schema": "openclaw-frontier.goal.v1",
+  "description": "Standard release flow: scan the repo, verify the build, tag, push, draft release notes. Uses a chain for the sequential pipeline plus a fan-out for parallel approvals at the gate.",
+  "titleTemplate": "Ship release: ${context}",
+  "definitionOfDone": "All release lanes for \"${context}\" return GREEN, sentinel and security_sentinel approve, and the release-notes artifact is on disk.",
+  "cadence": { "operatorUpdateMinutes": 15, "channel": "release-chat" },
+  "lanes": [
+    {
+      "name": "release-pipeline",
+      "pattern": "chain",
+      "summary": "Sequential release pipeline for ${context}",
+      "steps": [
+        { "id": "scan-repo", "role": "verifier", "summary": "Run npm run verify against the current tree for ${context}", "expects": ["verify-report"] },
+        { "id": "verify-build", "role": "verifier", "summary": "Spot-check the production package for ${context}", "expects": ["package-manifest"] },
+        { "id": "tag-rc", "role": "release_manager", "summary": "Tag the release candidate for ${context} (no push)", "expects": ["tag-receipt"] },
+        { "id": "draft-release-notes", "role": "scribe", "summary": "Draft release notes for ${context} from CHANGELOG.md", "expects": ["release-notes.md"] }
+      ]
+    },
+    {
+      "name": "release-gate-vote",
+      "pattern": "voting",
+      "summary": "Cross-role approval to ship ${context}",
+      "decision": "Approve release of ${context}?",
+      "voters": [
+        { "id": "sec", "role": "security_sentinel" },
+        { "id": "arch", "role": "architect" },
+        { "id": "rev", "role": "reviewer" }
+      ],
+      "quorum": 3,
+      "threshold": 0.667
+    },
+    {
+      "name": "final-approval",
+      "role": "sentinel",
+      "summary": "Sentinel gate on the ${context} release packet",
+      "expects": ["sentinel-decision"]
+    }
+  ],
+  "green": [],
+  "red": ["release-pipeline not yet executed"]
+}

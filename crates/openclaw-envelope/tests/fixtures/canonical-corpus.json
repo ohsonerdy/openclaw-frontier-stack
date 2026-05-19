@@ -1,0 +1,89 @@
+[
+  {
+    "name": "empty-object",
+    "input": {},
+    "canonical": "{}"
+  },
+  {
+    "name": "single-key",
+    "input": { "a": 1 },
+    "canonical": "{\"a\":1}"
+  },
+  {
+    "name": "key-order-three",
+    "input": { "z": 1, "a": 2, "m": 3 },
+    "canonical": "{\"a\":2,\"m\":3,\"z\":1}"
+  },
+  {
+    "name": "nested-key-order",
+    "input": { "z": { "y": 1, "x": 2 }, "a": { "c": 3, "b": 4 } },
+    "canonical": "{\"a\":{\"b\":4,\"c\":3},\"z\":{\"x\":2,\"y\":1}}"
+  },
+  {
+    "name": "array-preserves-order",
+    "input": { "list": [3, 1, 2] },
+    "canonical": "{\"list\":[3,1,2]}"
+  },
+  {
+    "name": "scalar-types",
+    "input": { "n": null, "t": true, "f": false, "i": 42, "s": "hi" },
+    "canonical": "{\"f\":false,\"i\":42,\"n\":null,\"s\":\"hi\",\"t\":true}"
+  },
+  {
+    "name": "string-escapes",
+    "input": { "s": "line1\nline2\ttab\"quote\\back" },
+    "canonical": "{\"s\":\"line1\\nline2\\ttab\\\"quote\\\\back\"}"
+  },
+  {
+    "name": "control-chars",
+    "input": { "s": "\u0001\u0002\u001f" },
+    "canonical": "{\"s\":\"\\u0001\\u0002\\u001f\"}"
+  },
+  {
+    "name": "backspace-formfeed",
+    "input": { "s": "\b\f" },
+    "canonical": "{\"s\":\"\\b\\f\"}"
+  },
+  {
+    "name": "non-ascii-printable",
+    "input": { "s": "café résumé" },
+    "canonical": "{\"s\":\"café résumé\"}"
+  },
+  {
+    "name": "top-level-signature-stripped",
+    "input": {
+      "id": "abc",
+      "type": "TASK",
+      "signature": "outer-must-be-stripped",
+      "body": { "x": 1 }
+    },
+    "canonical": "{\"body\":{\"x\":1},\"id\":\"abc\",\"type\":\"TASK\"}"
+  },
+  {
+    "name": "nested-signature-preserved",
+    "input": {
+      "type": "OBSERVATION",
+      "body": { "signature": "inner-evidence", "x": 1 },
+      "signature": "outer-envelope-sig"
+    },
+    "canonical": "{\"body\":{\"signature\":\"inner-evidence\",\"x\":1},\"type\":\"OBSERVATION\"}"
+  },
+  {
+    "name": "deep-nesting-sorted",
+    "input": {
+      "z": [{ "b": 1, "a": 2 }, { "d": 3, "c": 4 }],
+      "a": { "m": { "p": 5, "o": 6 } }
+    },
+    "canonical": "{\"a\":{\"m\":{\"o\":6,\"p\":5}},\"z\":[{\"a\":2,\"b\":1},{\"c\":4,\"d\":3}]}"
+  },
+  {
+    "name": "empty-string-and-array",
+    "input": { "s": "", "a": [] },
+    "canonical": "{\"a\":[],\"s\":\"\"}"
+  },
+  {
+    "name": "integer-and-float",
+    "input": { "i": 1000, "f": 1.5 },
+    "canonical": "{\"f\":1.5,\"i\":1000}"
+  }
+]

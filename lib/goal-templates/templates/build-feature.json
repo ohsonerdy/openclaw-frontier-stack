@@ -1,0 +1,51 @@
+{
+  "schema": "openclaw-frontier.goal.v1",
+  "description": "Standard feature-development flow: spec, design review, implement, test, review, ship. The design-review lane is a fan-out across architect + reviewer + security_sentinel; everything else is a chain.",
+  "titleTemplate": "Build feature: ${context}",
+  "definitionOfDone": "Feature \"${context}\" has a spec, passed design-review, an implementation with green tests, and a reviewer plus sentinel decision.",
+  "cadence": { "operatorUpdateMinutes": 60, "channel": "operator-chat" },
+  "lanes": [
+    {
+      "name": "spec",
+      "role": "architect",
+      "summary": "Draft a one-page spec for ${context}",
+      "expects": ["spec.md", "open-questions"]
+    },
+    {
+      "name": "design-review",
+      "pattern": "fan-out",
+      "summary": "Parallel design review of the ${context} spec",
+      "tasks": [
+        { "id": "arch-review", "role": "architect", "summary": "Architectural review of the ${context} spec", "expects": ["architect-decision"] },
+        { "id": "code-review-design", "role": "reviewer", "summary": "Maintainability + API surface review of the ${context} spec", "expects": ["review-decision"] },
+        { "id": "sec-review-design", "role": "security_sentinel", "summary": "Security review of the ${context} spec", "expects": ["sentinel-decision"] }
+      ]
+    },
+    {
+      "name": "implement",
+      "role": "builder",
+      "summary": "Implement ${context} against the approved spec",
+      "expects": ["patch", "tests-run", "docs-diff"]
+    },
+    {
+      "name": "test",
+      "role": "verifier",
+      "summary": "Verify ${context} with the full test surface",
+      "expects": ["verify-report"]
+    },
+    {
+      "name": "review",
+      "role": "reviewer",
+      "summary": "End-to-end review of the ${context} implementation",
+      "expects": ["review-decision"]
+    },
+    {
+      "name": "ship",
+      "role": "sentinel",
+      "summary": "Sentinel sign-off to ship ${context}",
+      "expects": ["sentinel-decision"]
+    }
+  ],
+  "green": [],
+  "red": ["spec for ${context} not authored yet"]
+}

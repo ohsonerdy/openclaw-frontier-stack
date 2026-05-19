@@ -1,0 +1,107 @@
+{
+  "skill_name": "feature-experiment-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We ran an A/B test for 2 weeks. The primary metric was flat (p=0.4), but click-through to the new feature was up 8% (p=0.02). The team wants to declare the click-through metric the win and ship. Should we?",
+      "expected_output": "No. This is metric shopping. The primary metric was pre-registered as primary; the click-through was not the success criterion before the test ran. Declaring the secondary metric the win after the fact inflates the false positive rate and produces a portfolio of 'wins' that collectively don't move the business. The honest report: 'primary metric flat; click-through up but underpowered or not pre-registered'. Possible next steps: re-run the test with click-through as the pre-registered primary, or revise the hypothesis to articulate why click-through matters if primary doesn't move.",
+      "assertions": [
+        "Identifies the move as metric shopping",
+        "Requires the primary metric to be the one pre-registered before the test",
+        "Calls out the false-positive inflation from post-hoc metric selection",
+        "Recommends honest reporting (primary flat) over picking the favorable metric",
+        "Suggests re-running with click-through as the pre-registered primary if it's genuinely important",
+        "Does not approve shipping based on a post-hoc metric switch",
+        "References pre-registration as the missing discipline"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We're designing an A/B test. Our metric baseline is 5% (conversion). We want to detect a 2% relative lift. Our weekly traffic is 200k users. How long should we run?",
+      "expected_output": "Sample size calculation: detecting a relative 2% lift on a 5% baseline (5% -> 5.1%) at 80% power and 95% confidence requires roughly 1.5-2 million users per variant. With 200k/week and 50/50 split (100k per variant per week), that's 15-20 weeks per variant. The practical implication: the team likely cannot afford the calendar time. Options: accept a larger MDE (only detect bigger effects), reduce variance via CUPED or filtering to the relevant population, or run a different test. Recommend stating the affordable MDE explicitly so the experiment's limits are clear.",
+      "assertions": [
+        "Provides a concrete sample size estimate (in the range of millions per variant)",
+        "Translates sample size to calendar time given the weekly traffic",
+        "Identifies that the test as designed is unaffordable in reasonable time",
+        "Suggests CUPED or variance reduction as one alternative",
+        "Suggests accepting a larger MDE as another alternative",
+        "Suggests filtering to the relevant population as another alternative",
+        "Reinforces that the sample size calculation is a gate, not a formality"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our experiment platform shows a 'real-time results' dashboard. The team checks it daily and stops the test as soon as it shows significance. What's the problem?",
+      "expected_output": "This is peeking with fixed-horizon frequentist tests. The standard p-value assumes one look at the end of the test. Stopping when significance appears mid-test inflates the false-positive rate dramatically — easily 3-5x the nominal alpha. The 'wins' generated this way are partly noise. Three fixes: (a) pre-register the sample size and look only once at the end, (b) switch to group sequential testing with alpha-spending boundaries, (c) switch to Bayesian or always-valid p-values that are robust to peeking. Most teams choose (a) because it's simplest.",
+      "assertions": [
+        "Identifies peeking as the issue",
+        "Explains why peeking inflates false-positive rate",
+        "Recommends pre-registering sample size and looking once",
+        "Offers group sequential testing as one alternative",
+        "Offers Bayesian or always-valid p-values as another alternative",
+        "Notes the 'wins' from peeking are partly noise",
+        "Recommends a specific fix rather than just diagnosing the problem"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We want to A/B test a new ad placement. Primary metric: ad click-through rate. We expect it to go up. Anything else to consider?",
+      "expected_output": "Guardrail metrics. Ad click-through is the primary, but the placement could damage other metrics: organic engagement (users distracted by ads spend less time on content), session length, return rate, complaints / negative feedback. Pre-register at least 2-3 guardrails. If a guardrail materially degrades, the CTR win is invalid regardless of significance. Also consider segments — the placement may help one user type and annoy another; pre-register the segments you'll split by (new vs returning, mobile vs desktop). Don't ship based on aggregate CTR alone.",
+      "assertions": [
+        "Recommends guardrail metrics (organic engagement, session length, return rate, complaints)",
+        "Pre-registers the guardrails alongside the primary",
+        "Notes that a guardrail breach invalidates the primary-metric win",
+        "Recommends pre-registering segments for heterogeneous effect analysis",
+        "Identifies specific potentially-affected segments (new vs returning, mobile vs desktop)",
+        "Does not approve shipping based on CTR alone"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We're running a test where the primary metric is 'revenue per user'. The variance is huge because of a few high-spending users. The MDE we can afford is too large. What can we do?",
+      "expected_output": "High-variance metrics are the canonical use case for variance reduction. Options: (a) CUPED — adjust each user's revenue by their pre-experiment revenue baseline; for revenue, this typically cuts variance by 50%+, halving the required sample size. (b) Outlier capping / winsorization — cap each user's revenue at the 99th percentile; reduces noise from extreme spenders at a small cost to signal. (c) Filter to a narrower population — exclude high-spending power users whose noise dominates, or restrict to a stratum where variance is lower. Each must be pre-registered. Recommend trying CUPED first as the highest-leverage move.",
+      "assertions": [
+        "Identifies revenue-per-user as a canonical high-variance metric",
+        "Recommends CUPED as the highest-leverage variance reduction",
+        "Mentions outlier capping (winsorization) as another option",
+        "Mentions population filtering or stratification",
+        "Requires each technique to be pre-registered",
+        "Quantifies the potential improvement (CUPED typically halves variance for engagement metrics)",
+        "Does not recommend post-hoc variance reduction (trying covariates until favorable)"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We ran a test and the aggregate result was flat. But when we sliced by user country, three countries showed strong positive effects. Should we ship to those countries?",
+      "expected_output": "Caution: this is post-hoc segmentation, which is a form of p-hacking unless the country split was pre-registered. With enough segments, some will look positive by chance alone. Two paths: (a) if country was pre-registered as a segment, the result is legitimate and a segment-specific rollout may make sense — apply a multi-comparison correction across the countries to control false-positive rate. (b) if country was not pre-registered, treat this as a hypothesis-generating finding, not a decision-grade result. Run a confirmatory test specifically on those three countries with country pre-registered as the segment. Do NOT ship country-by-country based on the post-hoc slice.",
+      "assertions": [
+        "Identifies post-hoc segmentation as a p-hacking risk",
+        "Distinguishes pre-registered vs post-hoc segmentation",
+        "If pre-registered, recommends multi-comparison correction across the country tests",
+        "If post-hoc, treats as hypothesis-generating, not decision-grade",
+        "Recommends a confirmatory test before shipping",
+        "Does not approve country-by-country rollout based on the post-hoc slice"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our team wants to use Bayesian A/B tests because we read it lets you 'stop early when you see a win'. Is that right? What's the catch?",
+      "expected_output": "Mostly right but partially misleading. Bayesian posteriors are valid at any moment, so stopping early doesn't break the math in the way that frequentist peeking does. But you still need a pre-registered decision criterion (e.g., 'ship when posterior probability of improvement > 95%') and you still need a minimum sample size to make sure the posterior isn't dominated by the prior. Stopping the first time the posterior crosses 95% with very little data inflates the chance that the prior + a small noisy sample looks favorable. The discipline is: pre-register the criterion and the minimum sample, then the early stopping is legitimate. Without those, Bayesian is no safer than frequentist peeking.",
+      "assertions": [
+        "Confirms Bayesian posteriors are valid at any moment",
+        "Identifies the need for a pre-registered decision criterion (e.g., 95% posterior probability)",
+        "Identifies the need for a minimum sample size",
+        "Warns that without a minimum sample, the prior dominates and early stopping is misleading",
+        "Concludes Bayesian is only safer than frequentist peeking when paired with pre-registration",
+        "Does not endorse stop-the-moment-it-looks-good as a valid Bayesian practice"
+      ],
+      "files": []
+    }
+  ]
+}

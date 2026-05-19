@@ -1,0 +1,108 @@
+{
+  "skill_name": "disaster-recovery-exercise-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We've never run a DR drill. We have a documented plan that says we can fail over to our secondary region in 15 minutes. Where do I start?",
+      "expected_output": "Start with a tabletop, not a live exercise. A tabletop walks through the documented plan in a guided discussion and surfaces obvious gaps before risking real infrastructure. Expect the first tabletop to find: outdated commands in the runbook, missing credentials, stale team references, untested assumptions about timing. Update the plan from those findings, then escalate to a partial live drill (in staging or with limited blast radius), then to a full production live drill only after the contained drills are clean. Do NOT start with a production live failover; a team's first live DR exercise should not be production-wide.",
+      "assertions": [
+        "Recommends starting with a tabletop, not a live exercise",
+        "Lists the gaps a tabletop will surface (outdated commands, missing creds, stale references)",
+        "Recommends updating the plan after the tabletop",
+        "Recommends partial live in staging before full production",
+        "Warns against starting with a production live failover",
+        "Recommends the escalation: tabletop -> partial live -> full live",
+        "Treats the documented '15 minutes' as a hypothesis, not a fact"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We just ran a region-failover drill. It worked! The failover completed in 12 minutes, under our 15-minute target. Done?",
+      "expected_output": "Almost certainly not done. Every drill surfaces something; a drill that 'just worked' is likely a drill that wasn't real enough, or that the team didn't look hard enough at the gaps. Specific questions: did the engineers improvise any steps not in the runbook? Were there any manual interventions not documented? Did the pager fire to the on-call as expected, or were specific humans alerted out of band? Were any close calls or moments of 'we got lucky'? Was the data actually validated post-recovery, or just assumed? The drill report should include the unstated improvisations and close calls, not just the timing.",
+      "assertions": [
+        "Treats 'it worked' as a likely incomplete drill, not a final result",
+        "Asks about unstated improvisations and manual steps",
+        "Asks whether the pager actually fired to the on-call",
+        "Asks about close calls and 'got lucky' moments",
+        "Asks about post-recovery data validation",
+        "References the 'no perfect drill' rule",
+        "Does not approve declaring done based on RTO alone"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We want to drill our database restore. The database is 4TB. Should we restore it in production, in staging, or just talk through it?",
+      "expected_output": "Restore the actual data in a separate environment, not production. The drill should verify the restore process works end-to-end, the restored data matches RPO, and the restore time matches RTO. Staging or a dedicated DR environment is the right place. Don't drill the restore in production unless you're restoring over a known-loss event; the restore is destructive if you misconfigure it. Don't do a tabletop alone for a database restore — the time and IO patterns of a 4TB restore can't be validated by discussion. The live exercise here is mandatory; staging is the right venue.",
+      "assertions": [
+        "Recommends restoring in staging or a dedicated DR environment, not production",
+        "Warns against tabletop alone for a database restore drill",
+        "Identifies the live exercise as necessary to measure actual restore time and IO",
+        "Notes the restore is destructive if misconfigured in production",
+        "Validates RPO (data match) and RTO (time) as the success criteria",
+        "Does not recommend tabletop-only for a 4TB restore"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We've been running quarterly DR drills for two years. The last three drills each surfaced 5-10 action items. Almost none of the action items got done before the next drill. Each drill finds many of the same issues. What's going wrong?",
+      "expected_output": "The drill program is broken because the action items aren't getting closed. Drills are a forcing function for fixes; if the fixes don't happen, the drills become theater that surface the same issues every quarter. The fixes: every gap gets an action item with an owner and a deadline (not 'update the runbook' with no owner); action items go on the team's regular work tracker, not a one-off drill report; open action items block the next drill — don't run a new drill while previous action items are open; closed action items are verified by the next drill. Recommend pausing the drill cadence until the backlog is worked down, then restarting with strict action-item discipline.",
+      "assertions": [
+        "Identifies action-item follow-through as the broken part",
+        "Recommends owners and deadlines for every action item",
+        "Recommends putting items on the regular work tracker, not a one-off doc",
+        "Recommends open action items block the next drill",
+        "Recommends pausing the drill cadence to work down the backlog",
+        "Notes drills become theater without action-item discipline",
+        "Recommends verifying closed items in the next drill"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Should we run our DR drill on a Friday afternoon so it doesn't disrupt mid-week productivity?",
+      "expected_output": "No. Friday afternoon is the worst time for any operation that could become an incident. The team's recovery capacity is lowest going into the weekend; if the drill exposes a real problem, the on-call inherits a weekend incident with reduced team availability. Run during a defined off-peak window when the team can stay engaged for the recovery if needed — typically a weekday morning. Customer notification matters too; coordinate with the broader org. Do not prioritize 'doesn't disrupt mid-week' over drill safety.",
+      "assertions": [
+        "Recommends against Friday afternoon",
+        "Identifies the weekend recovery capacity issue if drill goes badly",
+        "Recommends a weekday off-peak window",
+        "Treats drill timing as a safety decision",
+        "Identifies customer notification as part of the coordination",
+        "Does not optimize for not disrupting other work over drill quality"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We do chaos engineering daily (random pod kills). Is that the same as having a DR program?",
+      "expected_output": "No. Chaos engineering and DR exercises are complementary but distinct. Chaos tests the system's resilience under small failures (a pod killed, a latency spike). DR exercises test the system's recovery from large-scale failures (region outage, primary DB loss, data corruption). A team doing only chaos may never test their real DR plan. The runbook for full region failover doesn't get exercised by Chaos Monkey killing one pod. Recommend running both: chaos for daily resilience, DR exercises quarterly for large-scale recovery. Chaos is often the precondition for DR (resilience to small failures makes large-failure recovery cleaner), but it doesn't replace DR.",
+      "assertions": [
+        "Distinguishes chaos engineering from DR exercises",
+        "Identifies chaos as small-failure testing",
+        "Identifies DR exercises as large-failure recovery testing",
+        "Recommends running both",
+        "Notes that chaos doesn't test the DR runbook",
+        "Identifies chaos as often a precondition for graceful DR",
+        "Does not equate chaos engineering with DR program"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our identity provider (Okta) went down last month and we couldn't log into any of our internal tools to respond to the incident. Should we drill that scenario?",
+      "expected_output": "Yes — and prioritize it. An identity-provider-down scenario is high-blast-radius because it disables the normal access path the on-call uses to respond to other incidents. Drill the breakglass auth path: verify the on-call can actually log in via the emergency procedure, that the procedure is documented and current, that the credentials exist and work. This is also a natural drill to combine with audit: when was the breakglass last tested? Who has access? Are the credentials rotated after use? Recommend a tabletop first to surface the documented plan, then a partial live drill where the on-call actually invokes breakglass.",
+      "assertions": [
+        "Recommends drilling the scenario",
+        "Identifies identity-provider-down as high-blast-radius (disables normal access)",
+        "Recommends drilling the breakglass auth path",
+        "Verifies the breakglass procedure is current and credentials work",
+        "Connects to broader breakglass hygiene (rotation after use, who has access)",
+        "Recommends tabletop first, then partial live drill",
+        "References the recent real incident as motivating the drill"
+      ],
+      "files": []
+    }
+  ]
+}

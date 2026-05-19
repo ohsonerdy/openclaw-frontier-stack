@@ -1,0 +1,114 @@
+{
+  "skill_name": "oncall-handoff-rituals",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We do handoff via a Slack message at 9am each Monday. The off-going on-call writes a brief summary and the on-coming on-call reads it. Is that fine?",
+      "expected_output": "No. Async-only handoff loses tacit knowledge that only surfaces in conversation. Recommend adding a 15-30 minute synchronous overlap, calendar-scheduled. The off-going engineer writes the document during their shift (not last-minute), the synchronous call covers questions, the conversation surfaces things the document misses ('I'm watching service X because it's been weird since Wednesday'). The Slack message becomes the durable record; the conversation is the actual handoff. Synchronous is the discipline that catches the things async misses.",
+      "assertions": [
+        "Identifies async-only as a problem",
+        "Recommends 15-30 minutes of synchronous overlap",
+        "Recommends calendar-scheduling the synchronous call",
+        "Notes tacit knowledge transfers in conversation",
+        "Recommends the document as durable record, conversation as primary transfer",
+        "Identifies the document content (written during shift, not last-minute)",
+        "Does not endorse Slack-only handoff"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I'm the off-going on-call. There's an active Sev 2 incident in flight. The on-coming on-call hasn't responded to my Slack messages. I'm about to go off-shift. What do I do?",
+      "expected_output": "You're not off-shift until the on-coming engineer acknowledges. The handoff requires explicit acknowledgment from the next person; without it, the incident is half-orphaned and may go unattended. Escalate: page the on-coming engineer directly (they're missing their shift); if unreachable, page the secondary on-call; if no secondary, page the rotation lead or manager. Until someone explicitly acknowledges 'I have the incident', you're still on the hook. Do NOT just leave; do NOT post 'shift over' in the channel without confirmation.",
+      "assertions": [
+        "Identifies the off-going engineer is not done until on-coming acknowledges",
+        "Recommends paging the on-coming engineer directly",
+        "Recommends paging secondary if on-coming unreachable",
+        "Recommends paging rotation lead or manager as further escalation",
+        "Identifies the incident as half-orphaned without explicit ack",
+        "Recommends not going off-shift without confirmation",
+        "Does not endorse 'I'm done, see ya' without acknowledgment"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We're starting a Friday afternoon handoff for the weekend. What should be different from a normal weekday handoff?",
+      "expected_output": "Weekend handoffs differ on (a) escalation paths — daytime contacts unavailable, so list who is actually reachable this weekend (not the regular escalation chain); (b) decision authority — weekend on-call may need to make calls that would normally be a group decision; (c) recovery capacity — the rest of the team isn't around to help, so the on-call should prefer safe mitigation (rollback, traffic shift) over investigation; (d) scheduled work — list anything happening this weekend; (e) customer SLAs that don't pause for weekends. Volume is typically lighter but context-heaviness is higher. Recommend adding 'who is reachable in true emergencies' as a specific weekend item.",
+      "assertions": [
+        "Identifies different escalation paths for weekends",
+        "Recommends listing who is actually reachable (not regular chain)",
+        "Notes different decision authority",
+        "Recommends preferring safe mitigation over investigation on weekends",
+        "Notes lower recovery capacity",
+        "Identifies customer SLAs that don't pause for weekends",
+        "Recommends specific 'true emergency contacts' list",
+        "Treats weekend handoff as different in shape, not just length"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "The on-coming on-call mentions they're flying tomorrow afternoon during their shift. The off-going on-call is about to confirm the handoff. What should happen?",
+      "expected_output": "Stop the handoff acknowledgment. Flying creates a coverage gap (cell signal is intermittent, on-board WiFi is unreliable, pager-acknowledgment-within-3-minutes is impossible). The handoff is the last moment to catch this; once accepted, the rotation has a hole. Escalate to the rotation lead: either swap the on-coming engineer with another team member for the flight window, or accept a documented gap with the secondary picking up primary duties. Do NOT accept the handoff hoping cell signal will be okay; do NOT silently let the gap exist. This is a planning failure surfaced by the handoff, which is when handoff is doing its job.",
+      "assertions": [
+        "Identifies flying as a coverage gap",
+        "Recommends stopping the handoff acknowledgment",
+        "Escalates to rotation lead to fix the gap",
+        "Suggests swapping with another team member as one option",
+        "Suggests secondary picking up primary duties as another option",
+        "Notes the handoff is the last moment to catch this",
+        "Does not accept the handoff with cell-signal-hope",
+        "Frames this as the handoff doing its job"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We have follow-the-sun coverage across US, EU, and APAC. The handoff windows are only an hour each and across awkward time zones. How do we do this handoff well?",
+      "expected_output": "Written-first, verbal-second. The off-going engineer maintains the handoff document continuously during their shift (not last-minute) so the on-coming engineer can read it before the synchronous call. Use standardized templates so the document layout is consistent across regions. The 1-hour synchronous call covers questions and tacit knowledge, not document reading. For genuine time-zone misalignment, async fallback: the off-going engineer makes themselves reachable via Slack for a defined window after their shift for follow-up questions. Accept that follow-the-sun handoff overhead is higher than single-region; budget the engineer time. Standardize the template so each engineer doesn't reinvent the format every shift.",
+      "assertions": [
+        "Recommends written-first, verbal-second",
+        "Notes the document is maintained continuously, not last-minute",
+        "Recommends standardized templates",
+        "Identifies the 1-hour call as for questions, not document reading",
+        "Recommends async fallback for time-zone misalignment",
+        "Accepts the higher overhead as cost of follow-the-sun",
+        "Suggests engineer reachable via Slack for follow-up window",
+        "Does not minimize the discipline because the time is short"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our handoff document has been the same template for two years. The off-going on-call usually fills it out in 90 seconds at the end of the call. The on-coming on-call usually skims it. Should we change anything?",
+      "expected_output": "The document is being treated as ceremony, not content. Two diagnostic questions: (a) does the document predict what surprises the on-coming engineer that shift? If not, the categories are wrong; redesign. (b) is the document referenced during the shift, or filed away? If filed away, the on-coming engineer doesn't trust it. Likely fixes: (i) write the document during the shift in small updates, not at the end in one sweep; (ii) the off-going engineer should answer 'what should I worry about in the next 24h?' explicitly; (iii) the on-coming engineer should ask 'what surprised you?'; (iv) review the template quarterly against actual incident causes — categories that don't predict incidents should be cut or restructured.",
+      "assertions": [
+        "Identifies the document as being treated as ceremony, not content",
+        "Recommends writing during the shift, not at the end",
+        "Recommends the 'what should I worry about' question explicitly",
+        "Recommends the 'what surprised you' question",
+        "Recommends quarterly review of the template",
+        "Asks whether the document predicts surprises (diagnostic)",
+        "Asks whether the document is referenced during the shift (diagnostic)",
+        "Does not endorse the 90-second fill-out as adequate"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I just inherited the shift via handoff and I'm reading the document. There's no mention of any incidents, alerts, or watch items. Should I be worried that the off-going engineer missed something or is this just a quiet week?",
+      "expected_output": "Ask. The document being empty is ambiguous — it could be a quiet week, or the off-going engineer could have skipped the reflection. The fix is to ask directly: 'is there really nothing, or did you not have time to write things up?'. Also ask the two questions: 'what should I worry about in the next 24h?' and 'what surprised you this shift?'. A truly quiet shift has an answer to both ('nothing in particular' is fine if it's the synthesized truth); a skipped reflection produces a different answer once prompted. The asking is cheap; the cost of assuming wrong is inheriting a surprise.",
+      "assertions": [
+        "Recommends asking the off-going engineer directly",
+        "Identifies the empty document as ambiguous between quiet-week and skipped-reflection",
+        "Recommends asking the 'what should I worry about' question",
+        "Recommends asking the 'what surprised you' question",
+        "Treats asking as cheap; assumption as expensive",
+        "Does not assume the silence means a quiet week",
+        "Does not panic and assume the off-going engineer missed something"
+      ],
+      "files": []
+    }
+  ]
+}

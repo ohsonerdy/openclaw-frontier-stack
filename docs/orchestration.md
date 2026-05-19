@@ -297,6 +297,173 @@ full internal pattern trace is available under
 `trace.patternLanes[].patternTrace` when the harness is invoked with
 `--json`.
 
+## Goal templates
+
+Named JSON templates under `lib/goal-templates/templates/` let an operator spin up a realistic multi-lane goal with one flag. Five templates ship in v0.7:
+
+| Template          | Shape                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `ship-release`    | chain (scan -> verify -> tag -> release-notes) + voting (3-of-3 approve) + sentinel sign-off           |
+| `fix-bug`         | chain (reproduce -> root-cause -> patch -> test -> review)                                             |
+| `build-feature`   | architect spec -> fan-out design review (architect+reviewer+security) -> builder -> verifier -> ship   |
+| `audit-repo`      | fan-out scans (current+history+deps+security) -> fan-in scribe report -> reviewer sign-off             |
+| `daily-summary`   | chain (read-blackboard -> categorize -> write-summary)                                                 |
+
+Usage:
+
+```bash
+openclaw goal --list-templates                       # show available templates
+openclaw goal --template ship-release "v0.7.0"        # instantiate
+openclaw goal --template build-feature "OAuth login"  # instantiate
+```
+
+The `--template` flag is mutually exclusive with `--file`. Each template carries a `titleTemplate` and uses two substitution tokens:
+
+- `${context}` — the string the operator passes after the template name
+- `${goalId}` — the generated goal id (filled in after the id is chosen, so fan-in lanes can reference upstream task ids without the operator knowing the random suffix)
+
+Templates are pure JSON conforming to `openclaw-frontier.goal.v1`; operators with a one-off shape should still use `--file <path>`.
+
+## Cross-session goal state (`--resume`)
+
+Every non-`--dry-run` goal invocation writes its state to `<blackboard-parent>/.openclaw/goals/<goal_id>.json`. The file tracks:
+
+- `goalId`, `title`, `status` (`active|done|failed|aborted`), `createdAt`, `updatedAt`, `completedAt`
+- The original `goal` record (so resume doesn't need the prompt or template again)
+- `dispatchedClaims`, `patternLanes`, `receivedResults`, `synthesis`
+- `cost` — see "Per-goal cost tracking" below
+- `errors` — any runtime errors encountered during the run
+
+CLI surface:
+
+```bash
+openclaw goal --list                       # last 20 persisted goals (most recent first)
+openclaw goal --list --all                 # show every goal in the directory
+openclaw goal --show <goal_id>             # print state summary
+openclaw goal --resume <goal_id>           # re-attach to a partial goal
+openclaw goal --no-persist "test goal"     # opt out of state file (useful for one-shot probes)
+openclaw goal --goals-dir <path> ...       # override the state directory
+```
+
+Resume semantics:
+
+1. Re-read the state file. If `status` is already `done|failed|aborted`, the resume is a no-op and the CLI prints a synthesized trace built from the persisted state (exit 0 on `done`, 1 otherwise).
+2. Otherwise, re-read the blackboard. For every lane whose `task-claim` is missing, dispatch it. For every lane whose claim exists but has no `result`, continue polling.
+3. Update the state file as new results land. Write the final synthesis on completion.
+
+Operators don't need to remember the goal id — `--list` shows it in the first column.
+
+## Per-goal cost tracking
+
+When a live agent (`openclaw-agent`) processes a task and the model backend returns a `usage` block, the agent writes a sibling `fact` record with subject `usage:<taskId>` carrying `{ schema: 'openclaw-frontier.agent-usage.v1', model, usage }`. The orchestrator reads those facts during synthesis and produces a per-goal USD estimate using `lib/cost-table.json`.
+
+The default cost table covers the three supported Claude model surfaces (snapshot 2026-05):
+
+| Model                              | $ / MTok input | $ / MTok output | $ / MTok cache write | $ / MTok cache read |
+| ---------------------------------- | --------------:| ---------------:| --------------------:| -------------------:|
+| `claude-opus-4-7`                  |  15.00         |  75.00          |  18.75               |  1.50               |
+| `claude-sonnet-4-6`                |   3.00         |  15.00          |   3.75               |  0.30               |
+| `claude-haiku-4-5-20251001`        |   0.80         |   4.00          |   1.00               |  0.08               |
+
+This is an ESTIMATE only. The table is a snapshot and will go stale as provider pricing changes. Operators who need authoritative billing should consult their provider's billing console. The estimate is intended for capacity planning and goal-cost visibility.
+
+Override via environment variable:
+
+```bash
+export OPENCLAW_COST_TABLE=/path/to/your-cost-table.json
+```
+
+A custom table must follow the same shape (`{ models: { <id>: { input, output, cache_write, cache_read } }, aliases?, fallback? }`). Aliases let one logical model id (e.g. `claude-opus-4-7[1m]`) map onto a canonical entry. A `fallback` entry is used when a model id is unknown — the bundled fallback equals the sonnet rate.
+
+Read the estimate via:
+
+```bash
+openclaw goal --show <goal_id>     # includes `cost estimate: $0.xxxxx (N calls)`
+openclaw recap --cost              # cost column added; per-goal subtotals in narrative
+```
+
+## Failure recovery semantics
+
+Each lane can declare a `failure_mode` (alias: `failureMode`) describing how a non-OK result should be handled. Values:
+
+| Value          | Behavior                                                                                       |
+| -------------- | ---------------------------------------------------------------------------------------------- |
+| `abort` (default) | First failed lane fails the whole goal. Subsequent unrun lanes stay pending. trace.aborted=true. |
+| `continue`     | Record the failure, mark the lane red, but proceed to other lanes and synthesis.                |
+| `retry-N`      | Re-dispatch the lane under a new taskId suffix (`<goalId>.<lane>.retry-K`) up to N times, with exponential backoff (100ms, 200ms, 400ms, ..., capped at 2s). The most recent retry decides the lane verdict. Previous results stay on the ledger for audit. |
+
+Example fragment in a goal file:
+
+```json
+{
+  "lanes": [
+    {
+      "name": "implementation",
+      "role": "builder",
+      "summary": "...",
+      "failure_mode": "retry-2"
+    },
+    {
+      "name": "docs",
+      "role": "scribe",
+      "summary": "...",
+      "failure_mode": "continue"
+    },
+    {
+      "name": "sentinel-gate",
+      "role": "sentinel",
+      "summary": "...",
+      "failure_mode": "abort"
+    }
+  ]
+}
+```
+
+The synthesis trace exposes the per-lane verdict, the per-lane status (`done|failed|pending`), and the top-level `aborted` flag so callers can distinguish "we aborted on first failure" from "we kept going but ended with a red lane".
+
+Pattern lanes (`fan-out`, `chain`, `voting`, `fan-in`) own their own failure semantics — see `lib/coordination/*` for details. `failure_mode` only applies to simple (1:1) lanes.
+
+## Observable progress
+
+`openclaw goal` prints one-line status updates to **stderr** as each lane changes state:
+
+```
+goal-start goal-foo-1234: Ship release v0.7.0
+dispatching implementation (builder)
+dispatching documentation (docs)
+received implementation ok=true
+received documentation ok=true
+goal-done goal-foo-1234 ok=true status=done cost=$0.006936 (3 model calls)
+```
+
+Flags:
+
+| Flag         | Behavior                                                                                  |
+| ------------ | ----------------------------------------------------------------------------------------- |
+| `--quiet`    | Suppress all progress lines. Stdout (the trace JSON) is unchanged.                         |
+| `--verbose`  | Add timestamps, full task ids, byte counts, retry attempt numbers, and minor lifecycle events. |
+| (default)    | One readable line per lane state transition.                                              |
+
+The progress stream is a SUBSET of what `openclaw watch` shows — pretty-printed and opinionated; for a full raw-records tail use `openclaw watch`. Stdout always carries the canonical synthesis (text by default, JSON with `--json`).
+
+When wiring `openclaw goal` into CI you typically want `--quiet --json` so the structured trace is the only output the pipeline parses.
+
+## Live-path integration test
+
+The package ships an end-to-end live-path test at `test/integration/goal-live-path.test.js` (also wired into `npm run verify` as the `goal-live-path-integration` check). The test:
+
+1. Starts an in-process mock model server on a random localhost port using `node:http` (no `express`, no `fastify`, no real network).
+2. Sets up a fresh blackboard ledger in a temp directory.
+3. Spawns one `bin/openclaw-agent` process per role declared by the goal fixture, each pointed at the mock server with `--max-tasks 1`.
+4. Spawns `bin/openclaw goal --file <fixture> --blackboard <temp> --no-mock-agents`.
+5. Asserts that every lane receives a result on the ledger, the trace's `ok` is true, the goal-state file shows `status=done`, the cost estimate is positive (and bounded — protects against unit errors), and no `decision: blocked` records were emitted.
+
+The test runs in under two seconds on a typical workstation and uses no real network calls. It exercises the **live dispatch path** end-to-end; it does NOT use `--mock-agents`.
+
+If you are adding a new agent runtime (e.g. a Codex-backed agent or a Cursor-backed agent), this is the test to mirror: replace the spawn of `openclaw-agent` with your own daemon and let the existing assertions pin the contract.
+
+The test reuses the `forRole` routing field on `task-claim` records. The orchestrator writes claims with `agent: 'orchestrator'` and `forRole: <lane.role>`; the agent filters on `forRole` (falling back to `agent` for legacy claims written without the field).
+
 ## Watching execution
 
 `openclaw watch` tails the blackboard ledger in real time. It is useful when
@@ -537,14 +704,21 @@ Operators escalate to manual review when:
 
 The harness is exercised by:
 
-- `node scripts/verify-package.js` includes the existing examples/goal-loop-demo/run-goal-demo.js smoke run. (The orchestrate harness itself is not yet wired into verify — see follow-ups.)
+- `node scripts/verify-package.js` runs:
+  - the existing `examples/goal-loop-demo/run-goal-demo.js` synthetic smoke (no agents),
+  - the new `test/integration/goal-live-path.test.js` end-to-end live-path test (mock model server + spawned agent processes + orchestrator) — wired in as the `goal-live-path-integration` check.
 - `node scripts/orchestrate.js --goal-file examples/goal-loop-demo/goal-fixture.json --mock-agents` returns exit 0 with a synthesized trace.
 - `node bin/openclaw goal "test"` returns exit 0 with all five default lanes GREEN.
+- `node bin/openclaw goal --template ship-release "ship v0.7.0"` instantiates the templated multi-pattern goal and writes a state file at `.openclaw/goals/<id>.json`.
 
 ## Pointers
 
 - Goal-loop quickstart: `examples/goal-loop-demo/`
 - Production goal fixture: `examples/goal-loop-demo/goal-fixture.json`
+- Goal templates: `lib/goal-templates/templates/*.json`
+- Cost table: `lib/cost-table.json` (override via `OPENCLAW_COST_TABLE`)
+- Goal-state persistence: `src/orchestrator/lib/goal-state.js`
+- Live-path integration test: `test/integration/goal-live-path.test.js`
 - TaskFlow runtime: `src/taskflow/lib/taskflow.js`
 - Blackboard ledger: `src/blackboard/lib/ledger.js`
 - Signed-bus envelopes: `src/signed-bus/lib/envelope.js`

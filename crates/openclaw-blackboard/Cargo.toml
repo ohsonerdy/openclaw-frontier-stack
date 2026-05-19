@@ -1,0 +1,19 @@
+[package]
+name = "openclaw-blackboard"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Rust port of the OpenClaw Frontier Stack blackboard ledger: JSONL append-only log, mkdir lock, public-safety scanning, snapshot reducer. Interop with the Node implementation."
+keywords = ["openclaw", "blackboard", "ledger", "jsonl"]
+categories = ["data-structures", "concurrency"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

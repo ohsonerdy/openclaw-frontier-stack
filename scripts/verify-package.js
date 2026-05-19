@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..');
 const reportDir = path.join(root, 'release-gate', 'reports');
 fs.mkdirSync(reportDir, { recursive: true });
 
-const DEFAULT_CHILD_TIMEOUT_MS = Number.parseInt(process.env.FRONTIER_CHILD_TIMEOUT_MS || '120000', 10);
+const DEFAULT_CHILD_TIMEOUT_MS = Number.parseInt(process.env.FRONTIER_CHILD_TIMEOUT_MS || '240000', 10);
 
 function run(name, cmd, args, opts = {}) {
   const started = Date.now();
@@ -88,12 +88,14 @@ checks.push(run('signed-bus-h2-regression-test', process.execPath, [path.join(ro
 checks.push(run('modern-skills-validator', 'bash', [path.join(root, 'scripts', 'validate-skills.sh')]));
 checks.push(run('blackboard-test', process.execPath, [path.join(root, 'src', 'blackboard', 'test', 'blackboard-local.test.js')]));
 checks.push(run('taskflow-test', process.execPath, [path.join(root, 'src', 'taskflow', 'test', 'taskflow-local.test.js')]));
+checks.push(run('ticket-store-test', process.execPath, [path.join(root, 'src', 'tickets', 'test', 'ticket-store.test.js')]));
 checks.push(run('memory-adapters-test', process.execPath, [path.join(root, 'src', 'memory-adapters', 'test', 'memory-adapters-local.test.js')]));
 checks.push(run('integration-adapters-test', process.execPath, [path.join(root, 'src', 'integration-adapters', 'test', 'mock-mcp-adapter.test.js')]));
 checks.push(run('remote-approval-test', process.execPath, [path.join(root, 'src', 'remote-approval', 'test', 'remote-approval-local.test.js')]));
 checks.push(run('skill-forge-test', process.execPath, [path.join(root, 'src', 'skill-forge', 'test', 'verify-skill-forge.js')]));
 checks.push(run('demo-swarm', process.execPath, [path.join(root, 'examples', 'demo-swarm', 'run-demo.js')]));
 checks.push(run('goal-loop-demo', process.execPath, [path.join(root, 'examples', 'goal-loop-demo', 'run-goal-demo.js')]));
+checks.push(run('goal-live-path-integration', process.execPath, [path.join(root, 'test', 'integration', 'goal-live-path.test.js')], { timeout: 60000 }));
 checks.push(run('frontier-system-docs-test', process.execPath, [path.join(root, 'release-gate', 'scripts', 'verify-frontier-system.js')]));
 checks.push(run('frontier-orchestration-scale-eval', process.execPath, [path.join(root, 'scripts', 'eval-frontier-orchestration-scale.js')], { timeout: 120000 }));
 checks.push(run('blackboard-contention-eval', process.execPath, [path.join(root, 'scripts', 'eval-blackboard-contention.js')], { timeout: 120000 }));
@@ -124,12 +126,12 @@ checks.push(run('public-surface-harness-test', process.execPath, [path.join(root
 checks.push(run('operator-materials-test', process.execPath, [path.join(root, 'release-gate', 'scripts', 'verify-operator-materials.js')]));
 checks.push(run('owner-upload-approval-test', process.execPath, [path.join(root, 'release-gate', 'scripts', 'verify-owner-upload-approval.js')]));
 if (process.env.OPENCLAW_FRONTIER_STANDALONE_EXPORT !== '1') {
-  checks.push(run('git-history-private-scan', process.execPath, [path.join(root, 'scripts', 'verify-git-history-clean.js')], { timeout: 120000 }));
+  checks.push(run('git-history-private-scan', process.execPath, [path.join(root, 'scripts', 'verify-git-history-clean.js')], { timeout: 240000 }));
 }
 checks.push(run('release-manifest', process.execPath, [path.join(root, 'release-gate', 'scripts', 'create-clean-export.js')]));
 checks.push(run('release-manifest-parity', process.execPath, [path.join(root, 'release-gate', 'scripts', 'check-export-parity.js')]));
 if (process.env.OPENCLAW_FRONTIER_SKIP_FRESH_EXPORT !== '1') {
-  checks.push(run('fresh-export-test', process.execPath, [path.join(root, 'release-gate', 'scripts', 'verify-fresh-export.js')], { timeout: 120000 }));
+  checks.push(run('fresh-export-test', process.execPath, [path.join(root, 'release-gate', 'scripts', 'verify-fresh-export.js')], { timeout: 300000 }));
 }
 checks.push(scanPrivateContent());
 

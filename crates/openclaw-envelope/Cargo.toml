@@ -1,0 +1,22 @@
+[package]
+name = "openclaw-envelope"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Rust port of the OpenClaw Frontier Stack signed envelope: canonical JSON, Ed25519 sign/verify, OpenSSH ssh-ed25519 public-key loader. Byte-identical interop with the Node implementation."
+keywords = ["openclaw", "ed25519", "canonical-json", "envelope"]
+categories = ["cryptography", "encoding"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+ed25519-dalek.workspace = true
+base64.workspace = true
+getrandom.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

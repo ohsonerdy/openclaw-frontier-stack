@@ -2,7 +2,7 @@
   "name": "openclaw-frontier-stack",
   "displayName": "OpenClaw Frontier Stack",
   "description": "Agent skills + hooks compatible with OpenAI Codex CLI/App. Same skills/ and hooks/ surface as the Claude Code plugin manifest in .claude-plugin/. Skills follow the Agent Skills specification at agentskills.io.",
-  "version": "0.4.0",
+  "version": "0.7.0",
   "license": "MIT",
   "skills": "./skills",
   "hooks": "./hooks/hooks.json"

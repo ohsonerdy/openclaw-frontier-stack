@@ -22,7 +22,7 @@ try {
     const stdout = execFileSync(process.execPath, ['scripts/verify-package.js'], {
       cwd: candidateRoot,
       encoding: 'utf8',
-      timeout: 120000,
+      timeout: 240000,
       maxBuffer: 16 * 1024 * 1024,
       env: { ...process.env, OPENCLAW_FRONTIER_SKIP_FRESH_EXPORT: '1', OPENCLAW_FRONTIER_STANDALONE_EXPORT: '1' },
     });

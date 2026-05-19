@@ -1,0 +1,109 @@
+{
+  "skill_name": "pricing-experiments",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We want to test raising the price on our flagship serum from $48 to $58. How do we set up the test?",
+      "expected_output": "Walks through the pricing-experiment design framework. Should force a written hypothesis with both conversion-drop expectation and LTV-uplift expectation. Should recommend account or visitor-level randomization with consistency held. Should require existing-customer grandfathering, refund-on-discovery policy, stop-rule, and duration cap. Should recommend contribution-per-visitor as the primary metric, with 90- and 180-day LTV as secondary signals. Should reference ab-testing for sample size.",
+      "assertions": [
+        "Checks for .agents/modern-ai-context.md",
+        "Forces a written hypothesis with both conversion and LTV expectations",
+        "Recommends account or visitor-level randomization with consistency",
+        "Requires existing-customer grandfathering",
+        "Names refund-on-discovery policy as a required guardrail",
+        "Recommends contribution-per-visitor as the primary metric",
+        "Names 90- and 180-day LTV as secondary metrics",
+        "References ab-testing for sample-size methodology",
+        "Calls modern.sales.aov and modern.sales.margin_by_product"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Can we show higher prices to people who look like they can afford it?",
+      "expected_output": "Direct answer: no. This is the discriminatory-pricing anti-pattern. Should explain the legal line between testing pricing (random assignment) and price discrimination by protected class. Should warn that geographic pricing in particular is high-risk in the US because zip-code-level signals correlate with race. Should recommend randomization on session or account ID, not on demographic or behavioral signals that proxy for protected classes.",
+      "assertions": [
+        "Direct refusal of the demographic-targeted pricing approach",
+        "Distinguishes testing pricing from price discrimination by protected class",
+        "Names geographic pricing as high-risk in the US for proxy discrimination",
+        "Recommends randomization on session or account ID",
+        "Warns against signals that proxy for protected classes",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our higher-price variant has 15% lower conversion but better margin. Should we ship it?",
+      "expected_output": "Recommends computing contribution per visitor for both variants. Should walk the revenue-versus-volume tradeoff with the contribution = conversion_rate × AOV × gross_margin formula. Should request the 90- and 180-day LTV signal before final decision. Should explain that the answer depends on margin profile — high-margin brands can absorb conversion drops better, low-margin brands cannot. Should also reference durability (the price you ship becomes the brand's price going forward).",
+      "assertions": [
+        "Recommends computing contribution per visitor for both variants",
+        "Names the contribution = conversion × AOV × margin formula",
+        "Walks the revenue-versus-volume tradeoff",
+        "Requests 90- and 180-day LTV signal before final decision",
+        "Discusses margin profile (high vs low margin) implications",
+        "References durability (the price becomes the brand's price)",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Should we randomize the test on session, visitor, or account?",
+      "expected_output": "Walks the randomization-unit framework. Should warn against session-level randomization because of within-visitor flipping contamination. Should recommend account-level for logged-in customers, cookie-level for anonymous, with persistence held across the test duration. Should note that brands without a substantial logged-in file or clean session-persistence implementation should consider whether the test is implementable cleanly.",
+      "assertions": [
+        "Walks the randomization-unit framework with all three units",
+        "Warns against session-level for within-visitor flipping",
+        "Recommends account-level for logged-in customers",
+        "Recommends cookie-level for anonymous with persistence",
+        "Notes the implementation prerequisite of logged-in file or session-persistence",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "The test shows different results for new vs returning customers. What now?",
+      "expected_output": "Walks the segment-based-interpretation framework. Should explain that new customers are more price-elastic and returning customers (non-purchasers) less so. Should recommend segment-specific pricing as a possible ship outcome (different price for different acquisition channels, for example), with the caveat that this segmentation must be based on acquisition channel or behavior, not protected-class proxies. Should recommend documenting the segmentation rationale.",
+      "assertions": [
+        "Walks the segment-based-interpretation framework",
+        "Identifies new customers as more elastic than returning",
+        "Recommends segment-specific pricing as a possible outcome",
+        "Specifies segmentation must be channel or behavior based, not protected-class proxy",
+        "Recommends documenting the segmentation rationale",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We ran a 30% off promo for 8 weeks and now want to go back to full price. The team is worried about backlash.",
+      "expected_output": "Diagnosis grounded in the durability framework. Should explain that an 8-week sale price imprints on the brand's customer file as the expected price. Reverting creates a 'the brand raised prices' perception even though it is a return to baseline. Should recommend a transition strategy: gradual price escalation over 4-6 weeks, communication framing of 'limited-time pricing ending' before the change, loyalty-program offset for repeat customers. Should warn against running long-duration discount tests with intent to revert.",
+      "assertions": [
+        "Applies the durability framework explicitly",
+        "Explains that 8-week sale price imprints as expected price",
+        "Identifies the 'brand raised prices' perception risk",
+        "Recommends a transition strategy with gradual escalation",
+        "Recommends communication framing before the change",
+        "Warns against running long-duration discount tests with intent to revert",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "How long should a pricing test run?",
+      "expected_output": "Walks the test-duration tradeoffs. Should recommend 2-4 weeks for fast-volume products, up to 8 weeks for slow-volume. Should warn that longer tests imprint the test price on the brand and reduce reversibility. Should explain that the primary-metric signal (conversion, first-order revenue) is usually visible in 2-3 weeks but LTV signals take 90-180 days. Should recommend shipping on first-order revenue and continuing to measure LTV in production.",
+      "assertions": [
+        "Recommends 2-4 weeks for fast-volume products",
+        "Recommends up to 8 weeks for slow-volume products",
+        "Warns about durability cost of longer tests",
+        "Distinguishes short-term metric signal from LTV signal timing",
+        "Recommends shipping on first-order revenue with continued LTV monitoring",
+        "References ab-testing or sample-size methodology",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

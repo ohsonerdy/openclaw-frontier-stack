@@ -435,11 +435,18 @@ function buildSystemPrompt(role, contract) {
 
 function findPendingClaims(records, role) {
   // task-claim addressed to this role, no matching result yet.
+  //
+  // Routing rule (v0.7+): when a claim carries a `forRole` field (the
+  // orchestrator writes one per dispatched lane), match strictly on that.
+  // Legacy claims with no `forRole` fall back to matching the writer's
+  // `agent` field — preserving the v0.6 behavior where roles dispatched to
+  // themselves via `openclaw dispatch`.
   const claims = new Map();
   const completed = new Set();
   for (const r of records) {
-    if (r.kind === 'task-claim' && r.agent === role) {
-      claims.set(r.taskId, r);
+    if (r.kind === 'task-claim') {
+      const routedTo = r.forRole || r.agent;
+      if (routedTo === role) claims.set(r.taskId, r);
     } else if (r.kind === 'result' && r.taskId) {
       completed.add(r.taskId);
     }
@@ -642,6 +649,32 @@ async function handleClaim({ claim, args, contract, systemPrompt, ledger, backen
 
   const outputHash = crypto.createHash('sha256').update(output, 'utf8').digest('hex');
   const summary = `agent ${args.role} produced ${output.length}B output (sha256=${outputHash.slice(0, 16)}) for ${claim.taskId}`;
+
+  // Publish a usage fact so the orchestrator can compute a per-goal cost
+  // estimate. The fact is best-effort — a failed write is logged but does
+  // not block the result write below.
+  if (usage && typeof usage === 'object') {
+    try {
+      ledger.recordFact({
+        agent: args.role,
+        subject: `usage:${claim.taskId}`,
+        value: {
+          schema: 'openclaw-frontier.agent-usage.v1',
+          model: args.model,
+          usage,
+          taskId: claim.taskId,
+        },
+        evidence: [],
+      });
+      appendAudit(auditPath, {
+        event: 'usage-fact-written', role: args.role, taskId: claim.taskId, model: args.model,
+      });
+    } catch (err) {
+      appendAudit(auditPath, {
+        event: 'usage-fact-write-failed', role: args.role, taskId: claim.taskId, error: String(err.message || err),
+      });
+    }
+  }
 
   try {
     let record = {

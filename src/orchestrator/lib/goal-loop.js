@@ -23,6 +23,8 @@ const fs = require('fs');
 const { createLedger, BlackboardValidationError } = require('../../blackboard/lib/ledger.js');
 const { TaskFlowRuntime, TaskFlowError } = require('../../taskflow/lib/taskflow.js');
 const { PATTERNS } = require('../../../lib/coordination/index.js');
+const { estimateCallCost } = require('../../../lib/cost/index.js');
+const goalState = require('./goal-state.js');
 
 const VALID_PATTERNS = new Set(['fan-out', 'fan-in', 'chain', 'voting']);
 
@@ -80,6 +82,99 @@ function toSimpleTaskId(value, label) {
 }
 
 /**
+ * Subject prefix the orchestrator/agent use to publish per-call cost
+ * telemetry as `fact` records. The blackboard does not have a first-class
+ * `usage` field on `result` records, so we publish a sibling fact with the
+ * model id + raw usage block. Subject shape: `usage:<taskId>`.
+ */
+const USAGE_FACT_SUBJECT_PREFIX = 'usage:';
+
+function extractUsageFacts(records) {
+  const out = [];
+  for (const r of records || []) {
+    if (r.kind !== 'fact') continue;
+    if (typeof r.subject !== 'string') continue;
+    if (!r.subject.startsWith(USAGE_FACT_SUBJECT_PREFIX)) continue;
+    const taskId = r.subject.slice(USAGE_FACT_SUBJECT_PREFIX.length);
+    const value = r.value || {};
+    out.push({
+      ts: r.ts,
+      taskId,
+      agent: r.agent,
+      model: value.model || null,
+      usage: value.usage || {},
+      raw: r,
+    });
+  }
+  return out;
+}
+
+function applyUsageFactsToState(state, usageFacts) {
+  if (!state || !Array.isArray(usageFacts)) return state;
+  const known = new Set((state.costEvents || []).map((e) => e.id));
+  state.costEvents = state.costEvents || [];
+  for (const fact of usageFacts) {
+    const id = fact.raw && fact.raw.id;
+    if (id && known.has(id)) continue;
+    const est = estimateCallCost({ model: fact.model, usage: fact.usage });
+    state.costEvents.push({
+      id,
+      ts: fact.ts,
+      taskId: fact.taskId,
+      agent: fact.agent,
+      model: fact.model,
+      usd: est.usd,
+      usage: est.usage,
+      modelResolved: est.modelResolved,
+    });
+    goalState.applyCallCost(state, est, { taskId: fact.taskId });
+    if (id) known.add(id);
+  }
+  return state;
+}
+
+function emitProgress(onProgress, event) {
+  if (typeof onProgress !== 'function') return;
+  try { onProgress(event); } catch (_) { /* progress is best-effort */ }
+}
+
+/**
+ * Parse a lane's `failure_mode`. Returns `{ kind, retries }` where `kind` is
+ * one of:
+ *   - 'abort'    — default; an `ok: false` result fails the whole goal
+ *   - 'continue' — record the failure but proceed to other lanes / synthesis
+ *   - 'retry'    — re-dispatch the lane up to `retries` additional times
+ *
+ * Accepts a literal `'abort' | 'continue'` string, a `'retry-N'` string
+ * (e.g. `'retry-3'`), or an object `{ kind, retries }`. Unspecified defaults
+ * to `{ kind: 'abort', retries: 0 }` for backwards compatibility.
+ */
+function normalizeFailureMode(raw, label = 'lane') {
+  if (raw == null || raw === '') return { kind: 'abort', retries: 0 };
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim().toLowerCase();
+    if (trimmed === 'abort') return { kind: 'abort', retries: 0 };
+    if (trimmed === 'continue') return { kind: 'continue', retries: 0 };
+    const retryMatch = /^retry-(\d+)$/.exec(trimmed);
+    if (retryMatch) {
+      const n = Math.max(1, Math.min(10, parseInt(retryMatch[1], 10)));
+      return { kind: 'retry', retries: n };
+    }
+    throw new GoalValidationError(`${label}.failure_mode must be 'abort' | 'continue' | 'retry-N' (got: ${raw})`);
+  }
+  if (raw && typeof raw === 'object') {
+    const kind = String(raw.kind || 'abort').toLowerCase();
+    if (kind === 'abort' || kind === 'continue') return { kind, retries: 0 };
+    if (kind === 'retry') {
+      const n = Math.max(1, Math.min(10, Number(raw.retries) || 1));
+      return { kind: 'retry', retries: n };
+    }
+    throw new GoalValidationError(`${label}.failure_mode.kind must be 'abort' | 'continue' | 'retry' (got: ${raw.kind})`);
+  }
+  throw new GoalValidationError(`${label}.failure_mode must be a string or object`);
+}
+
+/**
  * Validate and normalize a goal record into the canonical orchestrator shape.
  *
  * Goals may come from a JSON file, the CLI prompt path (`goalFromPrompt`),
@@ -134,7 +229,8 @@ function normalizeGoal(input, { idHint } = {}) {
     }
     const summary = String(lane.summary || lane.description || `Lane ${name}`).trim().slice(0, 500);
     const expects = Array.isArray(lane.expects) ? lane.expects.map(String).slice(0, 16) : [];
-    const normalized = { name, role, summary, expects };
+    const failureMode = normalizeFailureMode(lane.failure_mode || lane.failureMode, `goal.lanes[${index}]`);
+    const normalized = { name, role, summary, expects, failureMode };
     if (patternRaw) {
       normalized.pattern = patternRaw;
       // Pattern-specific payloads. We preserve the raw shape and validate at
@@ -311,15 +407,36 @@ function defaultLanePlan() {
  * behalf of the orchestrator agent (`orchestrator`) so that the live agent
  * sees an authoritative record of who delegated the lane.
  */
-function dispatchLanes(ledger, goal) {
+function dispatchLanes(ledger, goal, { skipExisting = null } = {}) {
+  // skipExisting: a Set of laneNames whose claims are already on the ledger
+  // (loaded from a resumed goal state). We only emit task-claims for lanes not
+  // in the set. The returned `claims` array includes both freshly-emitted
+  // claims AND the pre-existing claims from skipExisting (so the caller sees
+  // a stable shape regardless of resume).
   const claims = [];
   for (const lane of goal.lanes) {
     const taskId = `${goal.id}.${lane.name}`;
+    if (skipExisting && skipExisting.has(lane.name)) {
+      const existing = findExistingClaim(ledger, taskId);
+      if (existing) {
+        claims.push({
+          laneName: lane.name,
+          role: lane.role,
+          taskId,
+          claimId: existing.id,
+          claimedAt: existing.ts,
+          resumed: true,
+        });
+        continue;
+      }
+      // Fall through and re-dispatch if the claim is missing.
+    }
     const summary = `[${goal.id}] ${lane.summary}`.slice(0, 500);
     const claim = ledger.claimTask({
       agent: ORCHESTRATOR_AGENT,
       taskId,
       summary,
+      forRole: lane.role,
     });
     claims.push({
       laneName: lane.name,
@@ -332,11 +449,39 @@ function dispatchLanes(ledger, goal) {
   return claims;
 }
 
+function findExistingClaim(ledger, taskId) {
+  const records = ledger.readRecords();
+  for (let i = records.length - 1; i >= 0; i -= 1) {
+    const r = records[i];
+    if (r.kind === 'task-claim' && r.taskId === taskId) return r;
+  }
+  return null;
+}
+
+function existingClaimedLaneNames(ledger, goal) {
+  const records = ledger.readRecords();
+  const out = new Set();
+  for (const lane of goal.lanes) {
+    const taskId = `${goal.id}.${lane.name}`;
+    if (records.some((r) => r.kind === 'task-claim' && r.taskId === taskId)) {
+      out.add(lane.name);
+    }
+  }
+  return out;
+}
+
 /**
- * Block synchronously waiting for result records for every dispatched task.
+ * Block (async) waiting for result records for every dispatched task.
  *
- * The implementation re-reads the ledger snapshot every `pollIntervalMs` ms
- * until either all tasks have a matching result or `maxWaitMs` elapses.
+ * Re-reads the ledger snapshot every `pollIntervalMs` ms until either all
+ * tasks have a matching result or `maxWaitMs` elapses. The function uses
+ * `setTimeout` not `Atomics.wait` so the event loop stays live — required
+ * for in-process tests that run a mock model server in the same Node
+ * process as the harness.
+ *
+ * When `onProgress` is a function, it receives a `{ kind: 'result-received',
+ * taskId, ok, summary, ts, agent }` event the first time a result is
+ * observed for each claim.
  *
  * Returns `{ done, pending, results }` where:
  *   - `done` is the list of `{ taskId, ok, summary, artifacts, ts, agent }`
@@ -344,8 +489,14 @@ function dispatchLanes(ledger, goal) {
  *   - `pending` is the list of taskIds still waiting
  *   - `results` is the raw result records from the ledger snapshot
  */
-function pollForResults(ledger, claims, { maxWaitMs = 300000, pollIntervalMs = 250, now = Date.now } = {}) {
+async function pollForResults(ledger, claims, {
+  maxWaitMs = 300000,
+  pollIntervalMs = 250,
+  now = Date.now,
+  onProgress = null,
+} = {}) {
   const wantedIds = new Set(claims.map((claim) => claim.taskId));
+  const seen = new Set();
   const started = now();
   while (true) {
     const snapshot = ledger.snapshot();
@@ -354,6 +505,18 @@ function pollForResults(ledger, claims, { maxWaitMs = 300000, pollIntervalMs = 2
     for (const claim of claims) {
       const result = snapshot.results.find((r) => r.taskId === claim.taskId);
       if (result) {
+        if (!seen.has(claim.taskId)) {
+          seen.add(claim.taskId);
+          emitProgress(onProgress, {
+            kind: 'result-received',
+            laneName: claim.laneName,
+            taskId: claim.taskId,
+            ok: Boolean(result.ok),
+            agent: result.agent,
+            summary: result.summary,
+            ts: result.ts,
+          });
+        }
         done.push({
           laneName: claim.laneName,
           taskId: claim.taskId,
@@ -373,10 +536,16 @@ function pollForResults(ledger, claims, { maxWaitMs = 300000, pollIntervalMs = 2
     if (now() - started >= maxWaitMs) {
       return { done, pending, results: snapshot.results.filter((r) => wantedIds.has(r.taskId)) };
     }
-    sleepSync(pollIntervalMs);
+    await sleepAsync(pollIntervalMs);
   }
 }
 
+function sleepAsync(ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(1, ms)));
+}
+
+// Legacy sync sleep retained for any third-party caller that imports it. The
+// orchestrator itself no longer uses it.
 function sleepSync(ms) {
   const shared = new SharedArrayBuffer(4);
   const view = new Int32Array(shared);
@@ -671,8 +840,37 @@ async function runGoalLoop({
   dryRun = false,
   pollIntervalMs = 200,
   now = Date.now,
+  // v0.7 additions:
+  onProgress = null,
+  persistState = true,
+  goalsDir = null,
+  resume = false,
+  templateName = null,
+  templateContext = null,
 } = {}) {
-  const normalized = normalizeGoal(goal);
+  // Decide whether we are starting fresh or resuming an existing state file.
+  // Resume mode: re-read the prior state, normalize its embedded goal,
+  // re-dispatch only the lanes that have not yet been dispatched, then
+  // continue polling. The `goal` arg in resume mode only needs `goal.id`.
+  let prior = null;
+  let normalized;
+  if (resume) {
+    const dir = goalState.resolveGoalsDir({ blackboardPath, override: goalsDir });
+    if (!goal || typeof goal !== 'object' || !goal.id) {
+      throw new GoalValidationError('runGoalLoop: --resume requires an existing goal id');
+    }
+    prior = goalState.readState(dir, goal.id);
+    normalized = normalizeGoal(prior.goal);
+    blackboardPath = blackboardPath || prior.blackboardPath;
+    mockAgents = prior.options && typeof prior.options.mockAgents === 'boolean' ? prior.options.mockAgents : mockAgents;
+    if (prior.status === 'done' || prior.status === 'failed' || prior.status === 'aborted') {
+      emitProgress(onProgress, { kind: 'resume-noop', goalId: prior.goalId, status: prior.status });
+      return rebuildTraceFromState(prior);
+    }
+    emitProgress(onProgress, { kind: 'resume-start', goalId: prior.goalId, status: prior.status });
+  } else {
+    normalized = normalizeGoal(goal);
+  }
 
   if (dryRun) {
     return {
@@ -702,19 +900,43 @@ async function runGoalLoop({
   }
 
   const ledger = createLedger({ ledgerPath: blackboardPath });
+  const dir = persistState ? goalState.resolveGoalsDir({ blackboardPath, override: goalsDir }) : null;
 
-  // Split lanes into pattern-driven and simple-dispatch lanes. Pattern lanes
-  // are routed through lib/coordination/*; simple lanes use the legacy 1:1
-  // dispatch path.
+  // State file: either reuse the prior state (resume) or create a new one.
+  let state;
+  if (prior) {
+    state = prior;
+    state.status = 'active';
+    state.errors = state.errors || [];
+  } else {
+    state = goalState.newState({
+      goal: normalized,
+      blackboardPath,
+      options: { mockAgents, dryRun, maxWaitMs, pollIntervalMs, templateName, templateContext },
+    });
+    if (persistState) {
+      goalState.writeStateAtomic(dir, state);
+    }
+    emitProgress(onProgress, { kind: 'goal-start', goalId: state.goalId, title: state.title, lanes: normalized.lanes.length, mockAgents });
+  }
+
+  // Split lanes into pattern-driven and simple-dispatch lanes.
   const patternLanes = normalized.lanes.filter((l) => l.pattern);
   const simpleLanes = normalized.lanes.filter((l) => !l.pattern);
 
-  // 1. Run pattern lanes first (each one is self-contained and writes its own
-  //    task-claims and possibly mock results to the ledger).
+  // 1. Run pattern lanes first.
   const patternLaneOutcomes = [];
   const sharedTaskflow = new TaskFlowRuntime();
+  const priorPatternByName = new Map((state.patternLanes || []).map((p) => [p.name, p]));
   for (const lane of patternLanes) {
+    if (priorPatternByName.has(lane.name) && priorPatternByName.get(lane.name).done) {
+      const cached = priorPatternByName.get(lane.name);
+      emitProgress(onProgress, { kind: 'pattern-lane-skipped', laneName: lane.name, reason: 'resume-cached' });
+      patternLaneOutcomes.push({ lane, patternResult: cached.patternResult });
+      continue;
+    }
     try {
+      emitProgress(onProgress, { kind: 'pattern-lane-start', laneName: lane.name, pattern: lane.pattern });
       const outcome = await runPatternLane({
         goalId: normalized.id,
         lane,
@@ -726,7 +948,16 @@ async function runGoalLoop({
         now,
       });
       patternLaneOutcomes.push(outcome);
+      state.patternLanes = state.patternLanes || [];
+      const existingIdx = state.patternLanes.findIndex((p) => p.name === lane.name);
+      const cached = { name: lane.name, pattern: lane.pattern, done: true, ok: Boolean(outcome.patternResult.ok), patternResult: outcome.patternResult };
+      if (existingIdx === -1) state.patternLanes.push(cached);
+      else state.patternLanes[existingIdx] = cached;
+      if (persistState) goalState.writeStateAtomic(dir, state);
+      emitProgress(onProgress, { kind: 'pattern-lane-done', laneName: lane.name, ok: Boolean(outcome.patternResult.ok) });
     } catch (err) {
+      goalState.recordError(state, err);
+      if (persistState) goalState.writeStateAtomic(dir, state);
       if (err instanceof BlackboardValidationError || err instanceof TaskFlowError) {
         throw new GoalValidationError(`pattern lane '${lane.name}' failed: ${err.message}`, err.details || {});
       }
@@ -734,39 +965,46 @@ async function runGoalLoop({
     }
   }
 
-  // 2. Dispatch simple lanes (the legacy path: one task-claim per lane).
-  let claims = [];
+  // 2. Dispatch + collect simple lanes with per-lane failure_mode semantics.
+  let simpleOutcome = { claims: [], pollOutcome: { done: [], pending: [], results: [] }, synthesized: [], aborted: false };
   if (simpleLanes.length > 0) {
-    try {
-      claims = dispatchLanes(ledger, { ...normalized, lanes: simpleLanes });
-    } catch (err) {
-      if (err instanceof BlackboardValidationError || err instanceof TaskFlowError) {
-        throw new GoalValidationError(`dispatch failed: ${err.message}`, err.details || {});
-      }
-      throw err;
-    }
+    simpleOutcome = await runSimpleLanes({
+      ledger,
+      normalized,
+      simpleLanes,
+      mockAgents,
+      maxWaitMs,
+      pollIntervalMs,
+      now,
+      onProgress,
+      state,
+      persistState,
+      goalsDir: dir,
+      isResume: Boolean(prior),
+    });
   }
 
-  let synthesized = [];
-  if (mockAgents && simpleLanes.length > 0) {
-    synthesized = synthesizeMockResults(ledger, { ...normalized, lanes: simpleLanes }, claims);
+  // 3. Read usage facts emitted by agents and fold them into the cost ledger.
+  try {
+    const allRecords = ledger.readRecords();
+    const usageFacts = extractUsageFacts(allRecords).filter((f) => {
+      if (typeof f.taskId !== 'string') return false;
+      return f.taskId.startsWith(`${normalized.id}.`) || f.taskId === normalized.id;
+    });
+    applyUsageFactsToState(state, usageFacts);
+  } catch (_) {
+    // Cost telemetry is best-effort.
   }
-  const pollOutcome = simpleLanes.length > 0
-    ? pollForResults(ledger, claims, {
-        maxWaitMs: mockAgents ? 5000 : maxWaitMs,
-        pollIntervalMs,
-        now,
-      })
-    : { done: [], pending: [], results: [] };
 
-  // 3. Compose final trace: simple lanes via existing `synthesize`, pattern
-  //    lanes via `summarizePatternLane`. Preserve original lane order so the
-  //    trace matches the goal authoring order.
-  const simpleTrace = synthesize({ ...normalized, lanes: simpleLanes }, claims, pollOutcome);
+  state.dispatchedClaims = simpleOutcome.claims;
+  if (persistState) goalState.writeStateAtomic(dir, state);
+
+  // 4. Compose final trace.
+  const simpleTrace = synthesize({ ...normalized, lanes: simpleLanes }, simpleOutcome.claims, simpleOutcome.pollOutcome);
   const simpleByName = new Map(simpleTrace.lanes.map((l) => [l.name, l]));
   const patternByName = new Map(patternLaneOutcomes.map((o) => [o.lane.name, summarizePatternLane(o.lane, o.patternResult)]));
   const allLanes = normalized.lanes.map((lane) => simpleByName.get(lane.name) || patternByName.get(lane.name));
-  const overallOk = allLanes.every((l) => l.status === 'done');
+  const overallOk = !simpleOutcome.aborted && allLanes.every((l) => l.status === 'done');
   const greenLanes = allLanes.filter((l) => l.status === 'done').map((l) => l.name);
   const redLanes = allLanes.filter((l) => l.status !== 'done').map((l) => `${l.name}:${l.status}`);
   const trace = {
@@ -780,8 +1018,8 @@ async function runGoalLoop({
     red: redLanes,
     definitionOfDone: normalized.definitionOfDone,
     mockAgents,
-    dispatchClaims: claims,
-    synthesizedMockResults: synthesized,
+    dispatchClaims: simpleOutcome.claims,
+    synthesizedMockResults: simpleOutcome.synthesized,
     patternLanes: patternLaneOutcomes.map((o) => ({
       name: o.lane.name,
       pattern: o.lane.pattern,
@@ -789,10 +1027,188 @@ async function runGoalLoop({
       patternTrace: o.patternResult,
     })),
     taskflowSnapshot: simpleLanes.length > 0
-      ? buildTaskflowMirror({ ...normalized, lanes: simpleLanes }, claims, pollOutcome)
+      ? buildTaskflowMirror({ ...normalized, lanes: simpleLanes }, simpleOutcome.claims, simpleOutcome.pollOutcome)
       : sharedTaskflow.snapshot(),
+    cost: state.cost,
+    aborted: Boolean(simpleOutcome.aborted),
   };
+
+  state.synthesis = {
+    ok: overallOk,
+    green: greenLanes,
+    red: redLanes,
+    aborted: Boolean(simpleOutcome.aborted),
+    generatedAt: trace.generatedAt,
+  };
+  state.status = overallOk ? 'done' : (simpleOutcome.aborted ? 'aborted' : 'failed');
+  state.completedAt = new Date().toISOString();
+  if (persistState) {
+    goalState.writeStateAtomic(dir, state);
+    trace.statePath = goalState.statePath(dir, state.goalId);
+  }
+  emitProgress(onProgress, { kind: 'goal-done', goalId: state.goalId, ok: overallOk, status: state.status, usd: state.cost.usd, callCount: state.cost.callCount });
   return trace;
+}
+
+/**
+ * Dispatch and collect every simple lane, honouring per-lane `failure_mode`.
+ *
+ * Strategy:
+ *   1. Dispatch all lanes (or only those not yet dispatched, for resume).
+ *   2. In mock mode, synthesize one result per claim immediately.
+ *   3. Poll for results.
+ *   4. For any failed lane with `failure_mode: retry-N`, re-dispatch under a
+ *      new taskId suffix (so the previous result is preserved on the ledger)
+ *      and poll again. Repeat up to N times per lane.
+ *   5. If any lane stays failed and its mode is `abort`, return with
+ *      `aborted: true`.
+ *
+ * Returns `{ claims, pollOutcome, synthesized, aborted }`.
+ */
+async function runSimpleLanes({
+  ledger, normalized, simpleLanes, mockAgents, maxWaitMs, pollIntervalMs, now,
+  onProgress, state, persistState, goalsDir, isResume,
+}) {
+  const existingClaimed = isResume ? existingClaimedLaneNames(ledger, { id: normalized.id, lanes: simpleLanes }) : null;
+  let claims;
+  try {
+    claims = dispatchLanes(ledger, { ...normalized, lanes: simpleLanes }, { skipExisting: existingClaimed });
+  } catch (err) {
+    if (err instanceof BlackboardValidationError || err instanceof TaskFlowError) {
+      throw new GoalValidationError(`dispatch failed: ${err.message}`, err.details || {});
+    }
+    throw err;
+  }
+  for (const c of claims) {
+    emitProgress(onProgress, { kind: 'lane-dispatched', laneName: c.laneName, role: c.role, taskId: c.taskId, resumed: Boolean(c.resumed) });
+  }
+
+  let synthesized = [];
+  if (mockAgents) {
+    synthesized = synthesizeMockResults(ledger, { ...normalized, lanes: simpleLanes }, claims);
+  }
+
+  let pollOutcome = await pollForResults(ledger, claims, {
+    maxWaitMs: mockAgents ? 5000 : maxWaitMs,
+    pollIntervalMs,
+    now,
+    onProgress,
+  });
+
+  state.dispatchedClaims = claims;
+  state.receivedResults = pollOutcome.results.slice();
+  if (persistState) goalState.writeStateAtomic(goalsDir, state);
+
+  const laneByName = new Map(simpleLanes.map((l) => [l.name, l]));
+  const retryCounts = new Map();
+  let aborted = false;
+
+  while (true) {
+    const failedLanes = pollOutcome.done.filter((d) => !d.ok);
+    const retriable = failedLanes.filter((d) => {
+      const lane = laneByName.get(d.laneName);
+      if (!lane) return false;
+      const mode = lane.failureMode || { kind: 'abort' };
+      if (mode.kind !== 'retry') return false;
+      const used = retryCounts.get(d.laneName) || 0;
+      return used < mode.retries;
+    });
+
+    const aborters = failedLanes.filter((d) => {
+      const lane = laneByName.get(d.laneName);
+      const mode = (lane && lane.failureMode) || { kind: 'abort' };
+      return mode.kind === 'abort';
+    });
+    if (aborters.length > 0) {
+      aborted = true;
+      emitProgress(onProgress, { kind: 'lane-aborted', laneNames: aborters.map((a) => a.laneName) });
+      break;
+    }
+
+    if (retriable.length === 0) break;
+
+    const retryClaims = [];
+    for (const failed of retriable) {
+      const lane = laneByName.get(failed.laneName);
+      const used = retryCounts.get(failed.laneName) || 0;
+      retryCounts.set(failed.laneName, used + 1);
+      const retryTaskId = `${normalized.id}.${lane.name}.retry-${used + 1}`;
+      const summary = `[${normalized.id}][retry ${used + 1}/${lane.failureMode.retries}] ${lane.summary}`.slice(0, 500);
+      const backoffMs = Math.min(2000, 100 * Math.pow(2, used));
+      await sleepAsync(backoffMs);
+      const claim = ledger.claimTask({ agent: ORCHESTRATOR_AGENT, taskId: retryTaskId, summary, forRole: lane.role });
+      retryClaims.push({ laneName: lane.name, role: lane.role, taskId: retryTaskId, claimId: claim.id, claimedAt: claim.ts, retry: used + 1 });
+      emitProgress(onProgress, { kind: 'lane-retry-dispatch', laneName: lane.name, attempt: used + 1, max: lane.failureMode.retries, taskId: retryTaskId });
+    }
+
+    let retrySynthesized = [];
+    if (mockAgents) {
+      retrySynthesized = synthesizeMockResults(ledger, {
+        ...normalized,
+        lanes: simpleLanes.filter((l) => retryClaims.some((r) => r.laneName === l.name)),
+      }, retryClaims, { strategy: 'all-ok' });
+    }
+    synthesized = synthesized.concat(retrySynthesized);
+
+    const retryOutcome = await pollForResults(ledger, retryClaims, {
+      maxWaitMs: mockAgents ? 5000 : maxWaitMs,
+      pollIntervalMs,
+      now,
+      onProgress,
+    });
+
+    const okLanes = pollOutcome.done.filter((d) => d.ok);
+    const retryDoneByLane = new Map(retryOutcome.done.map((d) => [d.laneName, d]));
+    const stillFailedLaneNames = new Set();
+    const replaced = [];
+    for (const failed of failedLanes) {
+      const retryDone = retryDoneByLane.get(failed.laneName);
+      if (retryDone) {
+        replaced.push({ ...retryDone, originalTaskId: failed.taskId });
+        if (!retryDone.ok) stillFailedLaneNames.add(failed.laneName);
+      } else {
+        replaced.push(failed);
+        stillFailedLaneNames.add(failed.laneName);
+      }
+    }
+    pollOutcome = {
+      done: okLanes.concat(replaced),
+      pending: retryOutcome.pending,
+      results: pollOutcome.results.concat(retryOutcome.results),
+    };
+    state.receivedResults = pollOutcome.results.slice();
+    state.dispatchedClaims = claims.concat(retryClaims);
+    if (persistState) goalState.writeStateAtomic(goalsDir, state);
+
+    if (stillFailedLaneNames.size === 0) break;
+  }
+
+  return { claims, pollOutcome, synthesized, aborted };
+}
+
+/**
+ * For a fully-completed goal in the state file, rebuild a trace that matches
+ * what the original run would have produced. Used when --resume is invoked
+ * on an already-done goal: the call is a no-op but we still return a trace
+ * so the CLI surface is stable.
+ */
+function rebuildTraceFromState(state) {
+  return {
+    schema: TRACE_SCHEMA,
+    goalId: state.goalId,
+    title: state.title,
+    ok: state.status === 'done',
+    resumedNoop: true,
+    generatedAt: new Date().toISOString(),
+    lanes: goalState.laneStatusFromResults(state.goal, state.dispatchedClaims || [], state.patternLanes || [], state.receivedResults || []),
+    green: (state.synthesis && state.synthesis.green) || [],
+    red: (state.synthesis && state.synthesis.red) || [],
+    definitionOfDone: state.goal.definitionOfDone,
+    mockAgents: state.options && state.options.mockAgents,
+    cost: state.cost,
+    aborted: Boolean(state.synthesis && state.synthesis.aborted),
+    statePath: null,
+  };
 }
 
 /**
@@ -837,7 +1253,7 @@ function blackboardSummary(blackboardPath, { recentLimit = 10 } = {}) {
  * one-page executive summary suitable for chat or status posts. Used by
  * `openclaw recap`.
  */
-function recapBlackboard(blackboardPath, { days = 1, now = () => new Date() } = {}) {
+function recapBlackboard(blackboardPath, { days = 1, now = () => new Date(), includeCost = false, goalsDir = null } = {}) {
   if (!fs.existsSync(blackboardPath)) {
     return {
       schema: 'openclaw-frontier.blackboard-recap.v1',
@@ -883,6 +1299,18 @@ function recapBlackboard(blackboardPath, { days = 1, now = () => new Date() } = 
     if (stats.claims === 0 && stats.results === 0) continue;
     narrative.push(`  ${agent}: ${stats.claims} claims, ${stats.results} results (${stats.oks} ok / ${stats.fails} fail)`);
   }
+  let goalCosts = null;
+  if (includeCost) {
+    goalCosts = recapGoalCosts(blackboardPath, { records, cutoffMs: cutoff, goalsDir });
+    if (goalCosts.goals.length === 0) {
+      narrative.push('No per-goal cost records in the window.');
+    } else {
+      narrative.push(`Total estimated cost across ${goalCosts.goals.length} goals: $${goalCosts.totalUsd.toFixed(6)} (${goalCosts.totalCallCount} model calls).`);
+      for (const g of goalCosts.goals.slice(0, 10)) {
+        narrative.push(`  ${g.goalId} (${g.status}): $${g.usd.toFixed(6)} over ${g.callCount} call${g.callCount === 1 ? '' : 's'}`);
+      }
+    }
+  }
   return {
     schema: 'openclaw-frontier.blackboard-recap.v1',
     ledgerPath: blackboardPath,
@@ -891,16 +1319,38 @@ function recapBlackboard(blackboardPath, { days = 1, now = () => new Date() } = 
     untilISO: now().toISOString(),
     totals,
     perRole,
+    cost: goalCosts,
     narrative,
   };
+}
+
+function recapGoalCosts(blackboardPath, { records, cutoffMs, goalsDir }) {
+  const dir = goalsDir || goalState.resolveGoalsDir({ blackboardPath });
+  const goals = [];
+  if (fs.existsSync(dir)) {
+    for (const entry of goalState.listStates(dir, { all: true })) {
+      if (entry.mtime < cutoffMs) continue;
+      goals.push({ goalId: entry.goalId, title: entry.title, status: entry.status, usd: entry.usd, callCount: entry.callCount, updatedAt: entry.updatedAt });
+    }
+  }
+  const usageFacts = extractUsageFacts(records || []);
+  const facts = usageFacts.map((f) => {
+    const est = estimateCallCost({ model: f.model, usage: f.usage });
+    return { ts: f.ts, taskId: f.taskId, agent: f.agent, model: f.model, usd: est.usd };
+  });
+  const totalUsd = goals.reduce((a, g) => a + (g.usd || 0), 0);
+  const totalCallCount = goals.reduce((a, g) => a + (g.callCount || 0), 0);
+  return { goals, totalUsd: Math.round(totalUsd * 1_000_000) / 1_000_000, totalCallCount, factEstimates: facts };
 }
 
 module.exports = {
   GOAL_SCHEMA,
   TRACE_SCHEMA,
   ORCHESTRATOR_AGENT,
+  USAGE_FACT_SUBJECT_PREFIX,
   GoalValidationError,
   normalizeGoal,
+  normalizeFailureMode,
   goalFromPrompt,
   defaultLanePlan,
   dispatchLanes,
@@ -914,4 +1364,7 @@ module.exports = {
   toSimpleAgentId,
   toSimpleTaskId,
   sha256OfJson,
+  extractUsageFacts,
+  applyUsageFactsToState,
+  goalState,
 };

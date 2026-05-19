@@ -264,13 +264,23 @@ class BlackboardLedger {
     return records;
   }
 
-  claimTask({ agent, taskId, summary }) {
-    const record = withBaseFields('task-claim', {
+  claimTask({ agent, taskId, summary, forRole = null }) {
+    const fields = {
       agent: validateAgentId(agent),
       taskId: validateTaskId(taskId),
       summary: requireString(summary, 'summary', { maxLength: 500 }),
       status: 'claimed',
-    });
+    };
+    // Optional routing field. When present, identifies the lane role that
+    // should pick this claim off the ledger. The orchestrator is still the
+    // record AUTHOR (the `agent` field); `forRole` lets a live agent daemon
+    // filter to claims addressed to it without inferring intent from the
+    // task id naming. Legacy claims (no forRole) still validate; live agents
+    // fall back to `agent` for those (see bin/openclaw-agent#findPendingClaims).
+    if (forRole != null) {
+      fields.forRole = validateAgentId(forRole, 'forRole');
+    }
+    const record = withBaseFields('task-claim', fields);
     return this.append(record);
   }
 
