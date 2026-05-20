@@ -2,21 +2,21 @@
 
 All notable public-package changes should be recorded here. This changelog is for the operator-safe OpenClaw Frontier Stack package only; it must not reference private runtimes, personal context, raw logs, credentials, private hosts, or external announcements.
 
-## 2026-05-19 — v0.8.1 — PII scrub of v0.8.0
+## 2026-05-19 — v0.8.1 — Public surface hardening
 
 Status: published. v0.8.0 yanked.
 
 Centralizes the persona-name detection regex into `release-gate/lib/private-patterns.js` so the grader and the sentinel-gate share one policy (closes a structural blind spot in v0.8.0's grader). Renames `integration/neo/` → `integration/agent-host/`, removes private agent-host identifiers and hardware codenames from the public tree, and tightens the verifier to always scan `package.json` regardless of `pkg.files` membership. Functional surface unchanged from v0.8.0; behavior of the agent-host installer is preserved via `--agent-home` / `--agent-label` flags.
 
-## 2026-05-19 — v0.8.0 — Hermes-port system layer, ticketing v2, goal v3, N-API FFI, graded release-gate, multi-host agent integration
+## 2026-05-19 — v0.8.0 — reference-runtime system layer, ticketing v2, goal v3, N-API FFI, graded release-gate, multi-host agent integration
 
-Status: yanked; superseded by v0.8.1 (PII scrub).
+Status: yanked; superseded by v0.8.1 (public surface hardening).
 
-Largest single release. Lands the Hermes-port system layer (cron, doctor, supply-chain advisory, webhook, gateway-style event-hook lifecycle, subagent fan-out), ticketing v2 (templates, multi-assignee, watchers, attachments, SLA pause, goal binding, bulk transitions), goal v3 (failure-recovery policies, streaming progress, cancellation tokens, sub-goals, `--gantt`, `--diff`, cost-table refresh), N-API FFI binding for the Rust envelope crate with pure-JS fallback, a graded release-gate with mutation testing + live-model skill eval + composite letter grade, a multi-host agent integration installer that bridges OFS skills + bin into operator-defined agent hosts, bundles + per-release notes renderer, and 19 new skills (skill catalog 68 → 87). All wired through the existing signed-bus / blackboard / taskflow / 11-role-contract substrate.
+Largest single release. Lands the reference-runtime system layer (cron, doctor, supply-chain advisory, webhook, gateway-style event-hook lifecycle, subagent fan-out), ticketing v2 (templates, multi-assignee, watchers, attachments, SLA pause, goal binding, bulk transitions), goal v3 (failure-recovery policies, streaming progress, cancellation tokens, sub-goals, `--gantt`, `--diff`, cost-table refresh), N-API FFI binding for the Rust envelope crate with pure-JS fallback, a graded release-gate with mutation testing + live-model skill eval + composite letter grade, a multi-host agent integration installer that bridges OFS skills + bin into operator-defined agent hosts, bundles + per-release notes renderer, and 19 new skills (skill catalog 68 → 87). All wired through the existing signed-bus / blackboard / taskflow / 11-role-contract substrate.
 
-### Added — Hermes-port system layer
+### Added — reference-runtime system layer
 
-Six standalone capabilities ported from the May 2026 `NousResearch/hermes-agent` audit (`docs/hermes-agent-audit.md`):
+Six standalone capabilities ported from the May 2026 `NousResearch/reference-runtime` audit (`docs/reference-runtime-audit.md`):
 
 - **`bin/openclaw-cron`** — file-locked cron scheduler. Reads `cron/jobs.json`, ticks every 60 s, drops `task-claim` envelopes on the blackboard for due jobs. Inline cron parser handles `* * * * *`, lists, ranges, `*/N` steps. Operator guide at `docs/cron-scheduler.md`.
 - **`openclaw doctor`** — runtime health check across blackboard reachability, signed-bus key presence, role-contract availability, model-backend configuration (without leaking values), Node version, verifier-latest, and ticket store. `--json`, `--no-network`, `--blackboard <path>` flags. Operator guide at `docs/doctor.md`.
@@ -65,7 +65,7 @@ The release-gate that answers "does this actually work?" with a number instead o
 - **`coordination-correctness`** (weight 15) — runs each coordinator (fan-out, fan-in, chain, voting, subagent) through a mock goal and asserts shape + ordering + error propagation.
 - **`goal-loop-reliability`** (weight 15) — N=10 mock goal-loop runs, success rate + latency p50/p95.
 - **`surface-integrity`** (weight 10) — re-uses the existing public-surface harness output as a finding count.
-- **`hermes-parity`** (weight 5) — % of HIGH-priority Hermes audit rows that map to capabilities now shipped.
+- **`reference-runtime-parity`** (weight 5) — % of HIGH-priority Reference Runtime audit rows that map to capabilities now shipped.
 - **`docs-freshness`** (weight 5) — stale-doc count by 180-day window.
 - **`public-safety`** — hard gate. Score 0 from any private-content scanner hit caps the composite at 50, regardless of other categories.
 
@@ -116,7 +116,7 @@ Skill totals: 47 marketing + creative + 37 engineering + 3 operator = **87**. Al
 
 ### v0.9.0+ candidates surfaced during this release
 
-- Hermes ports remaining (MEDIUM/LOW priority): kanban-board UI, telegram/slack messaging gateway, ACP server, web dashboard, plugin `ctx.llm`, voice memo transcription, adversarial-UX self-skill.
+- reference-runtime adaptations remaining (MEDIUM/LOW priority): kanban-board UI, telegram/slack messaging gateway, ACP server, web dashboard, plugin `ctx.llm`, voice memo transcription, adversarial-UX self-skill.
 - Engineering skills: `chaos-engineering-design`, `dark-launch-strategy`, `migration-window-planning`, `service-deprecation-runbook`, `multi-region-design`, `event-sourcing-tradeoffs`.
 - Marketing skills: `ai-search-strategy-2026`, `creator-economy-positioning`, `subscription-tier-design`, `b2b-vs-dtc-positioning`, `wholesale-channel-strategy`.
 - Ticketing v3: time-tracking, parent/child hierarchies, auto-archiving by age, full-text search.
@@ -127,7 +127,7 @@ Skill totals: 47 marketing + creative + 37 engineering + 3 operator = **87**. Al
 
 Status: published.
 
-The next-level pass surfaced by v0.6.0. Lands the Rust core crates (envelope + blackboard + taskflow), the standalone ticketing FSM as a peer to taskflow, goal-template + state-persistence + cost-estimate features on the engineer CLI, 17 new skills (8 engineering + 9 marketing/creative), a Hermes-agent gap audit with prioritized port targets, and a substantial expansion of the public-surface harness (semver consistency, script/bin/files-glob existence checks, agent-contract cross-references, plugin-manifest path checks).
+The next-level pass surfaced by v0.6.0. Lands the Rust core crates (envelope + blackboard + taskflow), the standalone ticketing FSM as a peer to taskflow, goal-template + state-persistence + cost-estimate features on the engineer CLI, 17 new skills (8 engineering + 9 marketing/creative), a reference-runtime gap audit with prioritized port targets, and a substantial expansion of the public-surface harness (semver consistency, script/bin/files-glob existence checks, agent-contract cross-references, plugin-manifest path checks).
 
 ### Added — Rust core workspace (`crates/`)
 
@@ -180,9 +180,9 @@ Substantial expansion of the harness with 7 new check categories. Caught real ve
 - **Plugin-manifest skills path.** Each manifest's `skills` field must point at the same real directory.
 - **Plugin-manifest hooks path.** Each manifest's `hooks` field must point at a real `hooks.json`.
 
-### Added — Hermes-agent gap audit (`docs/hermes-agent-audit.md`)
+### Added — reference-runtime gap audit (`docs/reference-runtime-audit.md`)
 
-1,131-LOC capability gap analysis comparing OpenClaw Frontier Stack against `NousResearch/hermes-agent`. 47 capability rows in each direction, prioritized port targets, and parity notes. The 5 highest-priority Hermes capabilities flagged for v0.8.0 porting: cron-style schedule subsystem, `openclaw doctor` health check, supply-chain advisory check via `osv-scanner`, webhook subscription system, gateway-style event-hook lifecycle.
+1,131-LOC capability gap analysis comparing OpenClaw Frontier Stack against `NousResearch/reference-runtime`. 47 capability rows in each direction, prioritized port targets, and parity notes. The 5 highest-priority Reference Runtime capabilities flagged for v0.8.0 porting: cron-style schedule subsystem, `openclaw doctor` health check, supply-chain advisory check via `osv-scanner`, webhook subscription system, gateway-style event-hook lifecycle.
 
 ### Changed
 
@@ -201,7 +201,7 @@ Substantial expansion of the harness with 7 new check categories. Caught real ve
 
 ### v0.8.0+ candidates surfaced during this release
 
-- Hermes ports (HIGH priority): cron-style schedule, `openclaw doctor`, supply-chain advisory via osv-scanner, webhook subscriptions, gateway-style event-hook lifecycle.
+- reference-runtime adaptations (HIGH priority): cron-style schedule, `openclaw doctor`, supply-chain advisory via osv-scanner, webhook subscriptions, gateway-style event-hook lifecycle.
 - Engineering skills: `runbook-writing`, `change-management-policy`, `slo-design`, `query-performance-tuning`, `observability-pillars-integration`, `service-ownership-boundaries`, `capacity-planning`, `data-classification-and-handling`.
 - Marketing skills: `customer-data-platform-strategy`, `headless-commerce-tradeoffs`, `tiktok-shop-strategy`, `marketplace-strategy`, `international-expansion`, `crm-strategy`, `post-purchase-experience`, `community-program-design`, `inventory-and-demand-planning`, `accessibility-compliance`.
 - Ticketing: templates, multi-assignee, watchers, attachments, SLA pause windows, ticket→goal binding, bulk transitions.

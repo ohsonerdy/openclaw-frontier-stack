@@ -45,7 +45,7 @@ function writeFakeChangelog(dir) {
     '',
     'Status: candidate.',
     '',
-    'Lands the Hermes ports surfaced by v0.7.0: cron scheduler, openclaw doctor, supply-chain advisory, webhook subscriptions, plus curated skill bundles.',
+    'Lands the reference-runtime adaptations surfaced by v0.7.0: cron scheduler, openclaw doctor, supply-chain advisory, webhook subscriptions, plus curated skill bundles.',
     '',
     '### Added — cron scheduler',
     '',
@@ -154,7 +154,7 @@ test('full happy path: every section present and stats math correct', () => {
   assertIncludes(out, 'Title: Cron, doctor, supply chain, webhooks, bundles', 'title line');
   assertIncludes(out, 'Previous tag: v0.7.0', 'previous tag line');
   assertIncludes(out, '## Summary', 'summary section');
-  assertIncludes(out, 'Lands the Hermes ports surfaced by v0.7.0', 'summary paragraph');
+  assertIncludes(out, 'Lands the reference-runtime adaptations surfaced by v0.7.0', 'summary paragraph');
   assertIncludes(out, '## Stats', 'stats section');
   assertIncludes(out, '- Commits: 3', 'commit count line');
   assertIncludes(out, '- Files changed: 18', 'files changed line');

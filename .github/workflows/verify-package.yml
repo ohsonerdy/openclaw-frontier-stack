@@ -10,6 +10,7 @@ permissions:
 
 env:
   OPENCLAW_FRONTIER_CONTENTION_WORKERS: "32"
+  OPENCLAW_FRONTIER_HISTORY_REF: "HEAD"
 
 jobs:
   verify-package:
@@ -30,7 +31,7 @@ jobs:
         run: npm run smoke
       - name: Run package verifier
         run: npm run verify
-      - name: Run full git history private-content scan
+      - name: Run pushed-head private-content scan
         run: npm run verify:history
       - name: Build downloadable release artifact
         run: npm run release:pack

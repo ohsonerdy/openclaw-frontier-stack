@@ -1,18 +1,18 @@
-# Hermes Agent vs OpenClaw Frontier Stack — Research-Only Audit
+# Reference Agent vs OpenClaw Frontier Stack — Research-Only Audit
 
 > **Status:** Research artifact. Not a roadmap commitment.
-> **Source repo:** `NousResearch/hermes-agent` @ default branch (cloned 2026-05-19, shallow).
+> **Source repo:** `NousResearch/reference-runtime` @ default branch (cloned 2026-05-19, shallow).
 > **Our repo:** `ohsonerdy/openclaw-frontier-stack` working tree at `ofs-now/`.
-> **License of subject:** MIT (Copyright (c) 2025 Nous Research — see `hermes-agent/LICENSE`).
+> **License of subject:** MIT (Copyright (c) 2025 Nous Research — see `reference-runtime/LICENSE`).
 > **Audit format:** survey → inventory → gap table → reverse table → architecture → port plan → license/governance → honest assessment.
 
 ---
 
 ## 1. TL;DR
 
-Hermes Agent and the OpenClaw Frontier Stack (OFS) overlap on the
+Reference Agent and the OpenClaw Frontier Stack (OFS) overlap on the
 "agent framework with skills" surface but solve fundamentally different
-problems. Hermes is a **personal/team assistant runtime** — a Python
+problems. Reference Runtime is a **personal/team assistant runtime** — a Python
 process that owns a conversation, talks to LLMs, ships a TUI, a CLI, and
 a multi-platform messaging gateway (Telegram, Discord, Slack, WhatsApp,
 Signal, Matrix, etc., 22 platforms total), with skills as a procedural-
@@ -24,7 +24,7 @@ voting), an 11-role contract roster, and release-gate machinery, all
 designed to slot in alongside an existing agent host (Claude Code,
 Codex, Cursor, OpenCode) rather than replace it.
 
-By raw surface area Hermes is ~10x our size: 89 built-in skills plus 81
+By raw surface area Reference Runtime is ~10x our size: 89 built-in skills plus 81
 optional skills (170 SKILL.md files vs our 51), ~14 tagged releases vs
 our pre-1.0 cadence, ~1,168 test files, 22 messaging platforms, 7
 terminal backends, dozens of provider adapters, a full Ink-based TUI, an
@@ -41,7 +41,7 @@ powers agent contract layer with hard preconditions and forbidden paths,
 a production-release-gate (`security-sentinel`) with quorum and
 counter-signature, a public-surface harness + private-content scanner,
 multi-host plugin manifests (Claude/Codex/Cursor/OpenCode in one tree),
-and a release-notes/scribe lane. Hermes covers some of these informally
+and a release-notes/scribe lane. Reference Runtime covers some of these informally
 (SQLite Kanban as durable claim, plugin hook system, approval gates)
 but none with our level of formal cryptographic and FSM rigour.
 
@@ -54,7 +54,7 @@ ThreadPoolExecutor and per-child task-id. All informational — build
 originals, do not copy code verbatim. License compatibility (MIT both
 sides) means a clean-room rebuild is unblocked.
 
-Net assessment: **Hermes is ahead on runtime/UX/ecosystem.** OFS is
+Net assessment: **Reference Runtime is ahead on runtime/UX/ecosystem.** OFS is
 **ahead on coordination semantics and release governance.** They're not
 the same product. The interesting move is to remain coordination-focused
 and adopt their best ideas selectively — not chase parity on platforms
@@ -62,7 +62,7 @@ or skill count.
 
 ---
 
-## 2. Hermes Feature Inventory
+## 2. Reference Runtime Feature Inventory
 
 ### 2.1 Architecture
 
@@ -71,11 +71,11 @@ or skill count.
   `while api_call_count < max_iterations` over OpenAI-format messages
   with tool calls dispatched in-process. No external bus, no event log
   by default — the conversation IS the coordination plane.
-- **State store:** SQLite (`hermes_state.py`, `SessionDB` class) with
+- **State store:** SQLite (`reference_state.py`, `SessionDB` class) with
   FTS5 enabled for full-text session search. Profile-aware paths via
-  `get_hermes_home()`.
-- **Multi-agent coordination:** SQLite Kanban (`hermes_cli/kanban.py`,
-  `hermes_cli/kanban_db.py`) with WAL mode, `BEGIN IMMEDIATE` write txns,
+  `get_reference_home()`.
+- **Multi-agent coordination:** SQLite Kanban (`reference_cli/kanban.py`,
+  `reference_cli/kanban_db.py`) with WAL mode, `BEGIN IMMEDIATE` write txns,
   and compare-and-swap (CAS) on `tasks.status`/`tasks.claim_lock`. One
   worker spawns per task via `kanban_swarm.py`. Schema:
   `tasks / task_links / task_comments / task_events`. Multiple boards
@@ -123,7 +123,7 @@ or skill count.
 
 ### 2.3 Agent roles
 
-Hermes does **not** ship an explicit role taxonomy in the OFS sense.
+Reference Runtime does **not** ship an explicit role taxonomy in the OFS sense.
 The closest analogues:
 
 - **Single primary agent** (`AIAgent`) per process, configured via
@@ -131,7 +131,7 @@ The closest analogues:
 - **Delegate subagents** spawned ad-hoc via `delegate_tool` with a
   custom prompt and restricted toolset — these are role-shaped at
   dispatch time, not pre-declared.
-- **Kanban workers** — `hermes_cli/kanban_swarm.py` spawns one worker
+- **Kanban workers** — `reference_cli/kanban_swarm.py` spawns one worker
   per task. Workers are isolated by board (`HERMES_KANBAN_BOARD` env).
 - No `CONTRACT.md` files. No hard preconditions. No "what you must
   never do" rules baked into the role. No separation-of-powers between
@@ -142,7 +142,7 @@ The closest analogues:
 - **Gateway hook system** (`gateway/hooks.py`): event types include
   `gateway:startup`, `session:start`, `session:end`, `session:reset`,
   `agent:start`, `agent:step`, `agent:end`, `command:*` wildcard. Each
-  hook lives under `<HOME>/.hermes/hooks/<name>/` with `HOOK.yaml` metadata
+  hook lives under `<HOME>/.reference/hooks/<name>/` with `HOOK.yaml` metadata
   + `handler.py` async handler.
 - **Shell-script hooks** (`agent/shell_hooks.py`): reads `hooks:` block
   from `cli-config.yaml`, prompts for consent on first use, routes
@@ -151,16 +151,16 @@ The closest analogues:
   (Claude-Code-compatible). Pre-llm-call hooks can inject context via
   `{"context": "Today is Friday"}`.
 - **Cron scheduler** (`cron/scheduler.py`, `cron/jobs.py`): file-locked
-  via `<HOME>/.hermes/cron/.tick.lock` (fcntl on Unix, msvcrt on Windows),
+  via `<HOME>/.reference/cron/.tick.lock` (fcntl on Unix, msvcrt on Windows),
   ticks every 60 s from a gateway background thread. Supports any cron
   expression + human intervals + `no_agent` mode (script-only,
   silent-by-convention).
-- **Webhook subscriptions** (`hermes webhook subscribe`): HMAC-auth'd
+- **Webhook subscriptions** (`reference webhook subscribe`): HMAC-auth'd
   inbound webhook routes that trigger agent runs with structured
   context. GitHub events (PR / issue / push) plus arbitrary JSON
   payloads. Delivery target per subscription (Slack, Telegram, etc.).
-- **Routines parity:** `hermes-already-has-routines.md` explicitly
-  positions hermes-cron+webhooks as already-shipping equivalents of
+- **Routines parity:** `reference-already-has-routines.md` explicitly
+  positions reference-cron+webhooks as already-shipping equivalents of
   Claude Code Routines (scheduled / GitHub / API triggers).
 
 ### 2.5 Coordination patterns
@@ -175,8 +175,8 @@ The closest analogues:
   model synthesises. Models hardcoded to claude-opus-4.6 /
   gemini-3-pro-preview / gpt-5.4-pro / deepseek-v3.2 with
   claude-opus-4.6 as aggregator.
-- **Kanban swarm** (`hermes_cli/kanban_swarm.py`,
-  `hermes_cli/kanban_decompose.py`, `hermes_cli/kanban_specify.py`) —
+- **Kanban swarm** (`reference_cli/kanban_swarm.py`,
+  `reference_cli/kanban_decompose.py`, `reference_cli/kanban_specify.py`) —
   decompose a goal into tasks, dispatch workers via Kanban, collect
   results. Compare-and-swap claim semantics, per-board isolation.
 - **No formal voting/quorum primitive.** No fan-in joiner primitive.
@@ -184,7 +184,7 @@ The closest analogues:
 
 ### 2.6 Auth + key management
 
-- **Provider OAuth:** `hermes_cli/auth.py`, `auth_commands.py`,
+- **Provider OAuth:** `reference_cli/auth.py`, `auth_commands.py`,
   `copilot_auth.py`, `dingtalk_auth.py`, `vercel_auth.py`,
   `agent/google_oauth.py`, `agent/google_code_assist.py`,
   `agent/azure_identity_adapter.py`. Each provider gets its own
@@ -192,10 +192,10 @@ The closest analogues:
   SuperGrok, Vercel, DingTalk, etc.).
 - **Credential pool** (`agent/credential_pool.py`,
   `credential_sources.py`) — multiple keys per provider with rotation.
-- **API-key allowlist for migration** (`hermes claw migrate`) only
+- **API-key allowlist for migration** (`reference claw migrate`) only
   imports specific allowlisted keys: Telegram, OpenRouter, OpenAI,
   Anthropic, ElevenLabs.
-- **OAuth-proxy** (`hermes proxy`): an OpenAI-compatible local proxy
+- **OAuth-proxy** (`reference proxy`): an OpenAI-compatible local proxy
   that wraps OAuth-authed providers (Claude Pro, ChatGPT Pro,
   SuperGrok) so any OpenAI-API tool can hit a paid subscription. New
   in v0.14.0.
@@ -207,7 +207,7 @@ The closest analogues:
 ### 2.7 Storage / persistence
 
 - **SQLite SessionDB** with FTS5 full-text search across all sessions.
-- **WAL fallback** (`hermes_state_wal_fallback.py` test) for read-only
+- **WAL fallback** (`reference_state_wal_fallback.py` test) for read-only
   filesystems.
 - **Atomic replace + symlinks safe** for session persistence.
 - **No JSONL ledger / append-only audit log primitive.** Closest is the
@@ -277,7 +277,7 @@ Tool surface (`tools/`):
   cli, gateway, tools, plugins, providers, acp, cron, fakes, e2e,
   integration, stress, honcho_plugin, openviking_plugin, …).
 - **`scripts/run_tests.sh`** is the canonical entrypoint.
-- **Doctor command** (`hermes doctor` → `hermes_cli/doctor.py`) — health
+- **Doctor command** (`reference doctor` → `reference_cli/doctor.py`) — health
   checks at runtime.
 - **LSP diagnostics on every write** (`agent/lsp/`) — runs a real
   language server against edited files, surfaces type errors before
@@ -293,7 +293,7 @@ Tool surface (`tools/`):
 
 ### 2.10 CLI surface
 
-`hermes_cli/` is 86 files including:
+`reference_cli/` is 86 files including:
 - `main.py`, `commands.py` — central `COMMAND_REGISTRY` of `CommandDef`
   objects that drives CLI, gateway, Telegram menu, Slack subcommand
   map, autocomplete, and help. One registry, many consumers.
@@ -322,7 +322,7 @@ plus `/<skill-name>` for any installed skill.
 
 ### 2.11 TUI
 
-- `ui-tui/` — Ink (React) TUI in TypeScript with packages: `hermes-ink`,
+- `ui-tui/` — Ink (React) TUI in TypeScript with packages: `reference-ink`,
   `ink`, `app/`, `components/`, `hooks/`, `lib/`.
 - `tui_gateway/` — Python JSON-RPC backend over newline-delimited stdio.
 - Entries: `entry.py`, `server.py`, `slash_worker.py`, `transport.py`,
@@ -330,7 +330,7 @@ plus `/<skill-name>` for any installed skill.
 - Real platform-native button UI for `clarify` on Telegram + Discord
   (v0.14.0).
 - OSC8 hyperlinks for clickable URLs in any modern terminal.
-- KawaiiSpinner with skin engine (`hermes_cli/skin_engine.py`) —
+- KawaiiSpinner with skin engine (`reference_cli/skin_engine.py`) —
   data-driven CLI theming.
 
 ### 2.12 Messaging gateway
@@ -359,13 +359,13 @@ plus `/<skill-name>` for any installed skill.
 ### 2.14 Web dashboard
 
 - `web/` — Vite + TypeScript dashboard.
-- `hermes_cli/web_server.py` exposes `/chat` with `@app.websocket("/api/pty")`
-  embedding the real `hermes --tui` over a POSIX PTY bridge (WSL2 only
+- `reference_cli/web_server.py` exposes `/chat` with `@app.websocket("/api/pty")`
+  embedding the real `reference --tui` over a POSIX PTY bridge (WSL2 only
   for now).
 
 ### 2.15 Documentation philosophy
 
-- **Documentation site:** `https://hermes-agent.nousresearch.com/docs/`
+- **Documentation site:** `https://reference-runtime.nousresearch.com/docs/`
   (Docusaurus, source under `website/`).
 - **`README.md` is the marketing front door** — feature pitch + install
   one-liner + 5 most-used commands.
@@ -377,16 +377,16 @@ plus `/<skill-name>` for any installed skill.
 - **Per-platform adapter contract** documented in
   `gateway/platforms/ADDING_A_PLATFORM.md`.
 - **Provider plugin README** at `providers/README.md`.
-- **`hermes-already-has-routines.md`** — explicit competitive positioning
+- **`reference-already-has-routines.md`** — explicit competitive positioning
   vs Claude Code Routines.
 
 ### 2.16 Distribution
 
-- **PyPI package** (`pip install hermes-agent`) — new in v0.14.0.
+- **PyPI package** (`pip install reference-runtime`) — new in v0.14.0.
 - **One-liner shell installers:** `scripts/install.sh`, `install.ps1`,
   `install.cmd`. Bundled MinGit on Windows. Termux install path.
-- **`setup-hermes.sh`** for contributors — `uv venv`, `.[all,dev]`,
-  symlink `<HOME>/.local/bin/hermes`.
+- **`setup-reference.sh`** for contributors — `uv venv`, `.[all,dev]`,
+  symlink `<HOME>/.local/bin/reference`.
 - **Dockerfile** + `docker-compose.yml` + `docker/` directory.
 - **Nix flake** (`flake.nix`, `flake.lock`, `nix/`).
 - **`pyproject.toml`** with exact-pinned dependencies (no ranges, supply-
@@ -428,10 +428,10 @@ plus `/<skill-name>` for any installed skill.
 
 ### 2.19 Things unique to them I didn't expect
 
-- **`hermes claw migrate`** — first-class import of an `<HOME>/.openclaw`
-  install (SOUL.md persona, MEMORY/USER, skills → `<HOME>/.hermes/skills/
+- **`reference claw migrate`** — first-class import of an `<HOME>/.openclaw`
+  install (SOUL.md persona, MEMORY/USER, skills → `<HOME>/.reference/skills/
   openclaw-imports/`, allowlisted secrets, messaging settings).
-  Documented as the migration path from OpenClaw to Hermes.
+  Documented as the migration path from OpenClaw to Reference Runtime.
 - **Voice memo transcription** end-to-end on messaging platforms.
 - **Pokemon player** + **Minecraft modpack server** as gaming skills.
 - **OpenHue** for Philips Hue smart-home control.
@@ -629,43 +629,43 @@ mission-control-demo, remote-approval-demo.
 
 ---
 
-## 4. Gap Table — What Hermes Has, We Don't
+## 4. Gap Table — What Reference Runtime Has, We Don't
 
 > **"Should we port"** answers: YES (worth doing), NO (out of scope),
 > ADAPT (port the idea, not the implementation), DEFER (later release).
 > **Priority:** HIGH / MEDIUM / LOW.
 
-| # | Hermes feature | Description | Our equivalent? | Should we port? | Priority |
+| # | Reference Runtime feature | Description | Our equivalent? | Should we port? | Priority |
 |---|---|---|---|---|---|
-| 1 | Cron scheduler with delivery targets | `hermes cron create "0 2 * * *" "<prompt>" --deliver telegram` — built-in cron with file-locked tick from gateway background thread, supports any cron expression + human-readable intervals + `no_agent` script-only mode. `cron/scheduler.py`, `cron/jobs.py`. | Partial — `.github/workflows/scheduled-evals.yml` schedules eval runs, but no operator-facing "schedule a prompt → deliver to channel X" surface. | ADAPT — design our own around blackboard task-claim records emitted by a tiny cron daemon. | HIGH |
-| 2 | Webhook subscription system | `hermes webhook subscribe` registers HMAC-auth'd inbound routes that trigger agent runs with structured context. Supports GitHub events + arbitrary JSON. `hermes_cli/webhook.py`. | None. | ADAPT — add `openclaw webhook subscribe` that drops a TASK envelope on the blackboard with the payload. | HIGH |
-| 3 | Gateway hook lifecycle | Event types: `gateway:startup`, `session:start`, `session:end`, `session:reset`, `agent:start`, `agent:step`, `agent:end`, `command:*` wildcard. Hooks live in `<HOME>/.hermes/hooks/<name>/{HOOK.yaml,handler.py}`. `gateway/hooks.py`. | Two-event hook (`Stop`, `PreToolUse`) on host-specific paths only. | YES — extend `hooks/hooks.json` to a lifecycle schema with named events, keep host-neutral. | HIGH |
-| 4 | Shell-script hook contract | Hooks read JSON from stdin (`{hook_event_name, tool_name, tool_input, session_id, cwd, extra}`), write JSON to stdout (`{decision:block, reason:…}` or `{context:…}`). Consent-gated allowlist at `<HOME>/.hermes/shell-hooks-allowlist.json`. `agent/shell_hooks.py`. | Our `private-content-scan.js` runs as a Node script with no stdin/stdout contract. | YES — formalise the contract so any executable can be a hook. | HIGH |
+| 1 | Cron scheduler with delivery targets | `reference cron create "0 2 * * *" "<prompt>" --deliver telegram` — built-in cron with file-locked tick from gateway background thread, supports any cron expression + human-readable intervals + `no_agent` script-only mode. `cron/scheduler.py`, `cron/jobs.py`. | Partial — `.github/workflows/scheduled-evals.yml` schedules eval runs, but no operator-facing "schedule a prompt → deliver to channel X" surface. | ADAPT — design our own around blackboard task-claim records emitted by a tiny cron daemon. | HIGH |
+| 2 | Webhook subscription system | `reference webhook subscribe` registers HMAC-auth'd inbound routes that trigger agent runs with structured context. Supports GitHub events + arbitrary JSON. `reference_cli/webhook.py`. | None. | ADAPT — add `openclaw webhook subscribe` that drops a TASK envelope on the blackboard with the payload. | HIGH |
+| 3 | Gateway hook lifecycle | Event types: `gateway:startup`, `session:start`, `session:end`, `session:reset`, `agent:start`, `agent:step`, `agent:end`, `command:*` wildcard. Hooks live in `<HOME>/.reference/hooks/<name>/{HOOK.yaml,handler.py}`. `gateway/hooks.py`. | Two-event hook (`Stop`, `PreToolUse`) on host-specific paths only. | YES — extend `hooks/hooks.json` to a lifecycle schema with named events, keep host-neutral. | HIGH |
+| 4 | Shell-script hook contract | Hooks read JSON from stdin (`{hook_event_name, tool_name, tool_input, session_id, cwd, extra}`), write JSON to stdout (`{decision:block, reason:…}` or `{context:…}`). Consent-gated allowlist at `<HOME>/.reference/shell-hooks-allowlist.json`. `agent/shell_hooks.py`. | Our `private-content-scan.js` runs as a Node script with no stdin/stdout contract. | YES — formalise the contract so any executable can be a hook. | HIGH |
 | 5 | `/handoff` live session transfer | Move an active session — every message, every tool call, every piece of context — to a target model/persona/profile mid-run without dropping anything. v0.14.0. | None — no session concept at this level. | DEFER — depends on us shipping a runtime first. | LOW |
 | 6 | `/goal` Ralph-loop with judge | Persistent goal where the agent keeps going until success criteria are met. `/subgoal` appends criteria mid-run. | We have `openclaw goal` but it's one-shot (synthesizes once, exits). No persistent loop, no judge. | YES — add a `--persistent` mode to `openclaw goal` that loops until the goal-loop synthesiser declares done. | MEDIUM |
 | 7 | Delegate-tool subagent isolation | Spawns child `AIAgent` instances with: isolated context, separate `task_id`, restricted toolsets, blocked tools (no recursive delegate / clarify / memory / send_message / execute_code), parent blocks until all complete. ThreadPoolExecutor with init-callback to avoid TUI/subprocess deadlock. `tools/delegate_tool.py`. | We have role-isolation via `openclaw-agent --role …` per process, but no in-process subagent fan-out. | ADAPT — add a `subagent.js` helper inside `lib/coordination/` that spawns N child orchestrator runs with restricted toolsets and writes their results back as fan-in records. | MEDIUM |
 | 8 | Mixture-of-Agents tool | Layered multi-LLM coordination per Wang et al. 2024. Reference models generate parallel responses; aggregator synthesises. `tools/mixture_of_agents_tool.py`. | Voting pattern is close but voting picks one winner, MoA synthesises N→1. | ADAPT — add `synthesize.js` as a fifth coordination pattern. | MEDIUM |
 | 9 | LSP semantic diagnostics on every write | After `write_file`/`patch`, runs a real language server against the edited file, surfaces type errors before next turn. `agent/lsp/` directory. | None. | DEFER — requires a runtime to integrate with. | LOW |
 | 10 | Per-turn file-mutation verifier footer | After every write/edit turn, agent gets a short footer summarising on-disk delta. Catches silent overwrites. | None. | DEFER — requires a runtime. | LOW |
-| 11 | OpenAI-compatible local OAuth proxy | `hermes proxy` exposes `http://localhost:port` that speaks OpenAI API backed by Claude Pro / ChatGPT Pro / SuperGrok OAuth subscriptions. | None. | NO — outside our scope, we don't own auth. | LOW |
+| 11 | OpenAI-compatible local OAuth proxy | `reference proxy` exposes `http://localhost:port` that speaks OpenAI API backed by Claude Pro / ChatGPT Pro / SuperGrok OAuth subscriptions. | None. | NO — outside our scope, we don't own auth. | LOW |
 | 12 | Lazy-deps install tier | Heavyweight backends (Slack/Matrix/Feishu/image-gen/voice/TTS) install on first use rather than at install. Tiered fallback when wheels don't fit. Exact-pinned core deps with supply-chain rationale. `tools/lazy_deps.py`. | We pin Node deps with `package-lock.json` but no lazy-install tier. | YES — adopt the "core deps exact-pinned + optional deps lazy" pattern for our future Python subskills + future Modern AI MCP adapters. | MEDIUM |
-| 13 | Supply-chain advisory checker | Scans every install for unsafe versions (post Mini Shai-Hulud incident). `hermes_cli/security_advisories.py`. | Partial — `npm run verify` runs but no explicit supply-chain check. | YES — add `npm run verify:supply-chain` using `npm audit --json` + OSV. | HIGH |
-| 14 | Doctor command | `hermes doctor` runtime health check across config, providers, paths, processes. `hermes_cli/doctor.py`. | None — our `verify` is build-time, not runtime. | YES — add `openclaw doctor` that checks blackboard reachability, signed-bus keys, role-contract presence. | HIGH |
+| 13 | Supply-chain advisory checker | Scans every install for unsafe versions (post Mini Shai-Hulud incident). `reference_cli/security_advisories.py`. | Partial — `npm run verify` runs but no explicit supply-chain check. | YES — add `npm run verify:supply-chain` using `npm audit --json` + OSV. | HIGH |
+| 14 | Doctor command | `reference doctor` runtime health check across config, providers, paths, processes. `reference_cli/doctor.py`. | None — our `verify` is build-time, not runtime. | YES — add `openclaw doctor` that checks blackboard reachability, signed-bus keys, role-contract presence. | HIGH |
 | 15 | Trajectory compressor | Compresses full conversation logs for training the next generation of tool-calling models. `trajectory_compressor.py`. | None. | NO — we're not training models. | LOW |
 | 16 | Batch trajectory generation | `batch_runner.py` runs N tasks in parallel with checkpointing. | Our `openclaw goal --pattern fan-out` is the spiritual equivalent but lacks checkpointing. | ADAPT — add checkpoints to the goal loop so a long run can resume. | MEDIUM |
-| 17 | Session search with FTS5 | Full-text search across all past sessions. `agent/session_search_tool.py` + `hermes_state.py`. | None — no session persistence yet. | DEFER — requires runtime. | LOW |
+| 17 | Session search with FTS5 | Full-text search across all past sessions. `agent/session_search_tool.py` + `reference_state.py`. | None — no session persistence yet. | DEFER — requires runtime. | LOW |
 | 18 | 22 messaging platform adapters | Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost, MS Teams, Email, SMS, DingTalk, WeCom, Weixin, Feishu, QQBot, BlueBubbles, Yuanbao, IRC, LINE, SimpleX, Google Chat, Webhook. | None. | NO — out of scope. | LOW |
 | 19 | 7 terminal backends | local, Docker, SSH, Modal, Daytona, Singularity, Vercel Sandbox. `tools/environments/`. | None — we run wherever the host runs. | NO — runtime concern. | LOW |
 | 20 | Computer-use cua-driver | Mouse/keyboard control of GUI apps, works with non-Anthropic models. `tools/computer_use/`. | None. | NO. | LOW |
 | 21 | Ink-based TUI | Full React-in-the-terminal experience via Ink + JSON-RPC stdio. `ui-tui/`, `tui_gateway/`. | None — we ship CLI text only. | DEFER — only if we ship a runtime. | LOW |
-| 22 | Web dashboard with PTY embedding | `hermes dashboard` serves a Vite + TS web UI that embeds the real TUI over a POSIX PTY WebSocket. `web/`, `hermes_cli/web_server.py`. | None. | DEFER. | LOW |
+| 22 | Web dashboard with PTY embedding | `reference dashboard` serves a Vite + TS web UI that embeds the real TUI over a POSIX PTY WebSocket. `web/`, `reference_cli/web_server.py`. | None. | DEFER. | LOW |
 | 23 | ACP server | VS Code / Zed / JetBrains integration via Agent Client Protocol. `acp_adapter/`, `acp_registry/`. Installable via `uvx`. | We integrate with host IDEs via plugin manifests, not ACP. | DEFER — explore once IDE-side ACP support matures. | LOW |
 | 24 | Skill provenance + usage tracking | `tools/skill_provenance.py`, `tools/skill_usage.py` — log which skill was invoked when and where it came from. | None. | YES — record skill invocations as facts on the blackboard. | MEDIUM |
 | 25 | Skills Hub with HuggingFace trusted tap | Default tap pulls from `huggingface.co/skills`. `agent/skills_hub.py`. | None — skills are bundled in-repo. | ADAPT — define a Skill Forge external-tap spec; allow operator to add trusted taps. | MEDIUM |
 | 26 | Skill manager tool | Agent-facing tool to install, update, list skills. `tools/skill_manager_tool.py`. | None — operator manages skills out-of-band. | DEFER — requires runtime. | LOW |
-| 27 | Skin engine | Data-driven CLI theming: banner colors, spinner faces/verbs/wings, tool prefix, response box. `hermes_cli/skin_engine.py`. | None — single style. | NO — cosmetic, low operator value. | LOW |
+| 27 | Skin engine | Data-driven CLI theming: banner colors, spinner faces/verbs/wings, tool prefix, response box. `reference_cli/skin_engine.py`. | None — single style. | NO — cosmetic, low operator value. | LOW |
 | 28 | Honcho dialectic user modeling | Cross-session user model built from conversation. `plugins/memory/honcho`. | Our memory-adapters cover RAG/CAG/compaction but no dialectic user model. | DEFER — runtime-shaped. | LOW |
-| 29 | Slash command central registry | One `COMMAND_REGISTRY` of `CommandDef` objects drives CLI, gateway, Telegram menu, Slack subcommand map, autocomplete, help. `hermes_cli/commands.py`. | Our CLI has hard-coded subcommands in `bin/openclaw`. | ADAPT — refactor `bin/openclaw` to read a central `commands.json` once we have a second consumer (e.g. a web view or a slash-command bridge). | MEDIUM |
+| 29 | Slash command central registry | One `COMMAND_REGISTRY` of `CommandDef` objects drives CLI, gateway, Telegram menu, Slack subcommand map, autocomplete, help. `reference_cli/commands.py`. | Our CLI has hard-coded subcommands in `bin/openclaw`. | ADAPT — refactor `bin/openclaw` to read a central `commands.json` once we have a second consumer (e.g. a web view or a slash-command bridge). | MEDIUM |
 | 30 | DM pairing | Pair a messaging bot to a user account. `gateway/pairing.py`. | None. | NO. | LOW |
 | 31 | Sudo brute-force block | Approval gate blocks `sudo -S` brute-force, classifies stdin-fed sudo as DANGEROUS. v0.14.0. | None — we don't own command execution. | NO. | LOW |
 | 32 | Tool-error redaction | Tool error strings are filtered before re-injection into model context — blocks prompt injection via error output. | None. | DEFER — runtime concern. | LOW |
@@ -673,8 +673,8 @@ mission-control-demo, remote-approval-demo.
 | 34 | Pareto Code router | OpenRouter "Pareto" router with `min_coding_score` knob — cheapest model that meets a coding-quality bar. | None. | DEFER. | LOW |
 | 35 | Voice memo transcription | End-to-end voice → text → agent → text → voice on messaging platforms. `tools/transcription_tools.py`, `tools/tts_tool.py`. | None. | NO. | LOW |
 | 36 | Adversarial UX test as meta-skill | Self-skill that runs the agent against itself for stress testing. `optional-skills/dogfood/adversarial-ux-test/`. | Our evals are external (`scripts/eval-*.js`). | ADAPT — add a `meta-self-stress` eval that drives the orchestrator through edge cases. | MEDIUM |
-| 37 | Migration command (`hermes claw migrate`) | Imports settings/skills/memories/keys from a prior `<HOME>/.openclaw` install. Dry-run, presets, overwrite flags. `hermes_cli/claw.py`. | None — we don't have a prior install to migrate from. | NO — they migrate FROM us, not the other way around. | LOW |
-| 38 | Trusted bundles | Skill bundles (`hermes_cli/bundles.py`) group related skills for atomic install. | None — operator installs skills individually. | YES — add a `bundles.json` mapping `marketing-core: [..28 skills..]`, `engineering-core: [..20 skills..]`, `operator-core: [..3 skills..]`. | MEDIUM |
+| 37 | Migration command (`reference claw migrate`) | Imports settings/skills/memories/keys from a prior `<HOME>/.openclaw` install. Dry-run, presets, overwrite flags. `reference_cli/claw.py`. | None — we don't have a prior install to migrate from. | NO — they migrate FROM us, not the other way around. | LOW |
+| 38 | Trusted bundles | Skill bundles (`reference_cli/bundles.py`) group related skills for atomic install. | None — operator installs skills individually. | YES — add a `bundles.json` mapping `marketing-core: [..28 skills..]`, `engineering-core: [..20 skills..]`, `operator-core: [..3 skills..]`. | MEDIUM |
 | 39 | RELEASE_v*.md per-version notes | Every release ships `RELEASE_v0.X.0.md` in repo root with highlights, full PR list. | We have `CHANGELOG.md` aggregated. | ADAPT — keep CHANGELOG aggregated, but emit `release-gate/release-notes/v0.X.0.md` per tagged release with the same shape. | MEDIUM |
 | 40 | `/insights` summarisation | `/insights [--days N]` rolls up recent activity. `agent/insights.py`. | We have `openclaw recap [--days N]` — direct equivalent. | (already have) | — |
 | 41 | `nous_rate_guard.py` | Rate-limit tracker for Nous Portal calls. | We have no portal. | NO. | LOW |
@@ -692,10 +692,10 @@ mission-control-demo, remote-approval-demo.
 | 53 | `agentskills.io` spec compatibility | README claims SKILL.md is spec-v1 compatible. | We already declare Agent Skills spec v1 in README. | (already have) | — |
 | 54 | Discord channel history backfill | When joining a channel, reads recent history. v0.14.0. | NO. | LOW |
 | 55 | Telegram/Discord clarify buttons | Platform-native button UI for clarify questions. v0.14.0. | NO. | LOW |
-| 56 | `kanban_decompose` + `kanban_specify` | Auto-decompose a goal into Kanban tasks; auto-spec a task with acceptance criteria. `hermes_cli/kanban_decompose.py`, `kanban_specify.py`. | Our orchestrator decomposes lanes but lacks auto-spec acceptance criteria per lane. | YES — add `--spec` to `openclaw dispatch` that auto-derives acceptance criteria. | MEDIUM |
+| 56 | `kanban_decompose` + `kanban_specify` | Auto-decompose a goal into Kanban tasks; auto-spec a task with acceptance criteria. `reference_cli/kanban_decompose.py`, `kanban_specify.py`. | Our orchestrator decomposes lanes but lacks auto-spec acceptance criteria per lane. | YES — add `--spec` to `openclaw dispatch` that auto-derives acceptance criteria. | MEDIUM |
 | 57 | Channel directory + mirror | Cross-platform routing of messages. `gateway/channel_directory.py`, `gateway/mirror.py`. | NO. | LOW |
 | 58 | `RELEASE_v*.md` highlights with PR/issue counts | Each release lists "X commits · Y merged PRs · Z files changed · N insertions · M issues closed". | We track in CHANGELOG aggregated. | ADAPT — include the same shape per release-note. | LOW |
-| 59 | PyPI distribution | `pip install hermes-agent`. | We're a Node-style repo only. Plugin manifests + a `package.json` exist but no `npm install -g openclaw`. | YES — add an npm-published wrapper that vendors `bin/openclaw` + `bin/openclaw-agent` so `npx openclaw goal …` works. | MEDIUM |
+| 59 | PyPI distribution | `pip install reference-runtime`. | We're a Node-style repo only. Plugin manifests + a `package.json` exist but no `npm install -g openclaw`. | YES — add an npm-published wrapper that vendors `bin/openclaw` + `bin/openclaw-agent` so `npx openclaw goal …` works. | MEDIUM |
 | 60 | Bundled MinGit on Windows installer | Self-contained git for Windows users without admin. | NO — we expect operator to have git. | LOW |
 | 61 | Nix flake distribution | `flake.nix`, `flake.lock`, `nix/`. | None. | NO. | LOW |
 | 62 | Docker compose | `docker-compose.yml` + `docker/`. | NO — we don't ship runtime. | LOW |
@@ -719,17 +719,17 @@ mission-control-demo, remote-approval-demo.
 | 80 | `release.py` script | Tagged-release automation. | Our `scripts/package-release.js` covers this. | (parity) | — |
 | 81 | Contributor audit | `scripts/contributor_audit.py` enumerates PR authors per release window. | Our `release-gate/scripts/` has no equivalent. | YES — generate co-author lists per release-notes file. | LOW |
 | 82 | `lint_diff.py` | Lint only the diff against base branch. | We run full verify. | YES — add `verify --diff` mode for faster pre-push checks. | LOW |
-| 83 | Plugin-aware install bundles | `<HOME>/.hermes/skills/` per profile, `pip install` per provider plugin. | NO. | LOW |
-| 84 | Multi-profile support (`hermes -p`) | Multiple agent profiles each with isolated config/memory/skills. | NO — single ofs-now per checkout. | DEFER. | LOW |
-| 85 | Profile distribution + describer | `hermes_cli/profile_distribution.py` + `profile_describer.py` — describe a profile for sharing. | NO. | LOW |
-| 86 | Default soul | `hermes_cli/default_soul.py` — persona starter. | NO. | LOW |
+| 83 | Plugin-aware install bundles | `<HOME>/.reference/skills/` per profile, `pip install` per provider plugin. | NO. | LOW |
+| 84 | Multi-profile support (`reference -p`) | Multiple agent profiles each with isolated config/memory/skills. | NO — single ofs-now per checkout. | DEFER. | LOW |
+| 85 | Profile distribution + describer | `reference_cli/profile_distribution.py` + `profile_describer.py` — describe a profile for sharing. | NO. | LOW |
+| 86 | Default soul | `reference_cli/default_soul.py` — persona starter. | NO. | LOW |
 | 87 | Voice mode (`tools/voice_mode.py`) | Real-time voice conversation. | NO. | LOW |
 | 88 | NeuTTS local TTS samples | `tools/neutts_samples/` + `tools/neutts_synth.py`. | NO. | LOW |
 | 89 | MCP OAuth manager | Multi-tenant OAuth for MCP servers. `tools/mcp_oauth.py`, `tools/mcp_oauth_manager.py`. | None — we integrate with Modern AI MCP via static config. | DEFER. | LOW |
-| 90 | `hermes_tools_mcp_server.py` | Exposes Hermes tools as an MCP server to OTHER agent hosts. | None — we provide skills, not tools. | ADAPT — expose blackboard read/write as an MCP server so any MCP-aware host can plug in. | MEDIUM |
+| 90 | `reference_tools_mcp_server.py` | Exposes Reference Runtime tools as an MCP server to OTHER agent hosts. | None — we provide skills, not tools. | ADAPT — expose blackboard read/write as an MCP server so any MCP-aware host can plug in. | MEDIUM |
 | 91 | `acp_registry/agent.json` | Discoverable agent.json for IDE registries. | None. | DEFER. | LOW |
 | 92 | `pairing.py` flow | Out-of-band cryptographic pairing between bot and user. | We have signed envelopes but no human-side pairing. | NO. | LOW |
-| 93 | Achievements plugin | Gamified usage tracking. `plugins/hermes-achievements/`. | NO. | LOW |
+| 93 | Achievements plugin | Gamified usage tracking. `plugins/reference-achievements/`. | NO. | LOW |
 | 94 | Strike-freedom-cockpit plugin | Internal codename, no public docs. | NO. | LOW |
 | 95 | Disk-cleanup plugin | `plugins/disk-cleanup/` — clean session DB, logs. | None — we leave it to the operator. | LOW |
 | 96 | Auxiliary client | Out-of-band model client for background tasks. `agent/auxiliary_client.py`. | NO. | LOW |
@@ -740,24 +740,24 @@ mission-control-demo, remote-approval-demo.
 
 ---
 
-## 5. Reverse Table — What We Have, Hermes Doesn't
+## 5. Reverse Table — What We Have, Reference Runtime Doesn't
 
-| # | Our feature | Hermes equivalent | Positioning |
+| # | Our feature | Reference Runtime equivalent | Positioning |
 |---|---|---|---|
-| R1 | Ed25519 signed envelopes (`src/signed-bus/`) — detached signatures over canonical JSON, every inter-agent message has cryptographic provenance. | None. Hermes coordinates by SQLite Kanban CAS, no cryptographic provenance. | We have **bus-level non-repudiation** they don't. |
+| R1 | Ed25519 signed envelopes (`src/signed-bus/`) — detached signatures over canonical JSON, every inter-agent message has cryptographic provenance. | None. Reference Runtime coordinates by SQLite Kanban CAS, no cryptographic provenance. | We have **bus-level non-repudiation** they don't. |
 | R2 | JSONL blackboard ledger (`src/blackboard/`) — append-only durable log of task-claim / path-claim / path-release / fact / decision / result records. | None. Closest is the Kanban `task_events` table. | We have an **append-only auditable coordination log** they don't. |
 | R3 | Formal TaskFlow FSM (`src/taskflow/`) with states queued/claimed/waiting/done/failed/blocked. | None — Kanban has status fields but no formal FSM. | We have **explicit FSM transitions** they don't. |
 | R4 | Four named coordination patterns as library primitives (`lib/coordination/fan-out|fan-in|chain|voting`). | Implicit via delegate-tool batch / mixture-of-agents / kanban — no library exports for these. | We have **coordination patterns as a first-class library** they don't. |
-| R5 | 11-role agent contract layer with `CONTRACT.md` per role (mission / hard preconditions / decision authority / never-do / output shape). | None — Hermes has one primary agent + ad-hoc delegate children. | We have **separation-of-powers governance** they don't. |
+| R5 | 11-role agent contract layer with `CONTRACT.md` per role (mission / hard preconditions / decision authority / never-do / output shape). | None — Reference Runtime has one primary agent + ad-hoc delegate children. | We have **separation-of-powers governance** they don't. |
 | R6 | Production-release-gate (`security-sentinel` role + `release-gate/` machinery) with `PROPOSE_RELEASE` envelopes, operator counter-signature, manifest generation. | None — `scripts/release.py` is mechanical, no sentinel. | We have **fail-closed public-release gating** they don't. |
 | R7 | Public-surface harness (`npm run verify:public-surface`) — public tree must look like a product source repo, not an incident archive. | None. | We have **first-class private/public separation enforcement** they don't. |
 | R8 | Private-content scanner (`hooks/private-content-scan.js`) — blocks publication of internal emails, tilde-home paths, internal IPs, Bearer tokens before they hit a public surface. | Partial — `tools/redact.py` redacts in logs, but no pre-publication scanner. | We have **pre-publication redaction enforcement** they don't. |
 | R9 | Git-push gate (`hooks/git-push-gate.js`) — block `git push` to public remote if private-content scanner finds anything. | None. | We have **terminal-side git push gating** they don't. |
-| R10 | Multi-host plugin manifests in one tree (`.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/`, `.opencode/`). | Hermes IS one of the hosts — it doesn't target multiple hosts. | We are **inter-host portable**, they are **host-themselves**. |
+| R10 | Multi-host plugin manifests in one tree (`.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/`, `.opencode/`). | Reference Runtime IS one of the hosts — it doesn't target multiple hosts. | We are **inter-host portable**, they are **host-themselves**. |
 | R11 | Multi-model eval runner (`scripts/run-skill-evals.js`) supporting Anthropic native + OpenAI-compatible (Ollama, vLLM, OpenAI). | They have evaluation skill (`skills/mlops/evaluation/`) but not a packaged eval runner. | We have **a packaged cross-model eval harness** they don't. |
 | R12 | Mock-agents harness (`openclaw goal --mock-agents`) — full synthesis trace in-process without a live agent, NATS bus, or external service. | None. | We can **exercise end-to-end coordination without a runtime** they can't. |
 | R13 | Reviewer-decision schema (`release-gate/reviewer-decision-schema.md` + `.template.yaml`). | None. | We have **structured review evidence** they don't. |
-| R14 | Goal operating system (`docs/goal-system.md`) — `/goal` card format, lane receipts, fail-closed verifier, synthesis loop. | Hermes `/goal` is a Ralph-loop with a judge — different shape. | We have **structured goal artifacts** they have **persistent loops**. Complementary. |
+| R14 | Goal operating system (`docs/goal-system.md`) — `/goal` card format, lane receipts, fail-closed verifier, synthesis loop. | Reference Runtime `/goal` is a Ralph-loop with a judge — different shape. | We have **structured goal artifacts** they have **persistent loops**. Complementary. |
 | R15 | Graph system (`docs/graph-system.md`) — graph view of receipts, lane edges, blocked dependencies. | None. | We have **a coordination graph** they don't. |
 | R16 | Mission Control schema (`docs/mission-control-control-plane.md`) — visual control-plane data model. | None. | We have **a control-plane schema** they don't. |
 | R17 | Remote approval state parity (`docs/remote-approval-state-parity.md` + `src/remote-approval/`) — read-only approval requests + state snapshots + diff/test receipts + reviewer decisions. | Partial — they have approval flow (`tools/approval.py`) but not read-only state mirror. | We have **mirrored approval evidence** they don't. |
@@ -765,18 +765,18 @@ mission-control-demo, remote-approval-demo.
 | R19 | Security-governance eval (`scripts/eval-security-governance.js`) — quorum + approval gates + incident deductions tested. | None. | We have **governance as an eval target** they don't. |
 | R20 | Frontier-orchestration-scale eval (`scripts/eval-frontier-orchestration-scale.js`) — large-fleet orchestration tested. | None. | We have **scale as an eval target** they don't. |
 | R21 | Blackboard-contention eval (`scripts/eval-blackboard-contention.js`) — concurrent writers tested. | None. | We have **contention as an eval target** they don't. |
-| R22 | Production-release-notes scribe lane (`agents/scribe/`) — dedicated role that owns CHANGELOG and per-release notes. | None — Hermes release notes are written by release.py and humans ad-hoc. | We have **dedicated scribe authority** they don't. |
-| R23 | Dependency-warden role (`agents/dependency-warden/`) — one dep per turn, escalates majors. | None — Hermes uses Dependabot/Renovate organically. | We have **a dep-bump policy lane** they don't. |
+| R22 | Production-release-notes scribe lane (`agents/scribe/`) — dedicated role that owns CHANGELOG and per-release notes. | None — Reference Runtime release notes are written by release.py and humans ad-hoc. | We have **dedicated scribe authority** they don't. |
+| R23 | Dependency-warden role (`agents/dependency-warden/`) — one dep per turn, escalates majors. | None — Reference Runtime uses Dependabot/Renovate organically. | We have **a dep-bump policy lane** they don't. |
 | R24 | Eval-runner role (`agents/eval-runner/`) — triages eval results, proposes workflow tweaks via fact records. | None. | We have **a dedicated eval triage lane** they don't. |
 | R25 | Modern AI MCP integration model (`src/integration-adapters/`). | They have MCP client + server but no opinion on MCP-as-data-backbone. | We have **MCP-as-primary-data** they have **MCP-as-tool-extension**. |
 | R26 | Bus and blackboard protocol doc (`docs/bus-and-blackboard-protocol.md`) — formal protocol for multi-agent coding coordination. | None. | We have **a documented coordination protocol** they don't. |
-| R27 | End-to-end trace model (`docs/end-to-end-trace.md`) — user request → release decision. | None — Hermes tracks per-session, not per-release. | We have **release-decision tracing** they don't. |
-| R28 | Path-claim semantics (`src/blackboard/` `path-claim` / `path-release` records). | None — Hermes file ops do not claim paths cross-process. | We have **path-level exclusion** they don't. |
-| R29 | Repository-initialization checklist (`docs/repository-initialization-checklist.md`). | None — Hermes is one repo. | We have **a fresh-clone-verification checklist** they don't. |
-| R30 | Fresh-clone-verification path (`docs/fresh-clone-verification.md`). | Hermes has `setup-hermes.sh` but no formal verification phase. | We have **a documented verification ramp** they don't. |
+| R27 | End-to-end trace model (`docs/end-to-end-trace.md`) — user request → release decision. | None — Reference Runtime tracks per-session, not per-release. | We have **release-decision tracing** they don't. |
+| R28 | Path-claim semantics (`src/blackboard/` `path-claim` / `path-release` records). | None — Reference Runtime file ops do not claim paths cross-process. | We have **path-level exclusion** they don't. |
+| R29 | Repository-initialization checklist (`docs/repository-initialization-checklist.md`). | None — Reference Runtime is one repo. | We have **a fresh-clone-verification checklist** they don't. |
+| R30 | Fresh-clone-verification path (`docs/fresh-clone-verification.md`). | Reference Runtime has `setup-reference.sh` but no formal verification phase. | We have **a documented verification ramp** they don't. |
 | R31 | Mock harness produces a complete trace immediately with no setup. `openclaw goal --mock-agents`. | None. | We have **out-of-the-box exercisability** they don't. |
-| R32 | Watch mode (`openclaw watch --filter K --agent A --since 5m`). | They have `hermes logs --follow` but it's session-log, not coordination-log. | We have **coordination-log streaming** they have **session-log streaming**. |
-| R33 | Trace persistence (`--trace-dir <path>` to persist full trace JSON). | None — Hermes batch trajectories serve a different purpose. | We have **per-goal trace artifacts** they have **per-conversation training data**. |
+| R32 | Watch mode (`openclaw watch --filter K --agent A --since 5m`). | They have `reference logs --follow` but it's session-log, not coordination-log. | We have **coordination-log streaming** they have **session-log streaming**. |
+| R33 | Trace persistence (`--trace-dir <path>` to persist full trace JSON). | None — Reference Runtime batch trajectories serve a different purpose. | We have **per-goal trace artifacts** they have **per-conversation training data**. |
 | R34 | Identity-key signed result records (`openclaw-agent --identity-key <path>`). | None. | We have **per-role cryptographic identity** they don't. |
 | R35 | NATS/JetStream signed-bus implementation. | None. | We are **bus-portable** (in-process or NATS); they are **in-process only**. |
 
@@ -784,7 +784,7 @@ mission-control-demo, remote-approval-demo.
 
 ## 6. Architecture Comparison (~500 words)
 
-**Synchronous vs async.** Hermes is fundamentally synchronous at the
+**Synchronous vs async.** Reference Runtime is fundamentally synchronous at the
 agent level. The core loop in `run_agent.py` is a single
 `while api_call_count < max_iterations` over OpenAI-shape messages,
 with tool calls dispatched in-process. Parallelism happens at three
@@ -797,7 +797,7 @@ it via `openclaw-agent` daemons (one process per role), and the
 signed-bus envelope transport is pluggable between in-process and
 NATS/JetStream. We never assume a single process owns the conversation.
 
-**Blackboard.** OFS has one; Hermes does not. Their nearest analogue
+**Blackboard.** OFS has one; Reference Runtime does not. Their nearest analogue
 is `kanban_db.py`'s SQLite table with `tasks / task_events / task_links
 / task_comments`, but it is not append-only, has no path-claim
 semantics, and uses compare-and-swap on `status` rather than a typed
@@ -805,17 +805,17 @@ record schema. Our blackboard accepts six record kinds — `task-claim`,
 `path-claim`, `path-release`, `fact`, `decision`, `result` — each with
 its own validator and a canonical JSON representation suitable for
 signing. The blackboard IS the coordination plane; the bus is just a
-notification layer over it. Hermes' coordination plane is the
+notification layer over it. Reference Runtime' coordination plane is the
 conversation itself plus the Kanban DB.
 
 **Signed envelopes.** OFS uses Ed25519 detached signatures over
 canonical JSON for every inter-agent envelope, with `--identity-key`
-per role. Hermes has zero cryptographic envelope work — `ed25519`
+per role. Reference Runtime has zero cryptographic envelope work — `ed25519`
 appears in their codebase only as an SSH key filename string and in
 their Matrix protocol adapter for identity-key extraction. They trust
 the process boundary; we trust the signature on the envelope.
 
-**Work discovery.** Hermes agents discover work by listening on a
+**Work discovery.** Reference Runtime agents discover work by listening on a
 messaging platform, reading the cron tick, or being invoked from the
 CLI. Subagents discover work by being spawned by the parent's
 `delegate_task` call. Kanban workers discover work by polling the
@@ -825,7 +825,7 @@ records addressed to their role. Both are pull models; ours is
 content-addressed against the role, theirs is process-addressed
 against the parent or board.
 
-**Role enforcement.** Hermes does this at the prompt layer — each
+**Role enforcement.** Reference Runtime does this at the prompt layer — each
 delegate child gets a custom system prompt and a restricted toolset
 via `toolsets.py`'s registry. The blocked-tools frozenset (no
 recursive delegate, no clarify, no memory, no send_message, no
@@ -837,7 +837,7 @@ and writes `decision` records with `status: blocked` when a NEVER rule
 matches. They enforce by what tools you can call; we enforce by what
 output you can ship.
 
-**Surface area split.** Hermes is a runtime; we are a substrate.
+**Surface area split.** Reference Runtime is a runtime; we are a substrate.
 Their surface includes a CLI, a TUI, a gateway, a web dashboard, an
 ACP server, an LSP integration, 22 messaging platforms, 7 terminal
 backends, dozens of provider adapters. Our surface is the bus,
@@ -850,7 +850,7 @@ Cursor / OpenCode, not replace them.
 ## 7. Recommended Port List (v0.7.1 / v0.8.0)
 
 Highest-leverage HIGH-priority items, ranked by ratio of operator
-value to LOC. None of these copy hermes code — they take the **idea**
+value to LOC. None of these copy reference code — they take the **idea**
 and rebuild against our primitives.
 
 ### v0.7.1 (small batch, ~600 LOC)
@@ -868,8 +868,8 @@ and rebuild against our primitives.
    - **LOC estimate:** ~400 (200 daemon, 100 tests, 100 doc).
    - **Deps:** `croniter`-equivalent in JS — use `cron-parser` (MIT,
      already an npm trustworthy pin) or hand-roll a 5-field parser.
-   - **Risk:** scheduler.js needs a lockfile equivalent to hermes'
-     `<HOME>/.hermes/cron/.tick.lock`. Use a `flock`-style lock under
+   - **Risk:** scheduler.js needs a lockfile equivalent to reference'
+     `<HOME>/.reference/cron/.tick.lock`. Use a `flock`-style lock under
      `release-gate/cron-tick.lock`.
 
 2. **Doctor command** (gap row #14).
@@ -980,7 +980,7 @@ primitives.
 
 ## 8. License + Governance Notes
 
-**Hermes Agent license:** MIT (Copyright (c) 2025 Nous Research).
+**Reference Agent license:** MIT (Copyright (c) 2025 Nous Research).
 Permissions: use, copy, modify, merge, publish, distribute,
 sublicense, sell. Conditions: include the above copyright + permission
 notice in all copies / substantial portions. Limitations: NO warranty.
@@ -994,7 +994,7 @@ porting any feature.
 
 **Recommended path:** Build originals informed by what they did, same
 approach used for the marketing-skills wave. The audit doc cites
-hermes file paths so future maintainers can reference the source idea
+reference file paths so future maintainers can reference the source idea
 without needing to read their code. If at any point a verbatim
 copy-paste of even a handful of lines is contemplated, attribution
 must be preserved (their MIT requires the copyright notice + permission
@@ -1002,7 +1002,7 @@ notice in the source file).
 
 **Governance contrast:**
 
-- **Hermes** has community Discord, `SECURITY.md`, `CONTRIBUTING.md`,
+- **Reference Runtime** has community Discord, `SECURITY.md`, `CONTRIBUTING.md`,
   PR-creation-policy open to all, 215 community contributors in one
   release window. Effectively a fast-moving open-source project with
   Nous Research as the maintainer.
@@ -1010,12 +1010,12 @@ notice in the source file).
   orchestrator dispatches but cannot approve releases; security-
   sentinel proposes releases but operator counter-signs; reviewer
   cannot approve own PRs. This is a **governance model**, not just a
-  development model. Hermes has nothing comparable.
+  development model. Reference Runtime has nothing comparable.
 
-**Trademark / branding:** Hermes' topics list explicitly includes
+**Trademark / branding:** Reference Runtime' topics list explicitly includes
 `openclaw` and `clawdbot` (visible in the GitHub repo metadata). The
-README pitches `hermes claw migrate` as the import path from OpenClaw,
-framing Hermes as the successor. Our positioning should acknowledge
+README pitches `reference claw migrate` as the import path from OpenClaw,
+framing Reference Runtime as the successor. Our positioning should acknowledge
 this — we are not "OpenClaw" the legacy `<HOME>/.openclaw` install (per
 auto-memory naming-collision note); we are OpenClaw Frontier Stack,
 a multi-agent coordination substrate. No trademark issue, but a clear
@@ -1025,15 +1025,15 @@ positioning note in the README is worth doing.
 
 ## 9. Honest Assessment
 
-**Where Hermes is ahead.**
+**Where Reference Runtime is ahead.**
 
-On **runtime, UX, and ecosystem breadth, Hermes is dramatically
+On **runtime, UX, and ecosystem breadth, Reference Runtime is dramatically
 ahead.** They have a polished TUI, a working web dashboard, 22
 messaging platforms, 7 terminal backends, an ACP server, an LSP
 integration, ~170 skills across consumer / mlops / finance / blockchain
 / security domains, a real plugin model with `ctx.llm` access, and a
 self-improvement loop that adjusts skills during use. Their `pip
-install hermes-agent` is a single command. Their `setup-hermes.sh` is
+install reference-runtime` is a single command. Their `setup-reference.sh` is
 ~30 seconds to a working agent. Their docs site is a polished
 Docusaurus instance. 215 community contributors in a single release
 window is a strong velocity signal. They ship a release every ~30 days
@@ -1049,7 +1049,7 @@ TaskFlow FSM, four named coordination patterns as library exports,
 gate with operator counter-signature, public-surface harness, private-
 content scanner, multi-host plugin manifests in one tree, and mock-
 agents harness that exercises coordination without a runtime — none of
-these exist in hermes. Their coordination story is "SQLite Kanban +
+these exist in reference. Their coordination story is "SQLite Kanban +
 delegate_tool", which is fine for a personal assistant but not
 sufficient for a multi-party engineering substrate. Their governance
 story is "the operator trusts the process", which is fine for a
@@ -1057,16 +1057,16 @@ desktop tool but not for production-release decisions.
 
 **Different-direction calls.**
 
-On **distribution model, we are different by design.** Hermes is a
+On **distribution model, we are different by design.** Reference Runtime is a
 runtime — install it, run it. OFS is a substrate — install it as a
 plugin into whatever runtime you already use (Claude Code, Codex,
 Cursor, OpenCode). The four `*-plugin/` manifests are a deliberate
-inter-host portability bet. Hermes is one of the hosts; we sit above
+inter-host portability bet. Reference Runtime is one of the hosts; we sit above
 the hosts. This is a strategic choice, not a gap. The operator who
-wants a runtime should use hermes; the operator who already has a
+wants a runtime should use reference; the operator who already has a
 runtime and wants better coordination should use OFS.
 
-On **skills count, we are different by design.** Hermes ships ~170
+On **skills count, we are different by design.** Reference Runtime ships ~170
 skills covering domains from Pokemon player to drug discovery to
 hyperliquid trading. We ship 51 skills focused on ecomm marketing,
 engineering workflows, and operator concerns. We are an opinionated
@@ -1075,7 +1075,7 @@ contract explicitly drives the 28-skill marketing surface; we should
 not chase parity on `finance/dcf-model` or `gaming/minecraft-modpack-
 server`.
 
-On **agent role taxonomy, we are different by design.** Hermes has
+On **agent role taxonomy, we are different by design.** Reference Runtime has
 one primary agent plus ad-hoc delegate children. We have 11 named
 roles with `CONTRACT.md` files and hard preconditions. Their model is
 fluid; ours is structured. Their model wins on UX (one chat partner);
@@ -1083,16 +1083,16 @@ ours wins on auditability (every decision is traceable to a role).
 
 **The case for the v0.7.1 / v0.8.0 plan in §7.**
 
-Each item in §7 takes an idea from hermes that closes a real OFS gap
+Each item in §7 takes an idea from reference that closes a real OFS gap
 **without compromising our coordination-substrate positioning.** Cron
 and webhook turn external events into blackboard task-claims (still
 coordination-first). Doctor improves operator fresh-clone experience
 (still substrate-first). Supply-chain advisory closes a security gap
 (still governance-first). Event-hook lifecycle gives hosts the same
-hook surface hermes gives operators (still inter-host portable).
+hook surface reference gives operators (still inter-host portable).
 Subagent fan-out adds a coordination primitive without giving up
 contract enforcement. Bundles + per-release notes are operator-
-experience polish that hermes proves out.
+experience polish that reference proves out.
 
 **What we should NOT do.**
 
@@ -1104,13 +1104,13 @@ provider-OAuth parity (we don't own credentials), trajectory training
 
 **One axis to watch.**
 
-Hermes is **explicitly positioning as the successor to OpenClaw** (see
+Reference Runtime is **explicitly positioning as the successor to OpenClaw** (see
 README "Migrating from OpenClaw" section + GitHub topics
 `openclaw` / `clawdbot`). They expect users to move from `<HOME>/.openclaw`
-to `<HOME>/.hermes` via `hermes claw migrate`. This means:
+to `<HOME>/.reference` via `reference claw migrate`. This means:
 1. The naming-collision risk in auto-memory is real and external —
    users in Adam's orbit may confuse OFS with the legacy `<HOME>/.openclaw`
-   install hermes is targeting.
+   install reference is targeting.
 2. README positioning should make clear OFS is **multi-host
    coordination substrate**, not a `<HOME>/.openclaw` continuation.
 3. The branding ambiguity is not a blocker but is worth a one-line
@@ -1118,7 +1118,7 @@ to `<HOME>/.hermes` via `hermes claw migrate`. This means:
 
 **Bottom line.**
 
-OFS and Hermes are not the same product. We do not need to copy them
+OFS and Reference Runtime are not the same product. We do not need to copy them
 to be valuable. The seven items in §7 are the high-leverage subset
 where their ideas plug cleanly into our substrate. Past that, the
 right move is to keep going deeper on coordination semantics
@@ -1128,4 +1128,4 @@ runtime breadth.
 ---
 
 *Audit complete. No code changes made. Single file written:
-`docs/hermes-agent-audit.md`.*
+`docs/reference-runtime-audit.md`.*

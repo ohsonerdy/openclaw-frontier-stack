@@ -28,8 +28,10 @@ jobs:
           node-version: "22"
       - name: Run package verifier
         run: node scripts/verify-package.js
-      - name: Run full git history private-content scan
+      - name: Run pushed-head private-content scan
         run: node scripts/verify-git-history-clean.js
+        env:
+          OPENCLAW_FRONTIER_HISTORY_REF: "HEAD"
       - name: Check owner upload approval binding when present
         run: node release-gate/scripts/verify-owner-upload-approval.js
       - name: Assert not accidentally publishable without owner gates

@@ -14,8 +14,9 @@ function git(args) {
 }
 
 function listCommits() {
+  const ref = process.env.OPENCLAW_FRONTIER_HISTORY_REF || '--all';
   try {
-    return git(['rev-list', '--all']).trim().split(/\r?\n/).filter(Boolean);
+    return git(['rev-list', ref]).trim().split(/\r?\n/).filter(Boolean);
   } catch (err) {
     return [];
   }

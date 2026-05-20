@@ -1,7 +1,7 @@
 # Event hook examples
 
 This document collects illustrative event-hook implementations for the
-Hermes-port lifecycle. Hooks are arbitrary executables that read a JSON
+reference-runtime lifecycle. Hooks are arbitrary executables that read a JSON
 event from stdin and optionally write `{decision, reason}` or `{context}`
 JSON to stdout. They are bound to events via `hooks/hooks.json` (the
 `events` map) and gated by the consent allowlist at

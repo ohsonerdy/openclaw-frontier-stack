@@ -39,7 +39,7 @@ fire. Non-zero otherwise.
 | goal-loop-reliability | 2 | 15 | Ten mock-mode goal loops run sequentially; success rate becomes the score. p50/p95 latencies appear in detail (not scored). |
 | release-gate-strictness | 4 | 15 | Mutation testing. The runner introduces a defined set of breakages and verifies the package verifier catches each one. |
 | surface-integrity | 1 | 10 | Re-runs the public-surface harness. Score = 100 - findings * 5, floored at 0. |
-| hermes-parity | 1 | 5 | Counts HIGH-priority gap-table rows in docs/hermes-agent-audit.md that the current code base has closed. |
+| reference-runtime-parity | 1 | 5 | Counts HIGH-priority gap-table rows in docs/reference-runtime-audit.md that the current code base has closed. |
 | docs-freshness | 1 | 5 | For each docs/*.md, compares the doc's last-commit time to the most recent change in the inferred source dir; doc older than 180 days while source moved is stale. |
 | public-safety | gate | gate | Binary. Zero findings from the private-content scanner => 100. Any finding => 0. If 0, the composite is capped at 50 regardless of any other category. |
 

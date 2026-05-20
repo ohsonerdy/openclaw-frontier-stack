@@ -115,7 +115,7 @@ are only honoured by the verifier itself and never read by `npm audit` or
 
 ## Background
 
-This check closes row 13 of `docs/hermes-agent-audit.md` — the
+This check closes row 13 of `docs/reference-runtime-audit.md` — the
 "Supply-chain advisory checker" gap. Before this gate, the package only
 ran an informal `npm audit` inside the daily
 `dependency-vulnerability-scan.yml` workflow, which fails *soft*. The

@@ -1017,7 +1017,7 @@ async function runGoalLoop({
     emitProgress(onProgress, { kind: 'goal-start', goalId: state.goalId, title: state.title, lanes: normalized.lanes.length, mockAgents });
   }
 
-  // Hermes-port goal:start hook. If any allowed hook returns `block` we
+  // reference-runtime goal:start hook. If any allowed hook returns `block` we
   // record an aborted state and emit a synthesized trace without dispatching
   // any lanes — the operator-owned hook is the authority and we honour it.
   const goalStartHook = await runEventHook('goal:start', {
@@ -1245,7 +1245,7 @@ async function runGoalLoop({
   state.completedAt = new Date().toISOString();
   state.goalEnd = Date.now();
 
-  // Hermes-port goal:end hook. Fired as a notification; we do not honour
+  // reference-runtime goal:end hook. Fired as a notification; we do not honour
   // `block` here because the goal has already finished. We still surface
   // any context the hook contributed (e.g. a release-notes summary).
   const goalEndHook = await runEventHook('goal:end', {
@@ -1312,7 +1312,7 @@ async function runSimpleLanes({
     return { claims: [], pollOutcome: { done: [], pending: [], results: [] }, synthesized: [], aborted: false, cancelled: true };
   }
 
-  // Hermes-port lane:dispatch hooks. Fire one event per lane before any
+  // reference-runtime lane:dispatch hooks. Fire one event per lane before any
   // claim is written to the ledger. A hook that returns `block` removes
   // the lane from the dispatch set and adds a `decision: blocked` record
   // to the blackboard so the trace surfaces the gate.

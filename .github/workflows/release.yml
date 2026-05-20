@@ -30,12 +30,15 @@ jobs:
         run: npm run verify
         env:
           OPENCLAW_FRONTIER_SKIP_FRESH_EXPORT: ""
+          OPENCLAW_FRONTIER_HISTORY_REF: "HEAD"
 
       - name: Validate skills
         run: bash scripts/validate-skills.sh
 
       - name: Run history scan
         run: npm run verify:history
+        env:
+          OPENCLAW_FRONTIER_HISTORY_REF: "HEAD"
 
       - name: Build release tarball
         run: npm run release:pack

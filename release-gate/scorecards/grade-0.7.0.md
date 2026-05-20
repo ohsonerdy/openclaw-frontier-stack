@@ -18,7 +18,7 @@ Composite 50 (F) across 6 present categories. Composite capped at 50 because the
 | goal-loop-reliability | 15 | 100 | 10/10 success, p50 13ms / p95 17ms |
 | release-gate-strictness | 15 | n/a | mutation-testing skipped via --skip-mutation |
 | surface-integrity | 10 | 100 | 0 finding(s), commits checked 13 |
-| hermes-parity | 5 | 100 | 6/6 HIGH rows closed |
+| reference-runtime-parity | 5 | 100 | 6/6 HIGH rows closed |
 | docs-freshness | 5 | 100 | 44 doc(s), 0 stale, 18 fresh |
 | public-safety | gate | 0 | 1 finding(s), gate=true |
 
