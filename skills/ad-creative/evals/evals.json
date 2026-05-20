@@ -1,0 +1,99 @@
+{
+  "skill_name": "ad-creative",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our Meta video creative has been running 4 weeks. ROAS dropped from 3.1 to 1.8. What's happening?",
+      "expected_output": "Likely creative fatigue. Walks the fatigue-signals framework (CTR drop, frequency rise, CPM rise as leading; ROAS drop as lagging). Notes 4 weeks is twice Meta's ~2-week fatigue cycle. Recommends new creative as the highest-leverage refresh. References ads for the broader channel strategy and ab-testing for the test design.",
+      "assertions": [
+        "Diagnoses creative fatigue",
+        "Walks the fatigue-signals framework",
+        "Names Meta's ~2-week fatigue cycle",
+        "Recommends new creative as highest-leverage refresh",
+        "References ads for channel strategy",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We need creative for cold-traffic TikTok. What works?",
+      "expected_output": "Walks the platform-native discipline for TikTok specifically: vertical, in-app feel, raw-looking, on-screen captions, on-trend audio, hand-held movement, creator face-forward, fast cuts. Walks the hook-body-CTA structure with TikTok-specific examples. Recommends UGC or UGC-style creator content over polished production. Recommends 3-5 creative concepts per week to match TikTok's 3-day fatigue cycle.",
+      "assertions": [
+        "Walks the platform-native discipline for TikTok",
+        "Names TikTok-specific cues (vertical, in-app, raw, captions)",
+        "Walks the hook-body-CTA structure",
+        "Recommends UGC or UGC-style over polished production",
+        "Names TikTok's 3-day fatigue cycle and required cadence",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We tested 5 creatives at once and one won. We're going to scale it. Good?",
+      "expected_output": "Pushback on the multi-variable test. Walks the one-variable-per-test rule. Notes that 5 creatives varying hook, body, CTA, and format simultaneously do not isolate what won; the next round of testing will repeat the mistake. Recommends a follow-up isolation pass: hold the winning creative's body and CTA constant and test variant hooks. References ab-testing for the methodology.",
+      "assertions": [
+        "Pushes back on the multi-variable test",
+        "Walks the one-variable-per-test rule",
+        "Notes the next round will repeat the mistake without isolation",
+        "Recommends a follow-up isolation pass",
+        "References ab-testing for methodology",
+        "Recommends prioritizing hook isolation first"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Should we use real UGC or hire UGC-style creators?",
+      "expected_output": "Both, depending on placement. Walks the real-vs-lookalike-UGC framework. Recommends real UGC for highest-leverage placements (cold Meta, cold TikTok). Recommends lookalike UGC for volume needs. Names criteria: sophisticated audience favors real; visible-transformation products favor real; high-volume need favors lookalike. Notes the AI image-generation tooling lineup (Gemini Nano Banana Pro, Flux Pro 1.1, Ideogram 3.0, ChatGPT Images 2.0, Midjourney v7, Recraft V3, Stable Diffusion 3.5) for static UGC-style assets, with the rule never to claim AI-generated output as real customer content.",
+      "assertions": [
+        "Recommends a hybrid approach",
+        "Walks the real-vs-lookalike-UGC framework",
+        "Names criteria for choosing each",
+        "Names the May 2026 image-generation lineup (at least 3 of: Gemini Nano Banana Pro, Flux Pro 1.1, Ideogram 3.0, ChatGPT Images 2.0, Midjourney v7, Recraft V3, Stable Diffusion 3.5)",
+        "Warns against claiming AI-generated UGC as real customer content"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Write 3 hooks for a daily greens powder targeting cold Meta audiences.",
+      "expected_output": "Three hook concepts using different mechanics (specific outcome claim, pattern-interrupt visual, customer testimonial, question, comparison). Each tagged with structure and rationale. References copywriting for the hook-as-promise framing. Walks the first-3-seconds framework.",
+      "assertions": [
+        "Returns three hook concepts",
+        "Uses different mechanics across the three (claim, visual, testimonial, question, etc.)",
+        "Tags each with structure",
+        "Walks the first-3-seconds framework",
+        "References copywriting for hook-as-promise framing"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our static ads on Meta keep getting beaten by video. Should we stop running statics?",
+      "expected_output": "Likely yes for cold traffic, no for retargeting. Walks the creative-format-selection framework: cold-traffic statics generally underperform video except on Pinterest and Google Display; retargeting statics can work because the visitor already knows the brand. Recommends shifting static to retargeting and producing video for cold. References ads for the channel-mix decision.",
+      "assertions": [
+        "Distinguishes cold from retargeting use",
+        "Recommends shifting static to retargeting",
+        "Notes Pinterest and Google Display as static-friendly exceptions",
+        "Walks the creative-format-selection framework",
+        "References ads for the channel-mix decision"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our hooks are weak. Our top creatives all have hooks like 'New Product Launch.' What should we do?",
+      "expected_output": "Replace the generic hooks. Walks the hook-body-CTA structure with strong hook examples (specific outcome claim, pattern-interrupt visual, customer testimonial, comparison, question). Recommends mining top customer reviews and reframing the strongest customer quotes as hooks. References copywriting for the customer-language-not-company-language framework and customer-research for the JTBD inputs.",
+      "assertions": [
+        "Identifies the hooks as generic and underleveraged",
+        "Provides 3-5 stronger hook examples by mechanic",
+        "Recommends mining customer reviews for hook source",
+        "References copywriting for customer-language framing",
+        "References customer-research for JTBD inputs"
+      ],
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "skill_name": "ai-video-generation",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We need a hero video of our new launch for the homepage. Which AI model should we use?",
+      "expected_output": "Walks the model-selection framework for hero use case requiring photoreal motion. Should recommend Veo 3 or Sora 2 as the primary choice. Should walk the prompt-engineering structure: opening frame, motion description, duration, camera motion language, ending frame. Should emphasize AI video is a draft requiring post-production (captions, music, color grade, branded outro). Should warn that hero campaigns with strict consistency requirements may be better served by traditional production.",
+      "assertions": [
+        "Checks for .agents/modern-ai-context.md",
+        "Walks the model-selection framework for hero use case",
+        "Recommends Veo 3 or Sora 2 for photoreal hero",
+        "Walks the prompt-engineering structure with opening frame, motion, duration, ending",
+        "Emphasizes AI video is a draft requiring post-production",
+        "Lists post-production essentials (captions, music, color, outro)",
+        "Warns about strict-consistency hero campaigns",
+        "Output names model recommendation, prompt design, post-production plan"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We want to test 20 TikTok video variants this week. What's the workflow?",
+      "expected_output": "Identifies the volume use case as strong AI economic case. Should recommend Seedance or Pika 2.x for variant generation at lower per-clip cost. Should walk the platform-native discipline for TikTok (9:16, in-app feel, captions, on-trend audio). Should connect to ab-testing for variant isolation (one variable per test, not 20 variants varying everything). Should connect to ad-creative for hook-body-CTA structure.",
+      "assertions": [
+        "Identifies volume use case as strong AI economic case",
+        "Recommends Seedance or Pika 2.x for variant generation",
+        "Walks platform-native discipline for TikTok",
+        "Names 9:16 aspect ratio explicitly",
+        "Connects to ab-testing for variant isolation",
+        "Connects to ad-creative for hook-body-CTA",
+        "Calls modern.ads.spend and modern.ads.roas via modern-mcp",
+        "Output has model recommendation, batch plan, measurement plan"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our generated character keeps changing between cuts. How do we fix this?",
+      "expected_output": "Walks the character-consistency framework. Should explain that character drift across cuts is a major weakness of current models. Should walk the techniques: reference images in every cut's prompt, same-clip continuous shooting (generate as one long clip, edit down), composite from image-to-video, embrace drift for stylized content, or hire a human for high-stakes work. Should recommend scoping the consistency requirement before committing to AI generation.",
+      "assertions": [
+        "Walks the character-consistency framework",
+        "Identifies character drift as major model weakness",
+        "Recommends reference images in every cut",
+        "Recommends same-clip continuous shooting approach",
+        "Names image-to-video composite approach",
+        "Recommends scoping consistency requirement before committing",
+        "Names traditional production as alternative for strict requirements",
+        "Output has implementation guidance"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We need 30 seconds of lifestyle B-roll for our brand video. Which model fits?",
+      "expected_output": "Identifies lifestyle B-roll use case. Should walk the use-case-to-model mapping. Should recommend Hailuo for stylized cinematic mood, Veo 3 for photoreal lifestyle. Should mention Kling 2.5 or 3.0 if longer-form coherence matters. Should walk the post-production essentials (color grade for inter-clip consistency). Should note that AI lifestyle B-roll is one of the most successful use cases at current model quality.",
+      "assertions": [
+        "Identifies lifestyle B-roll use case",
+        "Walks the use-case-to-model mapping",
+        "Recommends Hailuo or Veo 3",
+        "Names Kling 2.5 or 3.0 for longer-form coherence",
+        "Walks post-production essentials with color grade",
+        "Notes lifestyle B-roll as successful use case for current models",
+        "Output has model recommendation, post-production plan"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Can we generate a video using a celebrity's likeness if we own a stock photo of them?",
+      "expected_output": "Direct refusal. Should walk the copyright-and-likeness framework. Should explain that owning a stock photo does not transfer rights to generate motion video of the celebrity. Should explain that publicity rights for video are sharper than for static (motion, mannerisms, expressions are protected). Should recommend not generating recognizable likenesses in AI video. Should warn about synthesized voices that resemble specific individuals.",
+      "assertions": [
+        "Direct refusal of celebrity likeness generation",
+        "Walks the copyright-and-likeness framework",
+        "Explains stock photo ownership does not transfer rights to generate video",
+        "Explains video publicity rights are sharper than static",
+        "Recommends not generating recognizable likenesses",
+        "Warns about synthesized voices resembling individuals",
+        "Output has implementation guidance"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "What kind of prompt should I write for a 15-second product reveal video?",
+      "expected_output": "Walks the prompt-engineering framework for video with the structured approach. Should give a concrete example covering opening frame, motion description (camera motion vs subject motion), duration, camera motion language (push-in, dolly, static, etc), ending frame on the product or logo. Should mention negative prompts. Should recommend iterating in smaller batches because video iteration is slower than image iteration.",
+      "assertions": [
+        "Walks the prompt-engineering framework for video",
+        "Provides a concrete prompt example",
+        "Names opening frame, motion description, duration",
+        "Names camera motion language (push-in, dolly, etc)",
+        "Names ending frame on product or logo",
+        "Mentions negative prompts",
+        "Recommends smaller iteration batches",
+        "Output has prompt design, iteration plan"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Should we use AI for our biggest hero campaign this quarter?",
+      "expected_output": "Walks the 'human in the loop for hero campaigns, AI for testing' framework. Should recommend traditional production for hero campaigns where consistency, polish, and risk-management matter. Should recommend AI for the variant-testing layer that informs the hero. Should warn that hero campaigns with strict character continuity or recognizable likenesses are not yet AI-appropriate. Should recommend AI for pre-visualization, mood boards, and storyboard generation even within a traditional hero workflow.",
+      "assertions": [
+        "Walks the human-in-loop-for-hero framework",
+        "Recommends traditional production for hero campaigns",
+        "Recommends AI for variant-testing layer",
+        "Warns about character continuity requirements not yet AI-appropriate",
+        "Recommends AI for pre-visualization and storyboards within traditional workflow",
+        "Explains the consistency, polish, risk-management reasoning",
+        "Output has clear hero-vs-testing recommendation"
+      ],
+      "files": []
+    }
+  ]
+}

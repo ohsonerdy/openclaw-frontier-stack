@@ -1,0 +1,26 @@
+{
+  "schema": "openclaw-frontier.webhook-subscriptions.v1",
+  "subscriptions": [
+    {
+      "id": "github-pull-requests",
+      "path": "/webhook/github/pr",
+      "eventType": "pull_request",
+      "secretEnv": "WEBHOOK_SECRET_GITHUB",
+      "role": "reviewer",
+      "subject": "webhook:github-pr",
+      "bodyTransform": "github-pr",
+      "signatureAlgo": "sha256"
+    },
+    {
+      "id": "generic-architecture-events",
+      "path": "/webhook/generic",
+      "eventType": "*",
+      "secretEnv": "WEBHOOK_SECRET_GENERIC",
+      "role": "architect",
+      "subject": "webhook:generic",
+      "bodyTransform": "generic-json",
+      "signatureAlgo": "sha256",
+      "signatureHeader": "x-signature-256"
+    }
+  ]
+}

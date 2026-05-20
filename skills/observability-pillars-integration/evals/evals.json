@@ -1,0 +1,117 @@
+{
+  "schema": "openclaw-frontier.skill-eval.v1",
+  "skill_name": "observability-pillars-integration",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We have Prometheus for metrics, Splunk for logs, and Jaeger for traces. Each tool works fine on its own, but during last week's incident the oncall spent 40 minutes copy-pasting timestamps between tabs to figure out which log lines went with the failing trace. What's the smallest change that fixes this?",
+      "expected_output": "The pillars are siloed because the correlation IDs don't flow. The smallest change with the largest payoff: get the trace ID into every log line as a structured field. Every log emitted while handling a request carries `trace_id` and `span_id` from the active span context. Once that ships, pivoting from a log line to the matching Jaeger trace is one click instead of timestamp-guessing. As a second step, configure metric exemplars in Prometheus so a metric panel can carry sample trace IDs, then deep-link the Splunk and Jaeger UIs by trace ID. You don't have to consolidate vendors; you have to make the IDs flow. Confirm with an integration test: a synthetic request appears in all three pillars under the same trace ID.",
+      "assertions": [
+        {"type": "contains", "value": "trace_id"},
+        {"type": "contains", "value": "log line"},
+        {"type": "contains", "value": "exemplar"},
+        {"type": "contains", "value": "deep-link"},
+        {"type": "contains", "value": "integration test"},
+        {"type": "not-contains", "value": "buy a fourth tool"},
+        {"type": "not-contains", "value": "consolidate vendors first"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "A developer wants to add `user_id` as a Prometheus label on the `http_request_duration_seconds` histogram so they can graph p99 latency per user. We have about 4 million active users. Is this a good idea?",
+      "expected_output": "No. This is a cardinality explosion. The metric backend builds a separate time series for each combination of labels, so adding `user_id` with 4 million distinct values multiplies the series count for this metric by 4 million. Prometheus will OOM or fall over; the bill on a hosted metrics backend will jump by orders of magnitude. Metric labels are for low-cardinality dimensions (service, environment, region, route template, HTTP method). High-cardinality dimensions like `user_id`, `trace_id`, or full URL belong on logs or span attributes. If per-user p99 is the real need, route the question to traces (filter spans by `user.id`) or to logs (aggregate via the log query language). For the metrics side, use exemplars: attach a sample trace ID per histogram bucket so a slow bucket points at a specific user's trace.",
+      "assertions": [
+        {"type": "contains", "value": "cardinality"},
+        {"type": "contains", "value": "user_id"},
+        {"type": "contains", "value": "exemplar"},
+        {"type": "contains", "value": "span attribute"},
+        {"type": "contains", "value": "low-cardinality"},
+        {"type": "not-contains", "value": "this is fine"},
+        {"type": "not-contains", "value": "just add the label"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our HTTP-to-HTTP traces work perfectly. Once a request hits Kafka, the trace ends. The consumer service starts a brand-new trace. How do we fix this?",
+      "expected_output": "Trace context propagation across Kafka is missing. The producer needs to inject the W3C `traceparent` (and optionally `tracestate`) into Kafka message headers; the consumer needs to extract those headers before starting its span and use them as the parent context. The OpenTelemetry Kafka instrumentation does this automatically once enabled; if you're on a bespoke client, the producer-side `inject(carrier=headers)` and consumer-side `extract(carrier=headers)` calls are the integration point. Confirm with an end-to-end propagation test: a synthetic request crosses HTTP then Kafka then HTTP again and lands as a single trace with all spans. Also check that any intermediate proxy or replicator doesn't strip headers.",
+      "assertions": [
+        {"type": "contains", "value": "traceparent"},
+        {"type": "contains", "value": "Kafka"},
+        {"type": "contains", "value": "header"},
+        {"type": "contains", "value": "producer"},
+        {"type": "contains", "value": "consumer"},
+        {"type": "contains", "value": "propagation test"},
+        {"type": "not-contains", "value": "traces can't cross message buses"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We're starting fresh on a new service. Should we put `tenant_id` on the span as an attribute or on every log line as a field?",
+      "expected_output": "Put `tenant_id` on the span as an attribute (one value for the request scope). Every log line emitted inside the span will inherit the trace context, so the trace ID on the log lets you look up the span, which carries the tenant. Don't duplicate the field on every log line; that's volume waste. The rule of thumb: one value for the whole request lives on the span; per-line events live in logs. With `tenant_id` on the span you can also filter spans by tenant in the trace UI and run latency-by-tenant analysis, which would be impossible if `tenant_id` only existed in log text. Add it to the resource attributes if every span in the service has the same tenant; add it as a span attribute if a service handles multiple tenants and the value changes per request.",
+      "assertions": [
+        {"type": "contains", "value": "span"},
+        {"type": "contains", "value": "tenant"},
+        {"type": "contains", "value": "request scope"},
+        {"type": "contains", "value": "trace context"},
+        {"type": "contains", "value": "log"},
+        {"type": "not-contains", "value": "put it on every log line"},
+        {"type": "not-contains", "value": "duplicate the field"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our log volume has tripled this quarter and the vendor bill is now a budget problem. Leadership wants to know what to cut. What do we look at?",
+      "expected_output": "Three diagnostics. First, per-service log volume: which service grew the most, and what changed (new feature, new debug logs, retry storms). Often one service is responsible for most of the new volume. Second, log-line content: are debug-level logs going to production? Is the same event being logged five times across layers? Are high-cardinality fields being put in log messages when they should be span attributes? Third, sampling and routing: most logs don't need to be retained at full fidelity. Tail-based sampling at the collector keeps errors and slow requests at 100% and samples normal requests at 1-10%. Set a per-service bytes-per-second budget; alert when a service exceeds it. As a structural fix, route low-priority logs to cheaper storage and keep the high-priority ones in the hot tier. The bill will fall when the budget is enforced, not when one big-bang cut is made.",
+      "assertions": [
+        {"type": "contains", "value": "per-service"},
+        {"type": "contains", "value": "budget"},
+        {"type": "contains", "value": "sampling"},
+        {"type": "contains", "value": "debug"},
+        {"type": "contains", "value": "alert"},
+        {"type": "not-contains", "value": "delete all logs"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We're about to roll out OpenTelemetry across 30 services. Should we migrate metrics, logs, and traces all at once?",
+      "expected_output": "No. Sequence the rollout by integration value, not by completeness. Phase 1: traces first. OTel tracing is the most mature pillar and gives the biggest integration win (trace ID becomes the cross-pillar key). Phase 2: get trace IDs into existing logs, even before migrating the logging SDK. Most language ecosystems offer a logger adapter that auto-injects the active trace ID into log fields. Phase 3: migrate logs to the OTel SDK where it makes sense. Phase 4: migrate metrics. The Prometheus client libraries are stable and well-instrumented; the migration to OTel metrics is the lowest immediate-value step. Across all phases, run the OTel collector in the middle so backends (Prometheus, Loki, Tempo, etc.) don't have to change. A phased rollout per service gives the team a chance to confirm the integration tests pass before moving on.",
+      "assertions": [
+        {"type": "contains", "value": "traces first"},
+        {"type": "contains", "value": "trace ID"},
+        {"type": "contains", "value": "collector"},
+        {"type": "contains", "value": "phase"},
+        {"type": "contains", "value": "integration test"},
+        {"type": "not-contains", "value": "migrate everything at once"},
+        {"type": "not-contains", "value": "big bang"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our metrics dashboard shows error rate spiked, but when the oncall clicks the panel, there's no way to get to the failing traces or the matching logs. The dashboard is in Grafana, metrics in Mimir, traces in Tempo, logs in Loki. All four are the same vendor's stack. What's missing?",
+      "expected_output": "The vendor stack supports cross-pillar deep-linking but it's not configured. Three configuration steps. First, enable exemplars on the metric histograms so a bucket carries a sample trace ID. Second, configure the Grafana panel to render those exemplars as clickable dots that open the trace in Tempo. Third, configure the Tempo trace view to show a 'related logs' link that queries Loki for the trace ID. All three are configuration on the existing tools, not new tools. Once enabled, the panel-to-trace-to-logs pivot is one click each. Verify by firing a synthetic failing request and walking the pivot path manually. The data was always there; the integration was inert.",
+      "assertions": [
+        {"type": "contains", "value": "exemplar"},
+        {"type": "contains", "value": "deep-link"},
+        {"type": "contains", "value": "configuration"},
+        {"type": "contains", "value": "trace ID"},
+        {"type": "contains", "value": "synthetic"},
+        {"type": "not-contains", "value": "switch vendors"},
+        {"type": "not-contains", "value": "buy a new tool"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    }
+  ]
+}

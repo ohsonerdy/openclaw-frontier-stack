@@ -1,0 +1,85 @@
+name: Release on tag
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install (no scripts)
+        run: npm install --ignore-scripts
+
+      - name: Run verifier
+        run: npm run verify
+        env:
+          OPENCLAW_FRONTIER_SKIP_FRESH_EXPORT: ""
+
+      - name: Validate skills
+        run: bash scripts/validate-skills.sh
+
+      - name: Run history scan
+        run: npm run verify:history
+
+      - name: Build release tarball
+        run: npm run release:pack
+
+      - name: Extract release notes for this tag
+        id: notes
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          NOTES_FILE="${GITHUB_WORKSPACE}/release-notes-${TAG}.md"
+          # Extract the block between this version's header and the next ##
+          awk -v tag="${TAG#v}" '
+            BEGIN { capture=0 }
+            /^## / {
+              if (capture) exit
+              if ($0 ~ tag) capture=1
+              next
+            }
+            capture { print }
+          ' CHANGELOG.md > "$NOTES_FILE"
+          if [ ! -s "$NOTES_FILE" ]; then
+            echo "Release ${TAG}. See CHANGELOG.md for details." > "$NOTES_FILE"
+          fi
+          echo "notes_file=${NOTES_FILE}" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.notes.outputs.tag }}"
+          NOTES_FILE="${{ steps.notes.outputs.notes_file }}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; uploading tarball."
+            gh release upload "$TAG" release-gate/artifacts/*.tgz \
+              --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" release-gate/artifacts/*.tgz \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$TAG" \
+              --notes-file "$NOTES_FILE"
+          fi
+
+      - name: Upload release artifact (workflow artifact backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: openclaw-frontier-stack-${{ github.ref_name }}
+          path: release-gate/artifacts/*.tgz

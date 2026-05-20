@@ -1,0 +1,215 @@
+#!/usr/bin/env node
+'use strict';
+
+/**
+ * openclaw-webhook — inbound HTTP webhook daemon.
+ *
+ * Listens on a configurable port and forwards validated, transformed
+ * payloads onto the blackboard as task-claim records. One daemon process
+ * services many subscriptions; subscriptions are defined in a JSON file.
+ *
+ *   openclaw-webhook --port 17000
+ *                    --subscriptions webhook/subscriptions.json
+ *                    --blackboard release-gate/blackboard.jsonl
+ *                    --bind 127.0.0.1
+ *
+ * The HMAC secret per subscription is loaded from the env var named by
+ * the subscription's `secretEnv` field. Secrets are never accepted on
+ * the command line.
+ *
+ * Default bind address is 127.0.0.1. To expose the daemon on a routable
+ * interface the operator must pass `--bind` explicitly — see
+ * `docs/webhook-subscriptions.md` for the security model.
+ */
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+const repoRoot = path.resolve(__dirname, '..');
+const { createLedger } = require(path.join(repoRoot, 'src', 'blackboard', 'lib', 'ledger.js'));
+const { createServer } = require(path.join(repoRoot, 'webhook', 'lib', 'server.js'));
+const { loadSubscriptions, SubscriptionError } = require(path.join(repoRoot, 'webhook', 'lib', 'subscriptions.js'));
+
+const HELP_TEXT = `openclaw-webhook — inbound HTTP webhook daemon
+
+Usage:
+  openclaw-webhook [options]
+
+Options:
+  --port <n>              TCP port to listen on (default 17000)
+  --bind <addr>           Interface to bind to (default 127.0.0.1).
+                          Pass 0.0.0.0 only behind a reverse proxy with
+                          its own auth + rate limiting.
+  --subscriptions <path>  Path to subscriptions JSON
+                          (default webhook/subscriptions.json)
+  --blackboard <path>     Blackboard JSONL ledger
+                          (default release-gate/blackboard.jsonl)
+  --agent <id>            Agent id written into task-claim records
+                          (default 'webhook')
+  --once                  Exit after the first webhook is processed.
+                          Useful for integration tests.
+  --quiet                 Suppress progress logs on stderr.
+  --help                  Show this message.
+
+Subscription secret env vars are read at request time, not at startup.
+This makes it safe to rotate secrets without restarting the daemon.
+
+Audit log path:
+  OPENCLAW_WEBHOOK_AUDIT_LOG    override the default audit log location
+                                (default: <HOME>/.openclaw-webhook/audit.ndjson)
+
+Exit codes:
+  0  Daemon stopped cleanly (--once, SIGINT, SIGTERM).
+  1  Unrecoverable runtime error (subscriptions file invalid, port bind
+     failure, ledger directory unwritable).
+  2  Bad CLI arguments.
+`;
+
+function parseArgs(argv) {
+  const args = {
+    port: 17000,
+    bind: '127.0.0.1',
+    subscriptions: path.resolve(process.cwd(), 'webhook', 'subscriptions.json'),
+    blackboard: path.resolve(process.cwd(), 'release-gate', 'blackboard.jsonl'),
+    agent: 'webhook',
+    once: false,
+    quiet: false,
+    help: false,
+  };
+  for (let i = 2; i < argv.length; i += 1) {
+    const a = argv[i];
+    if (a === '--port') args.port = parsePort(argv[++i]);
+    else if (a === '--bind') args.bind = String(argv[++i]).trim();
+    else if (a === '--subscriptions') args.subscriptions = path.resolve(process.cwd(), argv[++i]);
+    else if (a === '--blackboard') args.blackboard = path.resolve(process.cwd(), argv[++i]);
+    else if (a === '--agent') args.agent = String(argv[++i]).trim();
+    else if (a === '--once') args.once = true;
+    else if (a === '--quiet') args.quiet = true;
+    else if (a === '--help' || a === '-h') args.help = true;
+    else {
+      process.stderr.write(`openclaw-webhook: unknown arg: ${a}\n`);
+      process.exit(2);
+    }
+  }
+  return args;
+}
+
+function parsePort(value) {
+  const n = Number.parseInt(value, 10);
+  if (!Number.isFinite(n) || n < 1 || n > 65535) {
+    process.stderr.write(`openclaw-webhook: --port must be 1..65535\n`);
+    process.exit(2);
+  }
+  return n;
+}
+
+function defaultAuditLogPath() {
+  const home = process.env.USERPROFILE || process.env.HOME || os.homedir();
+  return path.join(home, '.openclaw-webhook', 'audit.ndjson');
+}
+
+function appendAudit(auditPath, record) {
+  try {
+    fs.mkdirSync(path.dirname(auditPath), { recursive: true });
+    fs.appendFileSync(
+      auditPath,
+      JSON.stringify({ ts: new Date().toISOString(), ...record }) + '\n',
+      { mode: 0o600, encoding: 'utf8' },
+    );
+  } catch (err) {
+    process.stderr.write(`[openclaw-webhook] audit write failed: ${err.message}\n`);
+  }
+}
+
+async function main() {
+  const args = parseArgs(process.argv);
+  if (args.help) { process.stdout.write(HELP_TEXT); return; }
+  if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(args.agent)) {
+    process.stderr.write(`openclaw-webhook: invalid --agent id: ${args.agent}\n`);
+    process.exit(2);
+  }
+
+  let subscriptions;
+  try {
+    subscriptions = loadSubscriptions(args.subscriptions);
+  } catch (err) {
+    if (err instanceof SubscriptionError) {
+      process.stderr.write(`openclaw-webhook: subscriptions invalid: ${err.message}\n`);
+    } else {
+      process.stderr.write(`openclaw-webhook: subscriptions load failed: ${err.message}\n`);
+    }
+    process.exit(1);
+  }
+
+  const ledger = createLedger({ ledgerPath: args.blackboard });
+  try {
+    ledger.ensureDirectory();
+  } catch (err) {
+    process.stderr.write(`openclaw-webhook: cannot create ledger directory: ${err.message}\n`);
+    process.exit(1);
+  }
+
+  const auditPath = process.env.OPENCLAW_WEBHOOK_AUDIT_LOG || defaultAuditLogPath();
+  const log = (msg) => { if (!args.quiet) process.stderr.write(`[openclaw-webhook] ${msg}\n`); };
+
+  let processedCount = 0;
+  const onProcessed = ({ subscriptionId, taskId }) => {
+    processedCount += 1;
+    appendAudit(auditPath, { event: 'webhook-processed', subscriptionId, taskId });
+    log(`processed webhook ${subscriptionId} -> ${taskId}`);
+    if (args.once) {
+      log('once mode: shutting down after first webhook');
+      gracefulStop();
+    }
+  };
+
+  const server = createServer({
+    subscriptions,
+    ledger,
+    agent: args.agent,
+    audit: (rec) => appendAudit(auditPath, { event: 'response', ...rec }),
+    onProcessed,
+  });
+
+  let stopping = false;
+  const gracefulStop = () => {
+    if (stopping) return;
+    stopping = true;
+    appendAudit(auditPath, { event: 'daemon-stop', processed: processedCount });
+    server.close(() => process.exit(0));
+    // Hard exit if connections linger past the close window.
+    setTimeout(() => process.exit(0), 2000).unref();
+  };
+  process.on('SIGINT', gracefulStop);
+  process.on('SIGTERM', gracefulStop);
+
+  server.on('error', (err) => {
+    process.stderr.write(`openclaw-webhook: server error: ${err.message}\n`);
+    appendAudit(auditPath, { event: 'server-error', error: String(err.code || err.message) });
+    process.exit(1);
+  });
+
+  await new Promise((resolve) => server.listen(args.port, args.bind, resolve));
+  const addr = server.address();
+  const listenPort = addr && typeof addr === 'object' ? addr.port : args.port;
+  appendAudit(auditPath, {
+    event: 'daemon-start',
+    port: listenPort,
+    bind: args.bind,
+    subscriptions: subscriptions.length,
+    blackboard: args.blackboard,
+    once: args.once,
+    pid: process.pid,
+  });
+  log(`listening on ${args.bind}:${listenPort} subs=${subscriptions.length} blackboard=${args.blackboard}`);
+}
+
+if (typeof module !== 'undefined' && require.main !== module) {
+  module.exports = { parseArgs };
+} else {
+  main().catch((err) => {
+    process.stderr.write(`openclaw-webhook: ${err.stack || err.message || err}\n`);
+    process.exit(1);
+  });
+}

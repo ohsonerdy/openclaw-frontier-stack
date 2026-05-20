@@ -1,0 +1,110 @@
+{
+  "skill_name": "loyalty-program-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're thinking about launching a rewards program. Where do we start?",
+      "expected_output": "Diagnosis grounded in the program-type-selection framework. Should ask about repeat purchase rate, AOV distribution, and current flow infrastructure before designing. Should walk through the five program types (points, tiered, paid membership, cashback, charitable) and recommend type by brand profile. Should NOT lead with 'just copy what competitors do.' Should emphasize that the program needs a clear answer for what behavior it is designed to change.",
+      "assertions": [
+        "Checks for .agents/modern-ai-context.md",
+        "Walks the five program types explicitly",
+        "Asks about repeat purchase rate and AOV distribution first",
+        "Recommends type by brand profile",
+        "Emphasizes the behavior-change question before design",
+        "Calls modern.retention.cohort_ltv via modern-mcp if connected",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections",
+        "Names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our loyalty members spend 3x more than non-members. The program is working, right?",
+      "expected_output": "Diagnosis that 3x revenue gap is correlational not causal. Should explain self-selection bias clearly. Should walk the causal-measurement methodology: pre/post enrollment cohort comparison, geographic holdout, stop-the-program A/B test. Should recommend committing to a causal-measurement check within 12 months and re-measuring annually. Should warn that programs without causal measurement typically overestimate impact 3-10x.",
+      "assertions": [
+        "Identifies the 3x gap as correlational not causal",
+        "Explains self-selection bias",
+        "Walks the causal-measurement methodology with the three approaches",
+        "Recommends a causal-measurement check within 12 months",
+        "Warns that uncontrolled comparison overestimates impact significantly",
+        "Does not validate the working-program conclusion",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Should our loyalty program be free or paid membership?",
+      "expected_output": "Walks the free-vs-paid framework. Should not give a generic answer; should ask about repeat purchase frequency and whether annual perk value would clearly exceed the membership fee from the customer's perspective. Recommends free as default for most growth-stage DTC, paid only when frequency justifies it. Should walk through the membership-fee level signaling ($39 accessible, $99 premium, $199+ insider).",
+      "assertions": [
+        "Walks the free-vs-paid framework",
+        "Asks about repeat purchase frequency before answering",
+        "Recommends free as default for most growth-stage DTC",
+        "Walks the membership-fee level signaling at $39/$99/$199+ bands",
+        "Discusses the threshold question of annual perk value vs membership fee",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "How should I structure our loyalty tiers? Bronze, silver, gold?",
+      "expected_output": "Walks the tier-design framework with three sub-decisions: tier thresholds, reward magnitudes per tier, non-financial rewards. Should recommend that thresholds land where they create real step-changes (above the AOV-distribution median per band), reward magnitudes double per tier for aspirational pull (e.g. 1%/3%/7%, not 1%/2%/3%), and non-financial rewards weighted toward top tiers. Should name the 4-7% blended cost ceiling.",
+      "assertions": [
+        "Walks tier-design framework with three sub-decisions",
+        "Recommends thresholds at step-change points in AOV distribution",
+        "Recommends doubling reward magnitude per tier for aspirational pull",
+        "Recommends non-financial rewards weighted to top tiers",
+        "Names the 4-7% blended cost ceiling",
+        "Calls modern.sales.aov segmented by customer_lifetime_value_band",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We're launching the loyalty program next month. What should the launch comms look like?",
+      "expected_output": "Walks the launch-communications framework with the T-2 weeks pre-launch teaser to top customers, T-0 full announcement, T+1 week opt-out reminder, and ongoing post-purchase prompt. Should name enrollment rate at 90 days as the diagnostic metric (below 25% is failed launch, above 50% has compounding engagement). Should recommend integration with welcome and post-purchase flows from launch.",
+      "assertions": [
+        "Walks the launch-communications sequence T-2/T-0/T+1 weeks",
+        "Recommends pre-launch teaser to top customers",
+        "Names enrollment rate at 90 days as the diagnostic",
+        "Names 25%/50% bands for failed vs compounding launch",
+        "Recommends integration with welcome and post-purchase flows",
+        "Calls modern.flows.revenue_by_flow to identify existing surfaces",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Should our points expire? Some customers complained when their balances reset.",
+      "expected_output": "Walks the expiry-and-breakage framework. Should explain that breakage is a real margin lever but has ethical limits. Should distinguish no-expiry, activity-based, hard-date, and tier-status variants. Should recommend activity-based with reminder communications as the customer-friendly default. Should name the ethical floor: disclosed at enrollment, reminders before expiry, tier-status communications. Should NOT recommend aggressive hard-date expiry without explicit communication.",
+      "assertions": [
+        "Walks the expiry framework with all four variants",
+        "Identifies breakage as a margin lever with ethical limits",
+        "Recommends activity-based expiry with reminder communications",
+        "Names the ethical floor (disclosure, reminders, tier communications)",
+        "Discusses breakage rate bands (30-50% activity-based, 50-75% hard-date)",
+        "Warns against aggressive expiry without communication",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our loyalty program has been running for two years but engagement is dropping. What do we do?",
+      "expected_output": "Diagnosis grounded in integration-with-flows framework and causal-measurement check. Should ask first whether the program has ever been causally measured (likely no). Should walk through integration points (welcome, post-purchase, winback, birthday) and check whether each is functioning. Should recommend a 90-day refresh sequence: causal-lift audit, integration audit, tier-threshold recalibration, communications refresh.",
+      "assertions": [
+        "Asks first whether the program has ever been causally measured",
+        "Walks the integration-with-flows framework",
+        "Audits integration points (welcome, post-purchase, winback, birthday)",
+        "Recommends a 90-day refresh sequence",
+        "Names tier-threshold recalibration as part of refresh",
+        "Does not just recommend more promotional points",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

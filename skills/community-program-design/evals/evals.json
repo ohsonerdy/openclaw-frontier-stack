@@ -1,0 +1,104 @@
+{
+  "$schema": "openclaw-frontier.skill-eval.v1",
+  "skill_name": "community-program-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Should we build a brand community? We're a $6M skincare brand with 8% promoter score.",
+      "expected_output": "Surfaces that 8% promoters is below the threshold where community ROI is structural. Recommends investing in promoter generation first (product improvements, post-purchase experience, NPS detractor handling) before launching a community. Conditions community investment on growing the promoter base. Pulls NPS distribution and LTV to size the deferred case.",
+      "assertions": [
+        "Identifies 8% promoters as below the structural threshold",
+        "Pulls modern.surveys.nps_distribution to size the cohort",
+        "Recommends promoter-generation work first",
+        "Conditions community investment on promoter growth",
+        "Names the specific upstream work",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Discord, Slack, Facebook, or Circle for our running-shoe community?",
+      "expected_output": "Walks platform selection. For a fitness audience Discord is a strong fit (real-time chat, fitness culture present). Conditions on the demographic. Notes Facebook Group as the default-reach option but algorithm-dependent. Circle as the higher-cost hosted option if the brand wants tier control. Recommends Discord for engagement and Circle if tier and education content are central.",
+      "assertions": [
+        "Walks the platform selection framework",
+        "Names Discord as fit for fitness audience",
+        "Conditions on the demographic profile",
+        "Notes Facebook Group algorithm dependency",
+        "Names Circle for hosted platform with tier control",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We have 5,000 community members but the community feels dead. What's wrong?",
+      "expected_output": "Walks the metrics-that-lie framework. Total member count is misleading; active member ratio is the honest metric. Recommends measuring posts-and-comments-in-last-30-days divided by total members. Below 5% is decay. Walks possible causes: weak founder presence, missing tier structure, platform mismatch, unclear purpose. Asks for the active ratio before prescribing the fix.",
+      "assertions": [
+        "Walks the engagement-metrics-that-lie framework",
+        "Names active member ratio as the honest metric",
+        "Names below 5% as the decay threshold",
+        "Asks for active ratio before prescribing",
+        "Names possible causes: founder presence, tiers, platform, purpose",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "What benefits should our VIP tier offer?",
+      "expected_output": "Walks the tier structure framework. Tier benefits must escalate meaningfully — role color alone produces no behavior change. Recommends: early product access, founder access, dedicated channels, branded swag, gated drops. Conditions on tier purpose and progression cadence. Notes the annual refresh discipline. Distinguishes the verified-customer tier from the active-contributor tier.",
+      "assertions": [
+        "Walks the tier structure framework",
+        "Names the meaningful-escalation rule",
+        "Names specific benefits per tier",
+        "Recommends annual tier refresh",
+        "Distinguishes contributor tier from customer tier",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our founder doesn't want to be in the community personally. Can we still build one?",
+      "expected_output": "Possible but harder. Walks the founder presence framework. Communities with active founder presence retain at 2-3x the rate. Without founder, the brand has to compensate with a strong community manager and named brand voice. Recommends conditioning the program scope on what the founder will actually commit to; do not build a founder-AMA program if the founder will not show up. References the cost of staff-only community programs as higher attrition and slower growth.",
+      "assertions": [
+        "Walks the founder presence framework",
+        "Names 2-3x retention lift with founder presence",
+        "Recommends scoping program to founder commitment",
+        "Warns against building features the founder will not staff",
+        "Notes higher attrition risk without founder presence",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "What's the single most important community metric we should track?",
+      "expected_output": "Repeat rate delta of members vs matched non-members, or member-attributed revenue if attribution is available. Walks why total member count and DAU mislead. Notes that the metric must be tied to a business outcome (retention or revenue), not to platform activity. Recommends three honest metrics per quarter rather than one to avoid Goodhart's law.",
+      "assertions": [
+        "Names repeat rate delta or member-attributed revenue as the right metric",
+        "Walks why total members and DAU mislead",
+        "Pulls modern.retention.repeat_rate for the comparison",
+        "Recommends three metrics per quarter not one",
+        "Names Goodhart-style risk",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Should our community focus on UGC or on customer support?",
+      "expected_output": "Walks the four purposes framework. Recommends picking one primary purpose. UGC = advocacy purpose, fit for visual or emotional categories with strong word-of-mouth potential. Support = self-help purpose, fit for technical or complex-use categories. Pulls CX volume and NPS distribution to identify which leverage applies. Notes that trying to be both produces a community that does neither well.",
+      "assertions": [
+        "Walks the four community purposes framework",
+        "Distinguishes advocacy purpose from support purpose",
+        "Recommends picking one primary purpose",
+        "Conditions choice on CX volume and category profile",
+        "Notes the all-of-the-above failure mode",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    }
+  ]
+}

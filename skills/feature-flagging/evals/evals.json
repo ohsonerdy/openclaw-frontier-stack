@@ -1,0 +1,108 @@
+{
+  "skill_name": "feature-flagging",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm adding a flag for a new payment integration. It'll be on for internal users first, then ramped to customers. What should I configure?",
+      "expected_output": "Classify as a release toggle. Default state off-default-safe (payment integration is risky; safe fallback is the old path). Targeting: cohort flag for internal users first, then sticky-bucket percentage rollout for customers. Telemetry: bucket percentages, sticky leaks, payment error rate, flag-service health. Removal owner and date should be set from day one. Should NOT recommend on-default-fast for an unverified payment path.",
+      "assertions": [
+        "Classifies as a release toggle",
+        "Picks off-default-safe as the default state",
+        "Recommends cohort flag for internal users",
+        "Recommends sticky-bucket percentage for customer rollout",
+        "Names the telemetry: bucket percentages, sticky leaks, payment error rate",
+        "Sets removal owner and date from day one",
+        "Rejects on-default-fast for an unverified payment path"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We have a flag from eight months ago that was supposed to live for two weeks. Nobody remembers what it does. Should we just delete it?",
+      "expected_output": "Do NOT just delete. Run the audit: identify the flag's kind, current default, current traffic split, owner. If 100% of traffic is on the new branch and the old branch is dead, removal is safe but should still run through a stable monitoring window. If traffic is mixed, ramp to 100% first. If the flag is gating any excluded cohort, removing it silently changes their experience. Should also surface this as flag-debt and recommend an inventory audit.",
+      "assertions": [
+        "Does not recommend immediate deletion",
+        "Audits the flag's kind, default, and traffic split",
+        "Ramps to 100% before removing if traffic is mixed",
+        "Checks for excluded cohorts that would be silently changed",
+        "Verifies the old branch is not still in use",
+        "Surfaces this as a flag-debt audit opportunity",
+        "Recommends a monitoring window before removal"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We have a flag for an A/B test. Users are reporting that the UI changes mid-session — the experiment variant flickers. What's the bug?",
+      "expected_output": "Diagnose as non-sticky percentage rollout. The flag evaluates per-request without bucketing by a stable user ID, so the same user oscillates between groups. Fix: switch to sticky-bucket (hash of user ID determines the assignment). This is required for any experiment because non-sticky users cannot be measured. Should also recommend verifying sticky bucketing before any user-visible rollout.",
+      "assertions": [
+        "Diagnoses non-sticky percentage rollout",
+        "Identifies missing stable user-ID bucketing",
+        "Recommends sticky-bucket (hash of user ID)",
+        "Notes this breaks experiment measurement",
+        "Notes this also breaks UX for users",
+        "Recommends verifying sticky bucketing before user-visible rollouts"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We're about to ship a kill switch for our payment service in case the next deploy breaks. What's the minimum we need?",
+      "expected_output": "Outline the kill-switch design requirements: instant flip (under 30 seconds), observable (telemetry on switch state and last flipper), idempotent, tested in both states (the off path runs in CI or pre-prod), documented in the on-call runbook with the exact procedure. Default state for a kill switch is on (the normal behavior); the off path is the disabled state. Decision authority is the on-call engineer with no approval. Should classify this as an ops toggle, not a release toggle, with indefinite lifespan.",
+      "assertions": [
+        "Classifies as an ops toggle / kill switch",
+        "Requires instant flip (under 30 seconds)",
+        "Requires observable state and last-flipper telemetry",
+        "Requires idempotent flipping",
+        "Requires testing both states (off path tested in CI or pre-prod)",
+        "Requires runbook documentation with exact procedure",
+        "Sets on-call as decision authority with no approval",
+        "Names indefinite lifespan (not a release toggle)"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our flag service was unreachable for 10 minutes. During that window, users saw the new feature even though the rollout is only at 5%. What happened?",
+      "expected_output": "Diagnose as the default-state-misconfigured-as-on incident. When the flag service is unreachable, the code fell back to the default state, which was on (or 'fail open'). Recommend changing the default to off-default-safe for an unverified release toggle, so that flag-service outage means users see the old, safe path instead of the new path at 100% traffic. Should also recommend monitoring flag-service health and the fallback-to-default rate so this is detectable.",
+      "assertions": [
+        "Diagnoses default-state-was-on during flag service outage",
+        "Recommends switching to off-default-safe for unverified release toggle",
+        "Notes that fail-open exposed 100% of users to unverified code",
+        "Recommends monitoring flag-service health",
+        "Recommends monitoring fallback-to-default rate",
+        "References the default-state-decision section explicitly"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We have eight flags in our codebase and I just inherited the project. None of them have documentation. How do I clean this up?",
+      "expected_output": "Run a flag inventory audit. For each flag: identify the kind (release/experiment/ops/permission), the current traffic split, the owner (or assign one). For any past-removal-date release toggles or completed experiments, ramp to 100% if mixed traffic, then remove the flag and the old branch. For ops toggles and permission flags, add metadata and runbook documentation. Set a monthly recurring audit. Treat any flag without owner+removal-plan as flag debt with a cost.",
+      "assertions": [
+        "Recommends a flag inventory audit",
+        "Classifies each flag by kind",
+        "Assigns an owner to each flag",
+        "Removes completed release and experiment toggles",
+        "Documents the ops and permission flags that should stay",
+        "Sets a recurring (monthly) audit cadence",
+        "Frames undocumented flags as flag debt"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "An engineer is removing an old flag tomorrow. The flag is at 100% in production. Anything to check first?",
+      "expected_output": "Verify the 100% is genuine — including any excluded cohorts (internal users, specific customer contracts, region exclusions). If any cohort is excluded, removing the flag silently changes their experience. Also verify the old branch in the code is unreferenced from other places (sometimes flags are read from multiple files). Recommend a monitoring window between 'flag at 100%' and 'flag removed' so any forgotten paths surface. Confirm the old branch is genuinely dead before deleting.",
+      "assertions": [
+        "Verifies 100% includes all excluded cohorts",
+        "Checks for cohorts that would be silently changed",
+        "Verifies the old branch is unreferenced",
+        "Recommends a monitoring window before removal",
+        "Confirms the old branch is dead before deletion",
+        "Treats 'flag at 100%' and 'flag removed' as separate states"
+      ],
+      "files": []
+    }
+  ]
+}

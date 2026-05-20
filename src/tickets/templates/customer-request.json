@@ -1,0 +1,9 @@
+{
+  "schema": "openclaw-frontier.ticket-template.v1",
+  "name": "customer-request",
+  "defaultPriority": "p1",
+  "defaultSlaHours": 72,
+  "requiredFields": ["title", "body"],
+  "suggestedAssignees": ["support", "product"],
+  "bodyTemplate": "## Requester\n\n- Channel: <support / sales / community>\n- Plan tier:\n- Account size:\n\n## Request\n\n<what the customer is asking for, in their words where possible>\n\n## Why now\n\n<what is the trigger for surfacing this, and what is the impact if we do not respond>\n\n## Suggested outcome\n\n<what an acceptable response looks like>\n\n## Internal notes\n\n<context the requester does not see>\n"
+}

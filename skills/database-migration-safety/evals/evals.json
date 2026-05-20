@@ -1,0 +1,109 @@
+{
+  "skill_name": "database-migration-safety",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to add a new `email_verified BOOLEAN NOT NULL DEFAULT false` column to our `users` table, which has 80 million rows. The migration is in the same PR as the code that reads this column. Will this work?",
+      "expected_output": "Two issues. First, the NOT NULL DEFAULT pattern: on Postgres 11+, BOOLEAN DEFAULT false is metadata-only and fast; on older Postgres or other engines, it requires a table rewrite that locks the table. Second, the single-deploy pattern (migration + code in one PR) is broken — either the migration runs without code or vice versa. Recommend expand-contract: separate PRs for (a) add the column as nullable, (b) backfill, (c) deploy code, (d) add NOT NULL constraint. Check Postgres version before assuming the default-as-metadata optimization applies.",
+      "assertions": [
+        "Identifies the NOT NULL with default risk on older Postgres or non-Postgres engines",
+        "Notes Postgres 11+ has the default-as-metadata optimization",
+        "Calls out the single-deploy migration+code pattern as broken",
+        "Recommends expand-contract with separate phases",
+        "Mentions backfill as a discrete phase",
+        "Recommends verifying the database engine and version before assuming the optimization applies",
+        "Does not approve as a single-step migration"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We need to rename `username` to `handle` on a table with 200 million rows. What's the safest path?",
+      "expected_output": "Full expand-contract pattern. Phase 1: add `handle` as nullable column. Phase 2: backfill `handle` from `username` in throttled batches with progress tracking. Phase 3: deploy application code that dual-writes (writes both columns on insert/update). Phase 4: deploy code that reads from `handle` only. Phase 5: stop writing `username`. Phase 6: drop `username`. Each phase is a separate deploy with monitoring between. Do NOT use a single ALTER TABLE RENAME COLUMN because the code that still reads `username` breaks immediately. Reversibility is preserved through phase 4.",
+      "assertions": [
+        "Recommends the expand-contract pattern",
+        "Adds the new column as nullable first",
+        "Recommends throttled, resumable backfill with progress tracking",
+        "Includes a dual-write phase",
+        "Switches reads to the new column before stopping writes to the old",
+        "Drops the old column only at the end, after confirmation",
+        "Does not propose a single ALTER TABLE RENAME",
+        "Notes each phase is a separate deploy"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I'm about to backfill 500 million rows by setting a new column based on a computed value from existing columns. What's the right way?",
+      "expected_output": "Batched UPDATE: process 1000-10000 rows at a time by primary key range. Throttle between batches based on observed replication lag, not a fixed sleep. Make the backfill idempotent (re-running a batch shouldn't double-count) and resumable (track last PK processed). Run from a background worker, not the request path. Monitor replication lag in real-time and pause if lag exceeds threshold. Do NOT run as a single UPDATE on the entire table — it locks the table, generates massive replication lag, and a crash leaves you with no idea how far it got. Backfill may take days at this scale; that's fine.",
+      "assertions": [
+        "Recommends batched UPDATE rather than single-statement UPDATE",
+        "Recommends batch size of 1000-10000 rows",
+        "Recommends throttling based on actual replication lag",
+        "Makes the backfill idempotent",
+        "Makes the backfill resumable with progress tracking",
+        "Runs from a background worker, not the request path",
+        "Notes the single-UPDATE anti-pattern explicitly",
+        "Accepts that the backfill may take days for a table this size"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We need to add a foreign key from `orders.user_id` to `users.id`. The `orders` table has 2 billion rows. The PR currently has `ALTER TABLE orders ADD CONSTRAINT ... FOREIGN KEY ...`. What's the problem?",
+      "expected_output": "On Postgres (and most engines) ADD CONSTRAINT FOREIGN KEY validates against every existing row, acquiring a ShareRowExclusiveLock that blocks writes for the duration. On 2 billion rows this is many hours of downtime. The safe pattern is two-step: ADD CONSTRAINT ... NOT VALID (fast, brief metadata lock, applies to new writes immediately), then VALIDATE CONSTRAINT in a separate transaction (slow, but uses a less restrictive lock that allows reads and writes). Recommend rewriting the PR to use the two-step pattern.",
+      "assertions": [
+        "Identifies the single-statement ADD FOREIGN KEY as blocking writes during validation",
+        "Recommends the two-step NOT VALID then VALIDATE pattern",
+        "Notes NOT VALID applies to new writes immediately",
+        "Notes VALIDATE uses a less restrictive lock",
+        "Identifies the scale (2 billion rows) as making the blocking validation hours of downtime",
+        "Rewrites the PR rather than approving as-is"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our migration ran fine in staging in 30 seconds. We're about to run it on production where the table is 100x larger. Should I be worried?",
+      "expected_output": "Yes. The staging timing is not predictive of production. Linear scaling at best means 50 minutes on production, but the failure modes are nonlinear: lock duration scales with row count, replication lag scales with write volume during the migration, query plans change with table size. Recommend running the migration against a production-data-shaped copy first, measuring lock duration, replication lag, and abort criteria. Without the production-shaped test, the production run is the test, which is the wrong place to learn.",
+      "assertions": [
+        "Identifies staging timing as not predictive of production at 100x scale",
+        "Notes that failure modes scale nonlinearly",
+        "Recommends testing against a production-data-shaped copy first",
+        "Identifies specific risks: lock duration, replication lag, query plan changes",
+        "Warns against using production as the test environment",
+        "Suggests measuring concrete metrics before the real run"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We have a migration that drops a column. The PR has the DROP COLUMN statement. The code that reads that column was removed two weeks ago and the new version is deployed everywhere. Is it safe to drop now?",
+      "expected_output": "Likely safe to proceed, but verify two things first: (1) confirm no production code path still reads the column (search the deployed code, not just the repo HEAD), and (2) confirm there is a recent backup that's restore-verified, since DROP COLUMN is a one-way operation. If both check out, proceed. DROP COLUMN on Postgres is metadata-only (fast) so the operation itself is not the risk; the risk is irreversibility. Flag explicitly that this is a one-way migration and the backup is the rollback path.",
+      "assertions": [
+        "Identifies DROP COLUMN as a one-way migration",
+        "Requires verifying no code path still reads the column (production code, not repo HEAD)",
+        "Requires verifying a recent restore-verified backup",
+        "Identifies DROP COLUMN as metadata-only on Postgres (fast)",
+        "Frames the risk as irreversibility, not lock duration",
+        "References backup-and-restore for the rollback path",
+        "Allows proceeding once the preconditions are met"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "It's Friday at 3pm and someone wants to run a 2-hour migration before the weekend. The migration looks safe; the team is confident. Should we run it?",
+      "expected_output": "Default no. Friday afternoon migrations are an anti-pattern: if the migration causes issues, the on-call inherits a weekend incident with reduced team availability. Long migrations need active monitoring throughout, which is harder over the weekend. The migration's risk profile may be small, but the on-call's recovery profile is worse on Friday. Recommend either Monday morning (full team availability for recovery) or a defined late-night window with on-call coverage. If there's a business reason for Friday, document the abort criteria and the on-call's authority to abort.",
+      "assertions": [
+        "Recommends against Friday afternoon as default",
+        "Identifies weekend on-call recovery as the constraint, not the migration risk itself",
+        "Recommends Monday morning or defined off-hours window",
+        "If proceeding, requires defined abort criteria",
+        "If proceeding, requires explicit on-call authority to abort",
+        "Treats timing as a safety decision, not a scheduling decision"
+      ],
+      "files": []
+    }
+  ]
+}

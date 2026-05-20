@@ -1,0 +1,106 @@
+{
+  "skill_name": "code-review-receiving",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "My reviewer left 12 comments on my PR. Three are bugs they caught (real ones), four are nits about naming, three are suggestions for refactors that would expand the PR scope, and two I think are wrong. How do I respond?",
+      "expected_output": "Triage each independently. The three bugs: fix them, respond 'Good catch, fixed in <commit>.' on each. The four nits: most likely fix them quickly unless they actively make the code worse; if they have a common theme, suggest tightening the linter for the next PR. The three out-of-scope refactors: acknowledge each is a valid suggestion, decline as out-of-scope for this PR, file follow-up issues and link from the PR. The two you think are wrong: push back with the specific technical argument, not 'I disagree'. Every comment gets a response of some kind. Re-request review only after everything is addressed or explicitly in discussion.",
+      "assertions": [
+        "Recommends fixing the three bugs immediately",
+        "Recommends fixing most nits rather than arguing",
+        "Suggests tightening the linter if nits have a common theme",
+        "Recommends declining out-of-scope refactors with follow-up issues",
+        "Recommends pushing back on the two disagreed comments with technical reasoning",
+        "Reinforces that every comment gets a response (even nits)",
+        "Recommends re-requesting only after all comments addressed or explicitly in discussion"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "My reviewer is asking me to refactor a helper to use a pattern from another codebase. I don't think it fits here. How do I push back?",
+      "expected_output": "Push back specifically, not generally. State the technical reason the pattern doesn't fit (e.g., 'this codebase uses pattern X for this case, see <example>'). Ask the reviewer to elaborate on the benefit they see in the suggested pattern; sometimes the clarification reveals you misread the suggestion or they misread the code. If the disagreement is genuine and unresolved, propose a third reviewer or area owner as a tiebreaker. Do NOT capitulate just to ship; do NOT escalate before engaging the technical argument directly with the reviewer.",
+      "assertions": [
+        "Recommends pushing back with the specific technical reason",
+        "Recommends asking the reviewer to elaborate on their reasoning",
+        "References this codebase's existing conventions",
+        "Recommends tiebreaker (third reviewer) only if direct engagement fails",
+        "Does not recommend capitulation just to ship",
+        "Does not recommend escalating to management as a first move",
+        "Frames as discussion to resolve, not battle to win"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "A reviewer wrote 'this could be cleaner' on a function I wrote. I'm not sure if they want me to refactor or if it's a nit. What do I do?",
+      "expected_output": "Ask for clarification before responding. The comment is ambiguous between nit, suggestion, and blocker. A clean clarification: 'I want to make sure I understand — are you suggesting a specific change, or is this a general impression? If specific, what shape would you want it to take?' Asking is cheaper than guessing and refactoring the wrong thing. Do NOT just refactor based on assumption; do NOT argue against a position the reviewer hasn't actually stated.",
+      "assertions": [
+        "Recommends asking for clarification before responding",
+        "Identifies the comment as ambiguous between nit, suggestion, and blocker",
+        "Provides a specific clarifying question shape",
+        "Does not recommend refactoring on assumption",
+        "Does not recommend arguing against an unstated position",
+        "Frames asking as faster than guessing wrong"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "My reviewer wants me to add tests for an edge case I think is genuinely impossible to hit. The code is structured so that case never reaches this function. Should I just add the test?",
+      "expected_output": "Push back with the structural argument. State specifically why the case can't reach the function (the caller, the type system, the upstream validation). Offer the structural evidence: 'the caller at <line> filters out X before calling this function, so this case can never reach here'. If the structural evidence is real, the test would be testing a contradiction. If the reviewer is still concerned, suggest a comment in the code documenting the invariant, or a defensive assert that fails loudly if the impossible case ever occurs (which doubles as a test surface). Do NOT add a test that asserts a tautology; do NOT just capitulate without surfacing the structural argument.",
+      "assertions": [
+        "Recommends pushing back with the structural argument",
+        "Provides specific evidence (caller, type system, upstream validation)",
+        "Suggests a code comment or defensive assert as an alternative to a tautological test",
+        "Does not recommend adding a test that asserts a contradiction",
+        "Does not recommend capitulating without engaging the technical argument",
+        "Allows the reviewer's concern to be addressed in a different way"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I addressed 8 of 10 review comments. The other 2 I disagreed with and replied with my reasoning. Should I re-request review or wait for them to respond?",
+      "expected_output": "Re-request review now. The PR is back in the reviewer's court: 8 things to verify and 2 discussion items waiting for them. The signal to the reviewer is 'I've done my part; please look'. Note in the re-request message what state things are in ('addressed 8 of 10; 2 open discussion items at <links>'). Do NOT wait silently — silence after responding looks like inactivity. Do NOT re-request before addressing everything; the half-done state was the wrong signal. Now is the right time.",
+      "assertions": [
+        "Recommends re-requesting review now",
+        "Notes the PR is back in the reviewer's court",
+        "Recommends a brief summary of state in the re-request message",
+        "Identifies silence after responding as the wrong signal",
+        "Identifies premature re-request as a different anti-pattern (not this case)",
+        "Confirms this is the right moment to re-request"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "The reviewer left a comment that I think is just wrong — they're claiming my code doesn't handle a case it actually does handle. The handling is in a different file from the diff. How do I respond?",
+      "expected_output": "Point to the specific code that handles the case. Not 'no, you're wrong'; instead 'the case is handled by <function/line> in <file>; see the test at <line>'. Make the evidence visible to a reviewer who may not have followed the cross-file call path. If after that the reviewer still disagrees, offer to walk through it on a short call. The case may also indicate the cross-file handling isn't obvious — a comment in the code at the diff site could prevent the next reviewer from being confused too.",
+      "assertions": [
+        "Recommends pointing to the specific code that handles the case",
+        "Provides file and line references in the response",
+        "References the test as evidence",
+        "Suggests a short call as a follow-up if disagreement persists",
+        "Considers adding a code comment to prevent future confusion",
+        "Treats the reviewer being wrong as a normal occurrence, not a betrayal",
+        "Does not respond with 'no, you're wrong' alone"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "My reviewer left 4 nits on naming and 1 blocking comment about a potential SQL injection. I want to push back on all 4 nits because I think they're wrong. Should I?",
+      "expected_output": "Focus the energy on the blocking comment first — the SQL injection concern is the load-bearing item. Address it correctly (likely fix or surface why it's actually safe). For the 4 nits: the cost of arguing 4 nits is high; the cost of doing them is low. Default to doing the nits unless they actively make the code worse, even if you'd prefer the original. The 'ship vs argue' math is in favor of just doing them. If one of the nits genuinely makes the code worse, decline that one specifically with a reason; do the other three.",
+      "assertions": [
+        "Recommends prioritizing the blocking comment (SQL injection) first",
+        "Recommends treating nits as low-stakes; do them rather than argue",
+        "References the 'ship vs argue' tradeoff",
+        "Allows declining a nit only if it actively makes the code worse",
+        "Does not recommend arguing all 4 nits",
+        "Does not recommend ignoring the blocking comment in favor of the nits"
+      ],
+      "files": []
+    }
+  ]
+}

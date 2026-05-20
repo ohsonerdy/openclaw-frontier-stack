@@ -1,0 +1,99 @@
+{
+  "skill_name": "launch",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're launching our new sleep stack supplement next month. Help me plan.",
+      "expected_output": "Walks the launch-sizing decision (soft vs gradual vs big-bang) based on brand stage and product type. Walks the pre-launch checklist. Drafts the launch-week cadence. Names a headline metric. Lists risks and post-launch reflection schedule. References product-marketing-positioning for the upstream positioning lock.",
+      "assertions": [
+        "Walks the launch-sizing decision",
+        "Walks the pre-launch checklist",
+        "Drafts the launch-week cadence (T-3, T-0, T+1, T+2, T+5)",
+        "Names a headline metric with target band",
+        "Lists top risks with contingency",
+        "References product-marketing-positioning for upstream",
+        "Names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We're a 12-month-old DTC brand at $80k/month. Should I do a big-bang launch?",
+      "expected_output": "Probably not. Walks the launch-sizing framework. Recommends soft or gradual at this stage. Notes that big-bang for early-stage brands tends to fizzle. Recommends soft launch to engaged email segment or gradual launch starting with owned channels before paid. References ads for the paid-channel scaling decision.",
+      "assertions": [
+        "Recommends against big-bang for an early-stage brand",
+        "Walks the launch-sizing framework",
+        "Recommends soft or gradual launch",
+        "Notes big-bang tends to fizzle for early-stage",
+        "References ads for paid-channel decisions",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our launch checklist has 4 of 8 items unchecked but we have to ship on the planned date. What should we do?",
+      "expected_output": "Pushback on shipping with checklist items unchecked. Walks the pre-launch checklist framework. Identifies which unchecked items are launch-killers (positioning, ops, tracking) vs deferrable (some copy surfaces, some channels). Recommends delaying or scoping the launch down rather than shipping incomplete. Notes preventable failure modes from each unchecked item.",
+      "assertions": [
+        "Pushes back on shipping with unchecked items",
+        "Walks the pre-launch checklist framework",
+        "Distinguishes launch-killer items from deferrable items",
+        "Recommends delaying or scoping down",
+        "Names preventable failure modes per unchecked item"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Should we use a waitlist for our new product?",
+      "expected_output": "Depends on whether there's a real reason not to take the customer's money today. Walks the waitlist mechanics framework. Recommends waitlist only when scarcity is real, validation matters, or social-proof effects help. Warns against artificial waitlists that just add friction. Provides decision rule.",
+      "assertions": [
+        "Walks the waitlist mechanics framework",
+        "Names the decision rule (real reason vs friction)",
+        "Provides when-to-use vs when-not-to-use",
+        "Warns against artificial scarcity",
+        "Asks about inventory and validation needs"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We're tracking 12 KPIs for our upcoming launch. Headline metrics include revenue, AOV, new customers, returning customers, email open rate, ad ROAS, time on site, press coverage, social mentions, NPS, CS ticket volume, and trial-to-paid.",
+      "expected_output": "Pushback. Walks the headline-metric discipline. Recommends picking one headline metric per launch type. Notes that 12 KPIs produces no decisions. Helps pick the right headline based on launch type (new SKU, subscription, brand, etc.). Names the secondary metrics that can exist as health checks.",
+      "assertions": [
+        "Pushes back on 12 KPIs",
+        "Walks the headline-metric discipline framework",
+        "Recommends one headline metric",
+        "Asks about launch type to recommend the right metric",
+        "Names secondary metrics as health-check level only"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We launched 3 weeks ago. The revenue spike was good but is it durable?",
+      "expected_output": "Walks the post-launch reflection cadence framework (D7, D30, D90). At 3 weeks, recommends the D30 reflection focused on cohort behavior — are launch-acquired customers retaining at target rates? Recommends pulling cohort retention curves. References cohort-retention for the durability analysis.",
+      "assertions": [
+        "Walks the post-launch reflection cadence",
+        "Recommends D30 cohort behavior reflection",
+        "References cohort-retention for durability analysis",
+        "Asks about retention curves of launch cohort",
+        "Notes the distinction between spike and durable lift"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "After our last 3 launches we kept finding bugs and hardcoded copy in the launch landing pages. What should we do differently?",
+      "expected_output": "Walks the launch-debt cleanup framework. Recommends documenting debt during the launch (not after), scheduling cleanup in the 2-4 weeks following launch, and building a launch playbook to reduce ad-hoc shortcuts. Notes that brands that skip cleanup compound debt across launches.",
+      "assertions": [
+        "Walks the launch-debt cleanup framework",
+        "Recommends documenting debt during the launch",
+        "Recommends scheduled cleanup in 2-4 weeks after launch",
+        "Names the four debt types (tech, content, process, communication)",
+        "Notes brands that skip cleanup compound debt"
+      ],
+      "files": []
+    }
+  ]
+}

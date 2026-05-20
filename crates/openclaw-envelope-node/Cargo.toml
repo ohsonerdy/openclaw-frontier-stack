@@ -1,0 +1,24 @@
+[package]
+name = "openclaw-envelope-node"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Node.js N-API binding for openclaw-envelope. Exposes canonicalize, stable, sign, and verify so Node consumers can opt into the Rust core while keeping a pure-JS fallback."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+openclaw-envelope = { path = "../openclaw-envelope" }
+serde.workspace = true
+serde_json.workspace = true
+ed25519-dalek.workspace = true
+base64.workspace = true
+napi = { version = "2", features = ["napi9", "serde-json"] }
+napi-derive = "2"
+
+[build-dependencies]
+napi-build = "2"

@@ -1,0 +1,386 @@
+#!/usr/bin/env node
+'use strict';
+
+/**
+ * openclaw-cron — cron-style scheduler daemon for the OpenClaw Frontier
+ * swarm.
+ *
+ * Reads cron/jobs.json (operator-edited), ticks every 60 seconds, and for
+ * each due job writes a `task-claim` envelope to the blackboard JSONL
+ * ledger addressed to the job's role. The daemon does no model dispatch
+ * of its own — downstream `openclaw-agent` daemons pick up the claim and
+ * carry it through their role contract.
+ *
+ * The daemon is file-locked via release-gate/cron-tick.lock so two
+ * concurrent tickers cannot double-fire a job. A stale lock older than
+ * five minutes is considered abandoned and is taken over.
+ *
+ * Lifecycle:
+ *   1. Read --jobs JSON. Validate each entry has id/schedule/role/subject.
+ *   2. Load lastRunMap (cron/.last-run.json) from disk.
+ *   3. Every 60 seconds:
+ *      a. Acquire the tick lock. Abort the tick (not the daemon) if
+ *         another tick is already in flight.
+ *      b. Call scheduler.tick() to compute due jobs.
+ *      c. For each due job, write a task-claim record to --blackboard
+ *         with summary "<subject>" and forRole "<role>".
+ *      d. Update lastRunMap for jobs that wrote successfully.
+ *      e. Release the lock.
+ *   4. --once: do one tick and exit (used by the test).
+ *
+ * The cron envelope body is appended as a `fact` record on the same
+ * tick so downstream lanes have access to the operator-supplied body
+ * without inflating the task-claim record (which has a 500 character
+ * summary cap per the ledger schema).
+ */
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+const repoRoot = path.resolve(__dirname, '..');
+const { createLedger, BlackboardValidationError } = require(
+  path.join(repoRoot, 'src', 'blackboard', 'lib', 'ledger.js'),
+);
+const { tick } = require(path.join(repoRoot, 'cron', 'lib', 'scheduler.js'));
+
+const HELP_TEXT = `openclaw-cron — cron-style scheduler daemon
+
+Usage:
+  openclaw-cron [options]
+
+Options:
+  --jobs <path>         Path to jobs.json (default ./cron/jobs.json).
+  --blackboard <path>   Blackboard ledger to write task-claim records to
+                        (default ./blackboard.jsonl).
+  --lock <path>         Tick lock file path
+                        (default ./release-gate/cron-tick.lock).
+  --state <path>        Where to persist lastRunMap between ticks
+                        (default <jobs-dir>/.last-run.json).
+  --interval <ms>       Tick interval in ms (default 60000).
+  --once                Run a single tick and exit. Useful for tests and
+                        for cron-on-cron supervisors.
+  --quiet               Suppress progress logging.
+  --help                Show this message.
+
+Exit codes:
+  0  Clean exit (\`--once\` complete or SIGINT/SIGTERM received).
+  1  Unrecoverable runtime error (jobs.json missing/invalid, ledger
+     unwritable).
+  2  Bad CLI arguments.
+`;
+
+function parseArgs(argv) {
+  const args = {
+    jobs: path.resolve(process.cwd(), 'cron', 'jobs.json'),
+    blackboard: path.resolve(process.cwd(), 'blackboard.jsonl'),
+    lock: path.resolve(process.cwd(), 'release-gate', 'cron-tick.lock'),
+    state: null,
+    intervalMs: 60000,
+    once: false,
+    quiet: false,
+    help: false,
+  };
+  for (let i = 2; i < argv.length; i += 1) {
+    const a = argv[i];
+    if (a === '--jobs') args.jobs = path.resolve(process.cwd(), argv[++i]);
+    else if (a === '--blackboard') args.blackboard = path.resolve(process.cwd(), argv[++i]);
+    else if (a === '--lock') args.lock = path.resolve(process.cwd(), argv[++i]);
+    else if (a === '--state') args.state = path.resolve(process.cwd(), argv[++i]);
+    else if (a === '--interval') args.intervalMs = Math.max(1000, Number(argv[++i]) || 60000);
+    else if (a === '--once') args.once = true;
+    else if (a === '--quiet') args.quiet = true;
+    else if (a === '--help' || a === '-h') args.help = true;
+    else {
+      process.stderr.write(`unknown arg: ${a}\n`);
+      process.exit(2);
+    }
+  }
+  if (!args.state) {
+    args.state = path.join(path.dirname(args.jobs), '.last-run.json');
+  }
+  return args;
+}
+
+// ---------------------------------------------------------------------------
+// jobs.json loading + validation
+// ---------------------------------------------------------------------------
+
+function loadJobs(jobsPath) {
+  let raw;
+  try {
+    raw = fs.readFileSync(jobsPath, 'utf8');
+  } catch (err) {
+    throw new Error(`cannot read jobs file: ${err.message}`);
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    throw new Error(`jobs file is not valid JSON: ${err.message}`);
+  }
+  const arr = Array.isArray(parsed) ? parsed : parsed && Array.isArray(parsed.jobs) ? parsed.jobs : null;
+  if (!arr) {
+    throw new Error('jobs file must be an array or { "jobs": [...] }');
+  }
+  const out = [];
+  const seen = new Set();
+  for (let i = 0; i < arr.length; i += 1) {
+    const j = arr[i];
+    if (!j || typeof j !== 'object') {
+      throw new Error(`jobs[${i}] must be an object`);
+    }
+    if (typeof j.id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(j.id)) {
+      throw new Error(`jobs[${i}].id must be a simple id string`);
+    }
+    if (seen.has(j.id)) {
+      throw new Error(`duplicate job id: ${j.id}`);
+    }
+    seen.add(j.id);
+    if (typeof j.schedule !== 'string' || !j.schedule.trim()) {
+      throw new Error(`jobs[${i}].schedule must be a non-empty cron string`);
+    }
+    if (typeof j.role !== 'string' || !/^[A-Za-z][A-Za-z0-9_-]*$/.test(j.role)) {
+      throw new Error(`jobs[${i}].role must be a simple role id`);
+    }
+    if (typeof j.subject !== 'string' || !j.subject.trim()) {
+      throw new Error(`jobs[${i}].subject must be a non-empty string`);
+    }
+    if (j.body != null && (typeof j.body !== 'object' || Array.isArray(j.body))) {
+      throw new Error(`jobs[${i}].body must be an object when present`);
+    }
+    out.push({
+      id: j.id,
+      schedule: j.schedule.trim(),
+      role: j.role,
+      subject: j.subject.trim(),
+      body: j.body || {},
+    });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// State (lastRunMap) persistence
+// ---------------------------------------------------------------------------
+
+function loadState(statePath) {
+  if (!fs.existsSync(statePath)) return new Map();
+  let raw;
+  try {
+    raw = fs.readFileSync(statePath, 'utf8');
+  } catch {
+    return new Map();
+  }
+  let obj;
+  try {
+    obj = JSON.parse(raw);
+  } catch {
+    return new Map();
+  }
+  const map = new Map();
+  if (obj && typeof obj === 'object' && obj.lastRun && typeof obj.lastRun === 'object') {
+    for (const [k, v] of Object.entries(obj.lastRun)) {
+      if (typeof v === 'string') map.set(k, v);
+    }
+  }
+  return map;
+}
+
+function saveState(statePath, map) {
+  try {
+    fs.mkdirSync(path.dirname(statePath), { recursive: true });
+    const obj = { schema: 'openclaw-frontier.cron-last-run.v1', lastRun: {} };
+    for (const [k, v] of map) obj.lastRun[k] = v;
+    const tmp = `${statePath}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(obj, null, 2) + '\n', { mode: 0o600, encoding: 'utf8' });
+    fs.renameSync(tmp, statePath);
+  } catch (err) {
+    process.stderr.write(`[openclaw-cron] state save failed: ${err.message}\n`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tick lock (mkdir-based; same pattern as ledger)
+// ---------------------------------------------------------------------------
+
+const STALE_LOCK_MS = 5 * 60 * 1000;
+
+function tryAcquireLock(lockPath) {
+  try {
+    fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+  } catch (_) {
+    // ignore — actual mkdir of lock is what matters
+  }
+  try {
+    fs.mkdirSync(lockPath, { mode: 0o700 });
+    fs.writeFileSync(
+      path.join(lockPath, 'owner.json'),
+      JSON.stringify({ pid: process.pid, acquiredAt: new Date().toISOString() }) + '\n',
+      { mode: 0o600, encoding: 'utf8' },
+    );
+    return true;
+  } catch (err) {
+    if (err.code !== 'EEXIST' && err.code !== 'EPERM') throw err;
+    // Stale-lock takeover.
+    try {
+      const st = fs.statSync(lockPath);
+      if (Date.now() - st.mtimeMs > STALE_LOCK_MS) {
+        fs.rmSync(lockPath, { recursive: true, force: true });
+        return tryAcquireLock(lockPath);
+      }
+    } catch {
+      // fall through — contention
+    }
+    return false;
+  }
+}
+
+function releaseLock(lockPath) {
+  try {
+    fs.rmSync(lockPath, { recursive: true, force: true });
+  } catch (err) {
+    process.stderr.write(`[openclaw-cron] lock release failed: ${err.message}\n`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dispatch
+// ---------------------------------------------------------------------------
+
+function dispatchDue(ledger, dueList, log) {
+  const dispatched = [];
+  for (const { job, dueAt, parseError } of dueList) {
+    if (parseError) {
+      log(`job ${job.id} schedule parse failed: ${parseError}`);
+      continue;
+    }
+    const taskId = `cron:${job.id}:${dueAt.getTime()}`;
+    const summary = renderClaimSummary(job, dueAt);
+    try {
+      ledger.claimTask({
+        agent: 'cron',
+        taskId,
+        summary,
+        forRole: job.role,
+      });
+      ledger.recordFact({
+        agent: 'cron',
+        subject: `cron-job:${job.id}`,
+        value: {
+          schema: 'openclaw-frontier.cron-dispatch.v1',
+          jobId: job.id,
+          schedule: job.schedule,
+          role: job.role,
+          subject: job.subject,
+          body: job.body || {},
+          taskId,
+          dueAt: dueAt.toISOString(),
+        },
+        evidence: [],
+      });
+      dispatched.push({ jobId: job.id, taskId, dueAt: dueAt.toISOString() });
+      log(`dispatched ${job.id} -> ${job.role} (taskId=${taskId})`);
+    } catch (err) {
+      if (err instanceof BlackboardValidationError) {
+        log(`ledger rejected dispatch for ${job.id}: ${err.message}`);
+      } else {
+        log(`ledger write failed for ${job.id}: ${err.message}`);
+      }
+    }
+  }
+  return dispatched;
+}
+
+function renderClaimSummary(job, dueAt) {
+  const iso = dueAt.toISOString();
+  // Keep summary under the 500-char ledger cap.
+  const base = `[cron ${job.id} @ ${iso}] ${job.subject}`;
+  return base.length > 500 ? base.slice(0, 497) + '...' : base;
+}
+
+// ---------------------------------------------------------------------------
+// Main loop
+// ---------------------------------------------------------------------------
+
+async function main() {
+  const args = parseArgs(process.argv);
+  if (args.help) { process.stdout.write(HELP_TEXT); return; }
+
+  const log = (msg) => { if (!args.quiet) process.stderr.write(`[openclaw-cron] ${msg}\n`); };
+
+  let jobs;
+  try {
+    jobs = loadJobs(args.jobs);
+  } catch (err) {
+    process.stderr.write(`openclaw-cron: ${err.message}\n`);
+    process.exit(1);
+  }
+  log(`loaded ${jobs.length} job(s) from ${path.relative(process.cwd(), args.jobs)}`);
+
+  const lastRunMap = loadState(args.state);
+  const ledger = createLedger({ ledgerPath: args.blackboard });
+
+  let stopRequested = false;
+  const stop = () => { stopRequested = true; };
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
+
+  const doTick = () => {
+    const now = new Date();
+    if (!tryAcquireLock(args.lock)) {
+      log('another tick is already running, skipping this tick');
+      return { skipped: true };
+    }
+    try {
+      const due = tick(jobs, lastRunMap, now);
+      const dispatched = dispatchDue(ledger, due, log);
+      for (const d of dispatched) lastRunMap.set(d.jobId, d.dueAt);
+      saveState(args.state, lastRunMap);
+      return { skipped: false, dispatched };
+    } finally {
+      releaseLock(args.lock);
+    }
+  };
+
+  if (args.once) {
+    const result = doTick();
+    log(`once-tick complete: ${result.skipped ? 'skipped' : `dispatched=${(result.dispatched || []).length}`}`);
+    return;
+  }
+
+  log(`tick loop started, interval=${args.intervalMs}ms`);
+  doTick();
+  while (!stopRequested) {
+    await sleep(args.intervalMs);
+    if (stopRequested) break;
+    doTick();
+  }
+  log('stopped.');
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ---------------------------------------------------------------------------
+// Module / direct-run dispatch
+// ---------------------------------------------------------------------------
+
+if (typeof module !== 'undefined' && require.main !== module) {
+  module.exports = {
+    parseArgs,
+    loadJobs,
+    loadState,
+    saveState,
+    tryAcquireLock,
+    releaseLock,
+    dispatchDue,
+    renderClaimSummary,
+  };
+} else {
+  main().catch((err) => {
+    process.stderr.write(`openclaw-cron: ${err.stack || err.message || err}\n`);
+    process.exit(1);
+  });
+}

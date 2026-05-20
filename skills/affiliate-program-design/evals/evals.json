@@ -1,0 +1,109 @@
+{
+  "skill_name": "affiliate-program-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We want to launch an affiliate program. Should we use a network or build in-house?",
+      "expected_output": "Walks the in-house-vs-network framework. Should not give generic answer; should ask about operational capacity and publisher-fit specificity. Recommends network-based for faster bootstrapping at growth stage, in-house for top publishers as program matures. Recommends the hybrid: network-based for long tail, in-house for top 10-20 publishers. Should name the cost reality (network takes 15-30% of commission, increasing real CAC).",
+      "assertions": [
+        "Checks for .agents/modern-ai-context.md",
+        "Walks the in-house-vs-network framework",
+        "Recommends network-based for growth stage as starting point",
+        "Recommends in-house for top publishers as program matures",
+        "Recommends the hybrid approach",
+        "Names the cost reality of network take 15-30%",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections",
+        "Names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our affiliate program is dominated by coupon publishers like Honey and RetailMeNot. Is that a problem?",
+      "expected_output": "Walks the publisher-recruitment framework. Coupon publishers have high volume but low incrementality (50-80% cannibalized). Should recommend either lower commission rates for coupon publishers, exclusion entirely, or moving to a different attribution model. Should also recommend actively recruiting content and comparison publishers to rebalance the portfolio. Should warn about coupon-extension abuse (browser extensions injecting cookies at checkout).",
+      "assertions": [
+        "Identifies coupon publishers as high volume, low incrementality",
+        "Names typical cannibalization range (50-80%)",
+        "Recommends lower commission rates or exclusion for coupon publishers",
+        "Recommends actively recruiting content and comparison publishers",
+        "Warns about coupon-extension abuse",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We pay affiliate commission on a conversion that we also paid Google for. Is that right?",
+      "expected_output": "Direct answer: no, this is the de-duplication failure mode. Should walk the attribution-rules framework. Should explain the difference between 'last-click within affiliate' and 'last-click across all channels'. Should recommend the cross-channel de-dupe rule: affiliate only gets credit if it is the absolute last touch. Should warn that this misconfiguration causes the brand to pay twice for the same conversion.",
+      "assertions": [
+        "Identifies the de-duplication failure",
+        "Walks the attribution-rules framework",
+        "Distinguishes last-click within affiliate from last-click across channels",
+        "Recommends affiliate gets credit only as absolute last touch",
+        "Names the double-payment cost",
+        "Calls modern.attribution.first_touch via modern-mcp",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "What commission rate should we offer our affiliates?",
+      "expected_output": "Walks the commission-structure framework. Should not give a single number; should explain that different publisher types need different rates. CPS typical 5-15% for DTC ecomm. Should recommend tiered commission for top performers. Should warn against single flat CPS across all publisher types because it either over-pays one or under-pays the other. Should ask about publisher mix before recommending.",
+      "assertions": [
+        "Walks the commission-structure framework",
+        "Does not give a single rate",
+        "Names typical CPS band (5-15% for DTC)",
+        "Recommends tiered for top performers",
+        "Warns against single flat rate across publisher types",
+        "Asks about publisher mix before recommending",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "How do I know if our affiliate program is actually producing incremental revenue?",
+      "expected_output": "Walks the program-economics framework. Should explain that reported attributed revenue overestimates incremental contribution by 30-50% in typical programs. Should recommend annual incrementality test (pause affiliate cookies in randomized geo or audience for defined window, measure conversion impact). Should connect to attribution-model-design for the methodology. Should warn that brands without this test misallocate budget systematically.",
+      "assertions": [
+        "Walks the program-economics framework",
+        "Explains attributed revenue overestimates incremental contribution",
+        "Names typical overestimation range (30-50%)",
+        "Recommends annual incrementality test",
+        "Describes the test methodology (pause cookies in randomized cell)",
+        "References attribution-model-design for methodology",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We caught an affiliate bidding on our brand keywords in paid search. What do we do?",
+      "expected_output": "Direct answer: this is trademark-bidding fraud and the brand should not pay commission on those conversions. Should walk the fraud-prevention framework. Should recommend immediate enforcement: revoke the publisher's program access, claw back commissions, file network policy complaint. Should recommend a quarterly competitive monitoring process going forward. Should name the trademark-bidding policy as the highest-leverage policy decision in the program.",
+      "assertions": [
+        "Identifies trademark bidding as fraud",
+        "Walks the fraud-prevention framework",
+        "Recommends immediate enforcement (revoke access, claw back)",
+        "Recommends quarterly competitive monitoring",
+        "Names trademark-bidding policy as highest-leverage policy decision",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "How should I structure our top-publisher relationships vs the long tail?",
+      "expected_output": "Walks the 'affiliate is a channel of channels' framework. Should explain the Pareto distribution (80% of revenue from top 10-20% of publishers). Should recommend dedicated relationship management for top publishers (custom commission tiers, direct communication) and network-default management for the long tail. Should recommend shifting from network-default to active top-publisher cultivation as the program matures.",
+      "assertions": [
+        "Walks the affiliate-is-a-channel-of-channels framework",
+        "Names the Pareto distribution in publisher revenue",
+        "Recommends dedicated relationship management for top publishers",
+        "Recommends network-default management for long tail",
+        "Recommends active top-publisher cultivation as program matures",
+        "Calls modern.sales.by_channel via modern-mcp if connected",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

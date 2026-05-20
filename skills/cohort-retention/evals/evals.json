@@ -1,0 +1,102 @@
+{
+  "skill_name": "cohort-retention",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Are my cohorts getting worse over time? Honestly I can't tell.",
+      "expected_output": "Walks through the early-warning indicators framework since recent cohorts have insufficient history for direct long-window comparison. Should check the five indicators (day-30 drop, first-order AOV drop, channel mix shift, time-to-second-purchase, browse-to-buy ratio) and pull cohort survival to compare older cohorts where possible.",
+      "assertions": [
+        "Applies the early-warning indicators framework",
+        "Calls modern.retention.cohort_survival to compare cohorts",
+        "Names the five indicators explicitly",
+        "Recommends a weekly dashboard for the five indicators",
+        "Notes that two or more indicators firing warrants investigation",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our blended LTV looks like it's improving but my gut says something is off.",
+      "expected_output": "Distinguishes channel-mix-driven LTV improvements from true product-engagement improvements. Should pull cohort LTV by channel to test whether the apparent improvement is real or is just spend shifting toward higher-retention channels. Should explain why blended LTV can rise without any underlying improvement.",
+      "assertions": [
+        "Distinguishes channel-mix-driven LTV from product-engagement LTV",
+        "Calls modern.retention.cohort_ltv grouped by acquisition channel",
+        "Pulls revenue by channel to verify spend mix shift",
+        "Explains how blended LTV can rise without underlying change",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "What's the difference between my customer retention rate and my revenue retention rate?",
+      "expected_output": "Explains the two metrics and the four strategic combinations. High customer / low revenue → AOV problem. Low customer / high revenue → loyal core. Walks through which intervention applies to which combination. Should pull both metrics from the cohort data and identify which quadrant the brand is in.",
+      "assertions": [
+        "Defines customer retention and revenue retention separately",
+        "Explains the four quadrants of high/low combinations",
+        "Pulls both metrics to identify the brand's quadrant",
+        "Names the appropriate intervention per quadrant",
+        "Recommends reporting both, not just one",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "What does it mean if my retention curve never flattens out?",
+      "expected_output": "Identifies a continuous-decline shape, which indicates a relationship-depth problem rather than a normal retention curve. Intervention target is product engagement and post-purchase activation, not retention messaging. Should distinguish from a healthy smile-shape curve.",
+      "assertions": [
+        "Identifies continuous-decline shape from the description",
+        "Distinguishes from healthy smile-shape curves",
+        "Recommends product engagement intervention, not retention messaging",
+        "Calls modern.retention.cohort_survival to confirm the shape",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We acquired a bunch of customers via Meta last quarter. Are they retaining as well as our other customers?",
+      "expected_output": "Pulls cohort LTV grouped by acquisition channel. Should explain the typical channel retention hierarchy (referral > organic > paid search > paid social > programmatic) and note that Meta-acquired customers typically retain at lower rates than organic-acquired. Should walk through the implication for paid budget allocation.",
+      "assertions": [
+        "Pulls cohort LTV by channel",
+        "Cites the typical channel retention hierarchy",
+        "Names Meta retention as typically lower than organic",
+        "Pulls first-touch attribution to clean channel labels",
+        "Connects findings to budget allocation question",
+        "References paid-ltv-optimization for the deeper paid analysis",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "I want to test a new welcome sequence and see if it improves retention. How do I set up the test?",
+      "expected_output": "Walks through the intervention test design framework. Pick the cohort (most recent full month with statistical power). Choose holdout (50/50 default). Primary metric: customer retention at month 3 or 6. Duration: minimum 90 days. Pre-register criterion for success and kill criterion. Should warn against testing on active customer file rather than a defined cohort.",
+      "assertions": [
+        "Walks through cohort selection criteria",
+        "Recommends 50/50 holdout as default",
+        "Names primary metric as customer retention at month 3 or 6",
+        "Recommends minimum 90 day duration",
+        "Requires pre-registered success and kill criteria",
+        "Warns against active-file tests vs cohort tests",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "My second-purchase AOV is lower than my first-purchase AOV. Should I worry?",
+      "expected_output": "Possibly, depending on the trend. Walks through the AOV-trends-within-cohorts framework. Declining repeat AOV often indicates customers reverting to a single replenishment SKU after initial exploration — a depth-of-relationship problem that retention messaging will not solve. Recommends bundle and catalog work over flow tuning. References bundle-pricing for the structural fix.",
+      "assertions": [
+        "Identifies declining repeat AOV as a depth-of-relationship signal",
+        "Recommends bundle and catalog work over flow tuning",
+        "References bundle-pricing for the structural fix",
+        "Pulls AOV by purchase number within cohort",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "schema": "openclaw-frontier.ticket-template.v1",
+  "name": "feature-request",
+  "defaultPriority": "p2",
+  "defaultSlaHours": 168,
+  "requiredFields": ["title", "body"],
+  "suggestedAssignees": ["product", "builder"],
+  "bodyTemplate": "## Problem statement\n\n<who is affected and what hurts today>\n\n## Proposed solution\n\n<what we want to build>\n\n## Acceptance criteria\n\n- [ ] <criterion one>\n- [ ] <criterion two>\n- [ ] <criterion three>\n\n## Out of scope\n\n<what this ticket explicitly does NOT cover>\n\n## Open questions\n\n<questions to resolve before claiming>\n"
+}

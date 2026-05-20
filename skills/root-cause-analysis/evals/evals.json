@@ -1,0 +1,100 @@
+{
+  "skill_name": "root-cause-analysis",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We had a 14-minute outage yesterday. Checkout returned 500s for everyone. The fix was a rollback. What was the root cause?",
+      "expected_output": "Refuses to name a root cause without evidence. Requests timeline, logs, and the diff in the rolled-back deploy. Walks through 5 whys structure starting from the symptom, distinguishes root cause from contributing factors. Notes that 'we rolled back' is mitigation, not cause. Recommends timeline reconstruction from logs and metrics first.",
+      "assertions": [
+        "Refuses to name a root cause without evidence",
+        "Asks for timeline reconstruction from logs and metrics",
+        "Distinguishes mitigation (rollback) from root cause",
+        "Walks through 5 whys structure",
+        "Distinguishes root cause from contributing factors",
+        "Requests deploy diff and error logs"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "The RCA concluded 'an engineer forgot to add a null check'. The action item is 'be more careful with null checks'. Is that done?",
+      "expected_output": "Pushback that 'human error' is not a root cause and 'be more careful' is not an action item. Reframes the finding to a system question: why does this codebase let null checks be optional? Why didn't the type system or test suite catch it? Recommends systemic action items (type system enforcement, lint rule, test coverage at the boundary) rather than asking engineers to remember harder.",
+      "assertions": [
+        "Says human error is not a root cause",
+        "Says 'be more careful' is not an action item",
+        "Reframes to a system-design question",
+        "Recommends type system enforcement or lint rules",
+        "Notes any engineer would eventually make the same mistake",
+        "Suggests boundary tests as a systemic control"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our 5 whys keeps producing a chain that doesn't feel like the full story. Multiple things went wrong at once. What should we do?",
+      "expected_output": "Recommends switching from 5 whys to fault tree analysis when multiple conditions had to coincide. Explains AND vs OR gates and how to decompose top-down. Notes that 5 whys is for single-chain incidents and fault tree is for incidents with multiple contributing chains. Walks through how to identify the leaf nodes that produce action items.",
+      "assertions": [
+        "Recommends fault tree analysis over 5 whys for multi-cause incidents",
+        "Explains AND vs OR gates",
+        "Notes 5 whys assumes a single chain",
+        "Walks through top-down decomposition",
+        "Identifies leaf nodes as the source of action items"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "AWS had a regional outage. Our service went down with it. What's the RCA?",
+      "expected_output": "Reframes from 'AWS had an outage' to 'we had no fallback path'. Notes that the immediate symptom has an environmental cause, but the duration and severity are driven by our own resilience choices. Action items are about resilience (multi-region, graceful degradation, fast detection) not about preventing AWS from failing. Distinguishes the symptom's root cause from the duration's root cause.",
+      "assertions": [
+        "Reframes AWS outage to internal resilience question",
+        "Distinguishes symptom cause from duration cause",
+        "Action items focus on resilience, not prevention",
+        "Mentions multi-region or graceful degradation",
+        "Asks how long before we identified third party as the cause"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our RCA says the cache layer 'may have contributed' to the slowdown. Should we leave that in?",
+      "expected_output": "Pushes back on 'may have contributed' as a hedge. Each hypothesis must be falsifiable: either evidence supports it or it doesn't. Recommends checking cache metrics during the incident window. If evidence supports the contribution, state it specifically with the evidence; if not, drop it. The 'what did not cause this' section of the RCA is what makes it trustworthy.",
+      "assertions": [
+        "Pushes back on 'may have contributed' as a hedge",
+        "Requires falsifiable hypothesis",
+        "Recommends checking cache metrics during the incident window",
+        "Mentions the 'what did not cause this' section",
+        "Notes evidence either supports or refutes the claim",
+        "Recommends dropping unsupported hypotheses"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Two of us are doing the RCA. We disagree on whether the migration caused the outage or the connection pool config did. Both are involved. How do we resolve this?",
+      "expected_output": "Diagnosis that this is the root cause vs contributing factor distinction. Recommends asking the test question: would the action items derived from each candidate have prevented the incident? Probably both are involved — the migration was the trigger, the pool config was the amplifier. Both belong in the RCA but in different buckets (root-cause-prevention vs contributing-factor-reduction).",
+      "assertions": [
+        "Distinguishes root cause from contributing factor",
+        "Asks the 'would the action item have prevented this' test",
+        "Allows both to be present in different buckets",
+        "Notes one is trigger and one is amplifier",
+        "Recommends tagging action items by bucket"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We've been doing RCAs for six months. The action items keep being 'we need more tests' and they don't get done. What's the meta-problem?",
+      "expected_output": "Diagnosis that 'we need more tests' is the unactionable smell. Action items need to be specific: which tests, at which layer, catching what. Recommends auditing the last several RCAs for vague action items, sorting by bucket (root-cause vs contributing factor vs detection), and re-writing the vague ones as specific deliverables with owners. The pattern is a symptom of stopping the why-chain too early.",
+      "assertions": [
+        "Calls out 'we need more tests' as the unactionable smell",
+        "Recommends specific action items (which tests, what layer, what they catch)",
+        "Recommends auditing past RCAs",
+        "Suggests sorting by bucket",
+        "Diagnoses early-stopping of the why-chain as the meta-cause",
+        "Recommends assigning owners and deliverables"
+      ],
+      "files": []
+    }
+  ]
+}

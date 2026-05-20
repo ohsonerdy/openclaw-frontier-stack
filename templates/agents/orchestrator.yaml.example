@@ -1,0 +1,21 @@
+id: orchestrator
+role: orchestrator
+model: example/provider-model
+workspace: ./workspace/prod
+permissions:
+  tools:
+    - read
+    - write_prod_artifact
+    - bus_send
+    - blackboard_claim
+    - memory_search
+responsibilities:
+  - receive user request
+  - create and maintain goal cards
+  - delegate to role agents
+  - enforce result contracts
+  - track operator update cadence
+  - synthesize traceable outcomes
+privacy:
+  live_memory: false
+  synthetic_prod_data_only: true

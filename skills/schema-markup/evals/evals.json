@@ -1,0 +1,98 @@
+{
+  "skill_name": "schema-markup",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We have Product schema on our PDPs but no rich results in Google. What's missing?",
+      "expected_output": "Walks the required vs recommended fields framework. Diagnoses likely cause: schema-lite implementation with only required fields filled. Recommends filling the strongly-recommended tier (aggregateRating, full offers, mpn/gtin) and the high-leverage optional tier (additionalProperty). Recommends running Google Rich Results Test on a sample PDP. References ai-seo for the AI-surface value beyond Google rich results.",
+      "assertions": [
+        "Walks the required vs recommended fields framework",
+        "Diagnoses schema-lite as likely cause",
+        "Recommends filling aggregateRating and full offers",
+        "Recommends adding additionalProperty for AI-surface value",
+        "Recommends Google Rich Results Test as validation",
+        "References ai-seo for AI-surface benefits"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our supplement PDPs show 4.2 stars on the page but the schema says 5 stars (we hardcoded it during a test). Risk?",
+      "expected_output": "Yes — major risk. Walks the schema-must-match-visible-content framework. Notes that Google can suppress rich results and in severe cases issue manual actions. Recommends fixing immediately by removing the hardcoded value and dynamically pulling the real aggregate rating. Notes the underclaim-OK-overclaim-NOT-OK corollary.",
+      "assertions": [
+        "Identifies as a high-severity rich-result-suppression risk",
+        "Walks the schema-must-match-visible-content framework",
+        "Notes manual action risk for severe cases",
+        "Recommends immediate fix by dynamic data pull",
+        "Names the underclaim-OK-overclaim-NOT-OK rule"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Should we add FAQPage schema to our PDPs?",
+      "expected_output": "Yes. References ai-seo for the AI-citation value of FAQPage. Notes that Google's FAQ rich result has been restricted to authoritative sources since 2023+, so the schema is more useful for AI surfaces than Google rich results. Walks the schema-type selection matrix. Recommends 5-8 questions per PDP with answer text + matching schema.",
+      "assertions": [
+        "Recommends FAQPage schema on PDPs",
+        "References ai-seo for AI-citation value",
+        "Notes Google's FAQ rich result restriction since 2023+",
+        "Frames as more useful for AI surfaces than Google rich results",
+        "Recommends 5-8 questions per PDP"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "What's additionalProperty in Product schema and should I use it?",
+      "expected_output": "Yes — it's underused and high-leverage. Walks the fill-the-optional-fields framework. Explains it accepts arbitrary name-value pairs (servings, ingredients, allergens, certifications). Provides a worked example. Notes AI surfaces consume it heavily when answering structured questions about products. References ai-seo for the consumption context.",
+      "assertions": [
+        "Explains additionalProperty accepts arbitrary name-value pairs",
+        "Provides a worked example with multiple properties",
+        "Notes AI surfaces consume it for structured questions",
+        "References ai-seo for AI-surface consumption context",
+        "Recommends populating for top SKUs first",
+        "Calls modern.sales.sku_affinity or similar to identify priority SKUs"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We're a small DTC brand with no Knowledge Graph entry on Google. Does Organization schema help?",
+      "expected_output": "Yes, partially. Recommends Organization schema on homepage with name, logo, sameAs (social URLs), founder, foundingDate. Walks the schema-type selection matrix for homepage. Notes that schema alone doesn't create a Knowledge Graph entry, but it's a prerequisite signal. References ai-seo for the entity-and-relationship-modeling angle.",
+      "assertions": [
+        "Recommends Organization schema on homepage",
+        "Names key fields (name, logo, sameAs, founder, foundingDate)",
+        "Notes schema alone doesn't create Knowledge Graph entry",
+        "References ai-seo for entity modeling",
+        "Walks the schema-type selection matrix"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "How do I validate my schema is working?",
+      "expected_output": "Walks the validation tooling framework. Names Google Rich Results Test and Schema.org Validator as non-negotiable. Recommends Search Console structured-data report for ongoing monitoring. Recommends Screaming Frog or similar crawler for sitewide deployment verification. Walks the validation cadence.",
+      "assertions": [
+        "Names Google Rich Results Test",
+        "Names Schema.org Validator",
+        "Recommends Search Console structured-data report for ongoing monitoring",
+        "Recommends a crawler for sitewide verification",
+        "Walks the validation tooling framework"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We have 5,000 SKUs. Where should I focus schema work?",
+      "expected_output": "Recommends prioritizing the top 20-100 SKUs by revenue. Walks the priority-by-revenue logic. Calls modern.sales.sku_affinity to identify the highest-leverage SKUs. Recommends not marking up tail SKUs first because the lift comes from rich results on high-traffic pages, not from comprehensive coverage. References ai-seo for the AI-surface consumption angle.",
+      "assertions": [
+        "Recommends prioritizing top SKUs by revenue, not comprehensive coverage",
+        "Calls modern.sales.sku_affinity to identify priority SKUs",
+        "Notes that lift comes from high-traffic pages, not coverage",
+        "References ai-seo for AI-surface angle",
+        "Recommends top 20-100 SKUs as the focus band"
+      ],
+      "files": []
+    }
+  ]
+}

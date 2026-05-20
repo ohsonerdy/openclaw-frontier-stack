@@ -1,0 +1,104 @@
+{
+  "$schema": "openclaw-frontier.skill-eval.v1",
+  "skill_name": "post-purchase-experience",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our only post-purchase emails are order confirmation and shipping notification. What are we missing?",
+      "expected_output": "Walks the seven-phase post-purchase arc. Identifies that phases 4-7 (first use, NPS, review, second purchase) are missing entirely. Pulls repeat rate to size the cost of the gap. Recommends prioritizing first-use education, NPS at category-appropriate window, review request post-NPS, and replenishment or cross-sell at day 30+. Names the touchpoints in priority order.",
+      "assertions": [
+        "Walks the seven-phase post-purchase arc",
+        "Identifies phases 4-7 as missing",
+        "Pulls modern.retention.repeat_rate to size impact",
+        "Names first-use, NPS, review, second-purchase as missing",
+        "Recommends priority order for filling the gaps",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We send the NPS survey 24 hours after delivery. Is that right?",
+      "expected_output": "Probably wrong, depending on category. Walks the timing rules. NPS at day 1 measures packaging not product. Replenishment SKUs: day 7. Considered durables: day 14-21. Skincare and supplements: day 21-30 since results take time. Recommends matching NPS timing to product experience timeline.",
+      "assertions": [
+        "Identifies day 1 NPS as too early in most categories",
+        "Walks the category-by-category NPS timing",
+        "Names day 7 for replenishment, 14-21 for durables, 21-30 for skincare",
+        "Notes that day 1 NPS measures packaging not product",
+        "Recommends matching NPS timing to product experience",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our review rate is 2%. Why so low?",
+      "expected_output": "Multiple possible causes. Walks the timing rule for review requests (after NPS confirms satisfaction, after enough time for opinion to form). Asks when the review request is sent relative to delivery. Pulls NPS data to check whether reviews are requested from detractors (which produces low rate plus reputational risk). Recommends day-14 for apparel, day-21-30 for skincare and supplements, and filtering audience by NPS.",
+      "assertions": [
+        "Walks the review request timing rule",
+        "Asks for current review request timing",
+        "Recommends NPS-filtered audience for review request",
+        "Pulls modern.surveys.nps_distribution to check audience filter",
+        "Recommends category-specific timing",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our unboxing is just kraft paper and a thank-you note. Should we invest more?",
+      "expected_output": "Walks the unboxing framework. The current setup is between standard and differentiated. Conditions the upgrade on AOV. Below $50 AOV the standard tier is reasonable. $50-150 AOV the differentiated tier produces measurable UGC and review lift at $0.50-2 incremental cost. Above $150 the premium tier with custom packaging warrants the spend. Recommends filming a sample unboxing as the diagnostic.",
+      "assertions": [
+        "Walks the unboxing tier framework",
+        "Conditions the upgrade tier on AOV",
+        "Names the cost band per tier",
+        "Recommends filming the customer experience as diagnostic",
+        "Names UGC and review lift as the measurable impact",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Should we put a discount code in our insert card?",
+      "expected_output": "Depends on segmentation. Walks the insert card design framework. For first-purchase customers a referral offer or VIP teaser tends to outperform a discount code that trains repeat customers to wait. Recommends segmentation by order count and a single CTA per card. Warns against the multi-CTA insert that produces zero action. Notes that a tracked discount code per card is the right way to measure attribution.",
+      "assertions": [
+        "Walks the insert card tier framework",
+        "Recommends segmentation by order count",
+        "Warns against multi-CTA inserts",
+        "Names the discount-trains-waiting risk",
+        "Recommends unique-code tracking for attribution",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our second-purchase AOV is the same as first-purchase. Is there a post-purchase problem?",
+      "expected_output": "Likely yes. Walks the second-purchase phase. Typical second-purchase AOV is 15-30% higher than first because the customer is now trying additional SKUs. Flat or declining second-purchase AOV indicates customers reverting to a single SKU rather than building a relationship. Recommends cross-sell sequence design, replenishment-plus-companion bundles, and references repeat-purchase for the deeper mechanic.",
+      "assertions": [
+        "Pulls modern.sales.aov segmented by purchase number",
+        "Names 15-30% lift as the expected pattern",
+        "Identifies the depth-of-relationship problem",
+        "Recommends cross-sell and bundle work",
+        "References repeat-purchase for deeper mechanics",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "What should we send the customer during the 7 days while their order is in transit?",
+      "expected_output": "Walks the anticipation phase. The customer is at peak excitement; silence produces support tickets and erodes the post-purchase momentum. Recommends shipping notification with realistic delivery, optional brand-story or behind-the-scenes content email, and a first-use teaser scheduled for the delivery day. SMS for shipped and out-for-delivery confirmations.",
+      "assertions": [
+        "Identifies the anticipation phase as high-engagement",
+        "Names silence as the common operator failure",
+        "Recommends shipping plus educational content sequence",
+        "Recommends SMS for transactional immediacy",
+        "Names the first-use teaser timed to delivery",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    }
+  ]
+}

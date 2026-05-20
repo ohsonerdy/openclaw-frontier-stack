@@ -1,0 +1,106 @@
+{
+  "skill_name": "local-dev-environment",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We just hired our fourth engineer. They spent two days getting the app running locally — there's a 28-step setup README, three services are host-installed with different versions per engineer, and secrets get shared on Slack. What should we do?",
+      "expected_output": "Diagnose this as a Level 1-and-broken environment. Recommend moving services to containers (Level 2 minimum), pinning language versions via a toolchain file, creating an `.env.example` with a documented vault retrieval path, and running the 'what's missing' audit. Should set a fresh-checkout-to-first-PR benchmark and treat the 28-step README as a smell, not a finished artifact. Should reject the Slack-shared-secrets pattern.",
+      "assertions": [
+        "Identifies the current setup as broken Level 1 or mixed-level",
+        "Recommends moving services to containers (Level 2)",
+        "Recommends pinning language versions via toolchain file",
+        "Replaces Slack-shared secrets with .env.example and documented vault path",
+        "Runs the 'what's missing for someone joining today' audit",
+        "Sets a fresh-checkout-to-first-PR benchmark",
+        "Treats the 28-step README as a smell to fix, not a deliverable"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "An engineer reports the tests pass for them but fail for a teammate. Both pulled main this morning. The teammate's machine has a slightly older Node version. What's the diagnosis?",
+      "expected_output": "Diagnose as a real environment-divergence bug, not 'just their machine'. Should triage by reproducing on a third machine, identifying the divergence (Node version), pinning the Node version via `.nvmrc` or `.tool-versions`, and adding a CI matrix entry to prevent recurrence. Should explicitly reject the 'just upgrade your Node' workaround as not a fix.",
+      "assertions": [
+        "Treats works-on-my-machine as a real defect, not a quirk",
+        "Reproduces on a third machine to localize the divergence",
+        "Identifies Node version as the divergence",
+        "Pins Node version via .nvmrc or similar toolchain file",
+        "Adds CI check or pre-commit to prevent recurrence",
+        "Rejects 'just upgrade your Node' as a complete fix without pinning",
+        "Names the kill-the-YAK rule explicitly"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We're a small team of three. Should we use devcontainers / Codespaces, or run things on the host with Docker for services?",
+      "expected_output": "Recommend Level 2 (services in containers, app on host) as the default for a 3-person team. Devcontainers / Level 4 are best when onboarding cost exceeds devcontainer maintenance cost — at 3 engineers, it usually doesn't. Should reinforce that Level 4 is the cheapest onboarding and most expensive maintenance, and ask whether the team has the operator capacity for image upkeep. Should leave the door open to graduate to Level 4 later.",
+      "assertions": [
+        "Recommends Level 2 for a small team by default",
+        "Explains Level 4 (devcontainer) tradeoff: cheapest onboarding, most expensive maintenance",
+        "Asks about operator capacity for devcontainer maintenance",
+        "Frames Level 4 as a graduation path, not a starting point",
+        "Names the parity-with-prod sliding scale explicitly",
+        "Avoids over-engineering for a 3-person team"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our dev seed data is wildly out of date — it still references columns we dropped two years ago. New engineers spend their first day fixing seed errors. What's the path forward?",
+      "expected_output": "Diagnose stale seeds as predictable seed drift. Recommend one of three patterns: keep migrations-only and accept slow fresh DB, refresh seeds with discipline (CI runs seed load as a smoke test), or move to sanitized prod snapshots. Should reinforce that seed drift is inevitable without enforcement, and recommend adding a CI step that loads seeds against current schema to catch drift early.",
+      "assertions": [
+        "Identifies seed drift as the root cause",
+        "Names migrations-only, refreshed seeds, and sanitized snapshots as the three patterns",
+        "Recommends a CI step that loads seeds against current schema",
+        "Notes seed drift is inevitable without enforcement",
+        "Flags sanitization requirement if using prod snapshots",
+        "Does not propose ad-hoc seed fixes as the long-term answer"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "A new engineer joins next Monday. We have a Docker-compose setup but the README is six months old and we haven't onboarded anyone since. What should I do this week?",
+      "expected_output": "Recommend running the 'what's missing' audit personally this week, in a fresh checkout pretending to be the new engineer with no prior context. Walk the README literally, note every broken step, and fix the blockers before Monday. Should also measure the actual fresh-checkout-to-first-PR time so the new engineer's experience is bounded. Should plan to have the new engineer run the audit again on day 1 — they're the only person who can see the gaps with fresh eyes.",
+      "assertions": [
+        "Recommends running the 'what's missing' audit this week",
+        "Audits the README literally with no prior context",
+        "Fixes blocking items before Monday",
+        "Measures actual fresh-checkout-to-first-PR time",
+        "Plans to have the new hire run the audit again on day 1",
+        "Treats new-hire fresh eyes as the only reliable test of the README"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our CI uses Node 20 but our `.nvmrc` says 18. Tests pass in CI but fail locally for an engineer using `.nvmrc`. What's the fix?",
+      "expected_output": "Diagnose as a pinning split between CI and local. The whole point of pinning is parity. Recommend aligning CI and local to the same version (either bump `.nvmrc` to 20 with intent, or pin CI to 18). Should reinforce that 'pin everywhere or admit you're not really pinned'. Should add an assertion (CI matrix or startup check) that fails if the runtime Node version doesn't match the `.nvmrc`.",
+      "assertions": [
+        "Identifies the pinning split between CI and local",
+        "Recommends aligning CI and local to the same Node version",
+        "Decides intentionally between bumping .nvmrc or pinning CI back",
+        "Adds a check that prevents future drift",
+        "Names the 'pin everywhere or admit you're not pinned' rule",
+        "Treats the misalignment as a defect, not a quirk"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We have prod API keys checked into a private repo's `.env` file. Argument has been 'it's a private repo'. Should we change anything?",
+      "expected_output": "Strongly recommend removing the prod keys from the repo and rotating them. 'Private repo' is not a safe storage location — repo history is forever, access controls drift, and leaked secrets are expensive to rotate. Replace with `.env.example` documenting placeholders and a documented vault retrieval path. Should also recommend that engineers don't have prod credentials on their laptops by default — that's a specific authorization event, not the baseline.",
+      "assertions": [
+        "Recommends removing prod keys from the repo",
+        "Recommends rotating the keys after removal",
+        "Rejects 'private repo' as a safe storage argument",
+        "Notes that repo history makes leaks permanent",
+        "Replaces with .env.example and documented vault path",
+        "Notes that engineers should not have prod credentials by default",
+        "References secret bootstrap discipline"
+      ],
+      "files": []
+    }
+  ]
+}

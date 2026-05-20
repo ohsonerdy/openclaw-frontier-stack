@@ -1,0 +1,39 @@
+{
+  "schema": "openclaw-frontier.cost-table.v1",
+  "note": "Per-MTok USD rates for the supported Claude model surface. SNAPSHOT TAKEN 2026-05; values WILL go stale as pricing changes. Override via OPENCLAW_COST_TABLE=<path/to/your-cost-table.json> to point at a freshly-curated table without modifying the package. Used only for the per-goal cost ESTIMATE displayed by openclaw goal --show / openclaw recap --cost; the orchestrator does not use this table for billing or capacity planning.",
+  "currency": "USD",
+  "unit": "per-million-tokens",
+  "generatedAt": "2026-05-01",
+  "models": {
+    "claude-opus-4-7": {
+      "input": 15.0,
+      "output": 75.0,
+      "cache_write": 18.75,
+      "cache_read": 1.5
+    },
+    "claude-sonnet-4-6": {
+      "input": 3.0,
+      "output": 15.0,
+      "cache_write": 3.75,
+      "cache_read": 0.3
+    },
+    "claude-haiku-4-5-20251001": {
+      "input": 0.8,
+      "output": 4.0,
+      "cache_write": 1.0,
+      "cache_read": 0.08
+    }
+  },
+  "aliases": {
+    "claude-opus-4-7[1m]": "claude-opus-4-7",
+    "claude-sonnet-4-6-20251022": "claude-sonnet-4-6",
+    "claude-haiku-4-5": "claude-haiku-4-5-20251001"
+  },
+  "fallback": {
+    "input": 3.0,
+    "output": 15.0,
+    "cache_write": 3.75,
+    "cache_read": 0.3,
+    "note": "Used when a model id is not in models or aliases. Equal to the sonnet rate (a sensible mid-tier guess)."
+  }
+}

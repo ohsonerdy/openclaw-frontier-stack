@@ -1,0 +1,121 @@
+{
+  "skill_name": "secrets-management",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We just discovered an AWS access key was committed to our public repo three days ago. The repo has been public the whole time. What do we do?",
+      "expected_output": "Treat as a confirmed leak. Rotate the AWS key immediately before any investigation. Identify and revoke any active sessions or long-lived tokens issued under that key. Audit AWS CloudTrail logs for the exposure window to identify any unusual activity. Notify internal security and any affected service owners. After rotation, file a post-mortem to investigate how the secret reached the public repo (pre-commit hook, CI scan, training). Should NOT investigate before rotating; should NOT assume 'might be okay because nobody saw it'.",
+      "assertions": [
+        "Recommends rotating the key immediately, before investigation",
+        "Identifies revocation of active sessions or derived tokens",
+        "Recommends auditing CloudTrail or equivalent access logs for the exposure window",
+        "Treats the key as actively compromised, not potentially compromised",
+        "References post-mortem and follow-up to prevent recurrence",
+        "Does not delay rotation pending investigation",
+        "Suggests defense-in-depth improvements (pre-commit hook, CI scan, history scan)"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We're picking a secrets vault for a 12-engineer startup. We have a mix of prod, staging, and dev environments and use AWS. Should we use AWS Secrets Manager or HashiCorp Vault?",
+      "expected_output": "Default to managed (AWS Secrets Manager) for a team of this size. Self-hosted Vault is a real ongoing operational job. Recommend environment segmentation regardless of vendor choice (separate vault scope per env). Cost should be evaluated against the per-secret pricing, but for 12 engineers it's almost always below the engineering-time threshold to self-host. Should reinforce that the vault choice is consequential (becomes a dependency) and self-hosting is a real ongoing job, not just install-and-forget.",
+      "assertions": [
+        "Recommends managed (AWS Secrets Manager) as the default for this team size",
+        "Notes self-hosted Vault is a real ongoing operational job",
+        "Recommends environment segmentation (separate vault scope per env)",
+        "Identifies that the vault becomes a dependency of every consuming system",
+        "Considers blast radius of a single vault holding all environments",
+        "Does not pick based on feature checkboxes alone"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "How often should we rotate our production Postgres admin password? It's been the same value for 4 years and nothing has gone wrong.",
+      "expected_output": "Diagnosis that 4 years without rotation is an exposure window measured in years. Database admin credentials are high-blast-radius and should rotate every 30 days. The reason 'nothing has gone wrong' is not evidence of safety; it's evidence of either no exposure or no detection. The system that consumes the password should be designed for cheap rotation; if it isn't, that's the bug. Recommend rotating now and putting an automated rotation in place.",
+      "assertions": [
+        "Identifies 4 years as far too long for a high-blast-radius secret",
+        "Recommends 30-day rotation for database admin credentials",
+        "Notes 'nothing has gone wrong' is not evidence of safety",
+        "Recommends designing the consumer for cheap rotation if it currently isn't",
+        "Recommends automation rather than human-remembered rotation",
+        "Treats the secret as one whose exposure window is the time since last rotation"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We have a breakglass procedure: the CTO has the master vault credentials in his personal 1Password. Is that good enough?",
+      "expected_output": "Diagnosis that single-person breakglass with the CTO is not a valid design. Two failure modes: (a) the CTO is unreachable (vacation, plane, emergency), and (b) one person can invoke breakglass without oversight (no two-person rule, no audit). Recommend redesigning to require two distinct humans, time-limited tokens, and an audit trail visible to someone other than the invokers. The procedure should be tested quarterly. Stored physically (safe) or in a separate isolated system, not in a personal vault.",
+      "assertions": [
+        "Identifies single-person breakglass as a design failure",
+        "Recommends two-person rule",
+        "Recommends time-limited tokens",
+        "Recommends audit trail visible to a third party",
+        "Notes the procedure must be tested (quarterly)",
+        "Calls out the CTO-unreachable failure mode",
+        "Recommends physical or isolated storage, not personal password manager"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We're encrypting customer PII at rest with a single AES key stored in AWS KMS. Rotating it would require re-encrypting every record, which is too expensive, so we haven't rotated in 2 years. What should we do differently?",
+      "expected_output": "Diagnosis that the encryption design is missing the KEK/DEK two-tier pattern. Recommend redesigning: a per-record (or per-tenant) DEK encrypts the data, the KEK in KMS encrypts the DEK. KEK rotation only requires re-encrypting the DEKs, not the data. This decouples key rotation from data re-encryption. New design lets KEK rotate monthly without touching customer data. Should reinforce that envelope encryption is the default for new systems and that the current single-key design is the root cause of the 'rotation is too expensive' problem.",
+      "assertions": [
+        "Identifies the design as missing KEK/DEK envelope encryption",
+        "Recommends per-record or per-tenant DEK",
+        "Notes that KEK rotation does not require re-encrypting the data, only the DEKs",
+        "Recommends migrating to envelope encryption",
+        "Identifies the current 'too expensive to rotate' as a symptom of the design, not a constraint",
+        "Suggests monthly or quarterly KEK rotation once the new design is in place"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our application reads a Stripe API key from an environment variable that is set by a startup shell script committed to the repo. The shell script reads from `secrets.env` which is in `.gitignore`. Is this fine?",
+      "expected_output": "Identify multiple issues: (a) env vars leak into core dumps, child processes, error reports — acceptable only for low-blast-radius secrets; a Stripe key is high-blast-radius; (b) the secrets.env file relies on .gitignore discipline, which fails the moment someone removes the line or commits a different file with the secret; (c) the runtime delivery path should be the vault, not a file on disk loaded by a shell script. Recommend pulling the Stripe key from the vault at process start (or via sidecar / file mount from the orchestrator), not from a local file. Add a pre-commit hook to scan for secret patterns regardless.",
+      "assertions": [
+        "Identifies env var leakage risk for high-blast-radius secrets",
+        "Identifies .gitignore as fragile defense (one removal away from a commit)",
+        "Recommends pulling the secret from the vault at runtime, not from a local file",
+        "Suggests orchestrator-managed file mount or sidecar as alternative to env var",
+        "Recommends pre-commit hook as defense in depth",
+        "Treats Stripe key as high-blast-radius",
+        "Does not accept the current setup as fine"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We don't have a secret inventory. Our vault has about 300 secrets. Who owns them? Nobody knows. Where do I start?",
+      "expected_output": "Start by enumerating from the vault itself: pull the list of secret paths, group by environment and prefix. For each, identify the consumer (which service reads it) by scanning service configs and IAM policies. Assign provisional owners based on the consuming service's team. Set up the inventory artifact with: name, purpose, current location, owner, last rotated, next rotation due, consumers. Flag orphaned secrets (no consumer found) and past-due rotations. The inventory is itself an owned artifact; assign someone for quarterly reconciliation. Until the inventory exists, rotation planning is improvised.",
+      "assertions": [
+        "Recommends pulling the actual list from the vault as the starting baseline",
+        "Recommends mapping each secret to its consuming service",
+        "Recommends provisional ownership by consuming-service team",
+        "Defines the inventory schema (name, owner, last rotated, consumers)",
+        "Flags orphans and past-due rotations",
+        "Assigns ownership of the inventory artifact itself",
+        "Recommends quarterly reconciliation cadence"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "We just installed a pre-commit hook to block secret commits. Is that enough?",
+      "expected_output": "Not enough on its own; pre-commit hooks can be skipped (--no-verify), bypassed by contributors who don't install them, or fail silently. Defense in depth: pre-commit hook + CI scan on every PR + periodic full-history scan. The full-history scan catches secrets added before the hook existed or via paths that bypassed it. Reference verified-history-scan for the audit pass. The combination of all three is the practical bar; any single layer can be bypassed.",
+      "assertions": [
+        "Notes that pre-commit hook alone is bypassable (--no-verify, not installed)",
+        "Recommends CI scan as the second layer",
+        "Recommends periodic full-history scan as the third layer",
+        "References verified-history-scan for the historical audit",
+        "Treats the three layers as defense in depth, not redundant",
+        "Notes that history scans catch secrets added before the hook existed"
+      ],
+      "files": []
+    }
+  ]
+}

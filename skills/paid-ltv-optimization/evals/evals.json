@@ -1,0 +1,123 @@
+{
+  "skill_name": "paid-ltv-optimization",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Meta is killing us — CAC has crept from $42 to $61 over the last six weeks and we're scared to keep scaling. What do we do?",
+      "expected_output": "A diagnosis that distinguishes creative fatigue, audience saturation, and bid pressure using the three-vector signature, grounded in the user's CAC trend and (if available) frequency, CTR, and CPM. The response should pull Meta's 90d CAC and 180d cohort LTV via MCP if connected, place the channel into the four-channel decision grid, and prescribe a creative-refresh cadence with explicit week-over-week scaling rules. It should not recommend pausing without first checking attribution stability.",
+      "assertions": [
+        "Checks for .agents/modern-ai-context.md before asking the user generic context questions",
+        "Calls modern.ads.cac_by_channel via modern-mcp if connected, otherwise asks the user for Meta spend and new-customer counts",
+        "Calls modern.retention.cohort_ltv if connected, otherwise asks for AOV and repeat-rate inputs",
+        "Applies the three-vector creative-fatigue diagnostic (frequency, CTR, CPM)",
+        "Names the decision grid cell explicitly (Scale / Optimize / Pause)",
+        "Recommends a creative refresh cadence with frequency target",
+        "Output has Quick Wins, High-Impact Changes, and Test Ideas sections",
+        "Ends with a single highest-leverage test named explicitly"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Compute payback period across paid channels for the last 90 days and tell me which to scale.",
+      "expected_output": "Per-channel payback period table with CAC, 180d LTV, and a payback-days column. Channels with payback < 90d and LTV:CAC > 3 routed to Scale; channels with payback > 90d but LTV:CAC healthy routed to cash-constrained scale. The response should also flag margin-adjusted vs revenue-only LTV explicitly.",
+      "assertions": [
+        "Calls modern.ads.payback_period via modern-mcp if connected, with include_margin=true",
+        "Falls back to manual payback computation if MCP not connected (CAC / daily gross profit)",
+        "Produces a per-channel table with CAC, 180d LTV, payback days, verdict",
+        "Distinguishes margin-adjusted LTV from revenue-only LTV in recommendations",
+        "Identifies cash-constrained scale channels separately from fast-payback scale channels",
+        "Output has Quick Wins, High-Impact, Test Ideas sections",
+        "Names highest-leverage next test"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "TikTok looks profitable on the dashboard but my CFO thinks the attribution is bogus. Should we keep scaling it?",
+      "expected_output": "An attribution-sensitivity analysis explaining why TikTok is the noisiest channel for attribution and that last-click systematically understates its contribution. The response should run the analysis under both last-click and multi-touch attribution, flag whether the verdict is stable, and recommend a holdout test if the two models disagree.",
+      "assertions": [
+        "Calls modern.attribution.multi_touch via modern-mcp if connected",
+        "Explains why last-click understates TikTok specifically",
+        "Compares LTV:CAC under last-click vs multi-touch attribution",
+        "Recommends a holdout or geo-split test if attribution verdict is unstable",
+        "Notes TikTok's shorter creative half-life (5-9 days) in the scaling plan",
+        "Does not recommend pause if attribution verdict is unstable",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I run a $180 AOV skincare brand and my margins are 65%. Should I be using revenue LTV or margin-adjusted LTV when comparing Google to Meta?",
+      "expected_output": "A direct answer: margin-adjusted LTV for the decision, revenue LTV only for headline reporting. Should walk through what changes when 65% margin is applied to each channel's revenue LTV, and note that subscription mix (if any) shifts the math further. Should explicitly compute or ask for the contribution-margin LTV.",
+      "assertions": [
+        "Recommends margin-adjusted LTV for the decision, revenue LTV for reporting",
+        "Walks through how 65% gross margin reshapes channel comparison",
+        "Asks about subscription mix and explains why it shifts the math",
+        "Cites the framework distinction between revenue LTV and contribution-margin LTV",
+        "Calls modern.retention.cohort_ltv if connected to get the actual numbers",
+        "Output has Quick Wins or recommendations grounded in margin numbers"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Google PMax was crushing it Q4 and is now my worst channel. Pause it?",
+      "expected_output": "Diagnosis that distinguishes seasonality, feed quality decay, and budget pressure as causes. Should pull PMax CAC trend, check whether the verdict is structural (pause-worthy) or tactical (restructure-worthy), and explicitly call out the feed-quality lever before any pause decision. Should not recommend pause without checking attribution stability and Q1-vs-Q4 seasonality baseline.",
+      "assertions": [
+        "Pulls Google PMax CAC trend via modern.ads.cac_by_channel",
+        "Distinguishes seasonality from structural channel decay",
+        "Calls out feed metadata / custom labels as the first PMax lever before bid strategy",
+        "Names the four-channel grid cell explicitly",
+        "Does not recommend pause without attribution stability check",
+        "Recommends a restructure path if the channel is tactical, not structural",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "How do I tell if YouTube is actually doing anything? Last-click says it's worthless but I feel like it's helping.",
+      "expected_output": "Explanation that YouTube as a brand-and-demand channel is systematically understated by last-click attribution. Should propose a YouTube spend cut holdout test, watching for the leading indicator: Google branded search volume the week after a cut. Should also recommend running the analysis under multi-touch attribution.",
+      "assertions": [
+        "Explains the brand-and-demand channel pattern (YouTube understated by last-click)",
+        "Calls modern.attribution.multi_touch if MCP connected",
+        "Proposes a spend-cut holdout test with branded search volume as the leading indicator",
+        "Identifies first-touch vs multi-touch attribution as the right lens for this question",
+        "Output has Quick Wins, High-Impact, Test Ideas sections",
+        "Names the holdout test as the highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We have $200k/month in paid budget. I want to figure out the right mix across Meta, Google, and TikTok for the next quarter.",
+      "expected_output": "A full channel-mix recommendation grounded in LTV:CAC and payback by channel. Should produce the per-channel decision matrix, weight allocations by the four-channel grid verdicts (heavy weight to fast-payback Scale channels, lighter weight to cash-constrained scale, no weight to pause-or-restructure channels), and propose a 4-week rebalancing schedule with a re-evaluation checkpoint.",
+      "assertions": [
+        "Pulls CAC and LTV per channel via MCP if connected",
+        "Produces the per-channel decision matrix table",
+        "Allocates budget weighted by four-channel grid verdicts",
+        "Proposes a phased rebalancing schedule, not a one-time reallocation",
+        "Includes a re-evaluation checkpoint with a primary metric",
+        "Calls out attribution model assumption underlying the allocation",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "My 7-day attribution window says Meta is profitable but my 28-day window tells a different story. Which one do I trust?",
+      "expected_output": "Discussion of attribution-window sensitivity, why longer windows are appropriate for higher-AOV consideration purchases, and how to decide which window to use as default. Should ask for AOV and product category to make a recommendation, and flag the window-sensitivity in the decision matrix.",
+      "assertions": [
+        "Explains attribution-window sensitivity in the framework",
+        "Asks for AOV and product category to recommend a default window",
+        "Notes that >$150 AOV usually warrants 28-day windows",
+        "Flags window-sensitivity in the decision matrix",
+        "Recommends running both windows side by side for the decision channel",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

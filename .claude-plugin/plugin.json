@@ -1,0 +1,13 @@
+{
+  "name": "openclaw-frontier-stack",
+  "displayName": "OpenClaw Frontier Stack",
+  "description": "Interoperable agent skills + hooks + orchestration harness. 87 skills (47 marketing + creative as Modern Skills, 37 engineering workflow, 3 operator), 11 role contracts, engineer CLI (openclaw) with goal templating + state persistence + ticketing v2, live agent runner daemon, 4 coordination patterns plus subagent fan-out, goal v3 (failure-recovery, sub-goals, gantt, diff, cancellation), 5 autonomous loops, a Rust core workspace with N-API FFI, Hermes-port system layer (cron, doctor, webhook, supply-chain advisory, event-hook lifecycle), graded release-gate with mutation testing + live-model scorecards, and a multi-host agent integration installer. Compatible with any agent that supports the Agent Skills specification (agentskills.io).",
+  "version": "0.8.1",
+  "author": {
+    "name": "OpenClaw",
+    "url": "https://github.com/ohsonerdy/openclaw-frontier-stack"
+  },
+  "license": "MIT",
+  "skills": "./skills",
+  "hooks": "./hooks/hooks.json"
+}

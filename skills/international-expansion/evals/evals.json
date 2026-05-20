@@ -1,0 +1,104 @@
+{
+  "$schema": "openclaw-frontier.skill-eval.v1",
+  "skill_name": "international-expansion",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're a US brand thinking about UK as our first international market. Is that the right move?",
+      "expected_output": "Walks the country selection framework. UK passes on language adjacency and is a common first move for US brands. Pulls existing UK traffic and orders to confirm demand evidence. Walks the post-Brexit VAT setup. Recommends conditional yes if demand evidence exists, with the 90-day workstream plan. Notes Canada as the lighter-lift alternative if UK demand signal is weak.",
+      "assertions": [
+        "Walks the country selection criteria",
+        "Pulls modern.sales.by_channel by country for demand evidence",
+        "Names UK VAT registration as separate from EU post-Brexit",
+        "Recommends conditional yes based on demand evidence",
+        "Names Canada as the lighter-lift alternative",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "What's IOSS and do we need it for EU?",
+      "expected_output": "Defines IOSS as Import One-Stop Shop for orders under €150 sold from outside the EU. Single registration, collect VAT at checkout, remit quarterly. Mandatory for DDP shipping under the threshold. Names the over-€150 customer-importer rule as a separate concern. Recommends IOSS registration before any EU launch.",
+      "assertions": [
+        "Defines IOSS and the €150 threshold",
+        "Names IOSS as required for DDP under €150",
+        "Notes the over-€150 customer-importer-of-record rule",
+        "Recommends IOSS registration before first EU order",
+        "Distinguishes IOSS from intra-EU OSS",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Should we set up a 3PL in the UK before we launch or ship from the US?",
+      "expected_output": "Walks the logistics shape framework. Recommends shipping from home country for the first 90-120 days to validate demand. Switching to in-country 3PL once monthly volume exceeds ~200 orders. Warns against committing to in-country inventory before validation given typical $20-50k stranded inventory risk.",
+      "assertions": [
+        "Walks the logistics shape framework",
+        "Recommends home-country shipping for first 90-120 days",
+        "Names ~200 orders/month as the validation threshold for 3PL",
+        "Warns against pre-validation in-country inventory commitment",
+        "Pulls AOV to size shipping cost absorption",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Do we need to translate our site for launching in Germany?",
+      "expected_output": "Yes — German-language UI and product copy is critical, not optional. Walks the localization vs translation framework. Day-one items: currency in EUR, German UI and product copy, top one or two local payment methods (Klarna, SEPA). Month-one items: localized email flows. Month-six items: localized brand voice. Distinguishes translation from deep localization.",
+      "assertions": [
+        "Names German translation as critical day-one",
+        "Walks the localization vs translation hierarchy",
+        "Names Klarna and SEPA as German payment expectations",
+        "Distinguishes translation (day one) from brand voice (month 6)",
+        "Recommends professional translators not auto-translate",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "DDP or DDU for shipping into Canada?",
+      "expected_output": "Recommends DDP. Customer sees no surprise charge at delivery, dispute rate is far lower. DDU is cheaper for the brand but produces one-star reviews when the customer is hit with a surprise duty bill plus courier handling fee. Walks the duty calculation and recommends a customs broker if volume justifies. Notes that Canadian GST/HST registration is straightforward for non-resident vendors above CAD $30k revenue.",
+      "assertions": [
+        "Recommends DDP over DDU for customer experience",
+        "Names the surprise-duty risk in DDU",
+        "Walks the customs broker recommendation",
+        "Names Canadian GST/HST registration threshold",
+        "Notes the non-resident registration path",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our CX team is US-only. Can we still launch in Australia?",
+      "expected_output": "Yes, with operational tradeoffs. Walks the CX hours framework. AU and US have minimal timezone overlap. Options: extend staffing to cover AU business hours, contract a regional CX partner, or accept slower response with clear SLA disclosed at checkout. Recommends contracted regional partner as the lowest-risk entry option. Also notes Australian GST registration mandatory if AU revenue exceeds AUD $75k and Low Value Goods regime under AUD $1,000.",
+      "assertions": [
+        "Names the CX hours coverage problem for AU",
+        "Lists the three coverage options",
+        "Recommends contracted regional partner as the entry option",
+        "Names AUD $75k GST threshold and Low Value Goods regime",
+        "Recommends disclosed SLA if accepting slower response",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our skincare brand wants to launch in EU. Are there ingredient issues?",
+      "expected_output": "Possibly significant. EU has stricter cosmetic ingredient rules than US (banned actives differ, CPNP registration required for each formula, responsible person inside EU required). Walks the catalog viability criterion. Recommends product-by-product compliance audit before launch and possibly reformulation for EU compliance. Names the responsible person and CPNP registration as catalog-blocking dependencies.",
+      "assertions": [
+        "Names EU cosmetic regulation differences from US",
+        "Names CPNP registration requirement",
+        "Names the EU-resident responsible person requirement",
+        "Walks the catalog viability criterion",
+        "Recommends pre-launch product compliance audit",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    }
+  ]
+}

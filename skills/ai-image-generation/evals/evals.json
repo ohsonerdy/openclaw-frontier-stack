@@ -1,0 +1,111 @@
+{
+  "skill_name": "ai-image-generation",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We need a hero image of our serum for the homepage. Which AI model should we use?",
+      "expected_output": "Walks the model-selection framework against the use case (product hero requiring photoreal quality). Should recommend Flux Pro 1.1 as the primary choice for photoreal hero, with ChatGPT Images 2.0 or Gemini Nano Banana Pro as alternatives if iteration speed matters more than photoreal precision. Should walk the prompt-engineering structure (subject, lighting, angle, surface, mood, technicals). Should emphasize AI image is a starting point.",
+      "assertions": [
+        "Checks for .agents/modern-ai-context.md",
+        "Walks the model-selection framework against the use case",
+        "Recommends Flux Pro 1.1 for photoreal hero",
+        "Names ChatGPT Images 2.0 or Gemini Nano Banana Pro as alternatives",
+        "Walks the prompt-engineering structure",
+        "Emphasizes AI image is starting point not deliverable",
+        "Names the post-generation pipeline (retouching, color, crop)",
+        "Output names model recommendation, prompt design, brand-consistency plan"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We need 30 lifestyle variants for cold Meta this week. What's the workflow?",
+      "expected_output": "Diagnosis: volume use case, AI image generation has strong economic case here. Should recommend Gemini Nano Banana Pro or ChatGPT Images 2.0 for fast iteration. Should walk the batch-generation workflow: generate 50-100 variants, curate to shortlist, finalize 3. Should emphasize brand-consistency techniques (reference images, post-processing) and the curation step. Should connect to ad-creative for the in-feed strategy.",
+      "assertions": [
+        "Identifies volume use case as strong AI economic case",
+        "Recommends Gemini Nano Banana Pro or ChatGPT Images 2.0 for speed",
+        "Walks the batch-generation workflow (50 generate, 3 finalize)",
+        "Names brand-consistency techniques (reference images, post-processing)",
+        "Emphasizes curation step as time-consuming",
+        "References ad-creative for in-feed strategy",
+        "Calls modern.ads.spend and modern.ads.roas via modern-mcp",
+        "Output has model recommendation, batch plan"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our generated images don't look like us. How do we get brand consistency?",
+      "expected_output": "Walks the brand-consistency framework with the four techniques: reference images (cheapest, fastest), style transfer, LoRA fine-tunes (for volume), post-processing. Should recommend starting with reference images plus curation plus post-processing. Should recommend LoRA fine-tune only when volume justifies it (100+ images per month). Should warn that out-of-the-box models produce stylistically inconsistent output across runs.",
+      "assertions": [
+        "Walks the brand-consistency framework with all four techniques",
+        "Recommends starting with reference images plus curation",
+        "Recommends post-processing for inter-image consistency",
+        "Recommends LoRA fine-tune only when volume justifies",
+        "Names the 100+ images per month threshold for LoRA",
+        "Warns about out-of-the-box stylistic inconsistency",
+        "Output has Quick Wins or implementation plan"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Do we have to label our AI-generated marketing images as AI?",
+      "expected_output": "Walks the disclosure framework. Should explain the current floor: FTC requires disclosure when AI-generated content could mislead about a material fact; platforms (Meta, TikTok, YouTube) have rolled out labels with self-disclosure or auto-detection. Should recommend over-disclosure rather than under-disclosure. Should warn against using AI for 'customer testimonial' or 'before/after' where authenticity matters. Should note that the regulatory direction is toward stricter labeling.",
+      "assertions": [
+        "Walks the disclosure framework",
+        "Explains FTC material-fact-mislead standard",
+        "Names platform labels at Meta, TikTok, YouTube",
+        "Recommends over-disclosure rather than under-disclosure",
+        "Warns against AI for customer-testimonial or before/after",
+        "Notes regulatory direction is toward stricter labeling",
+        "Output has Quick Wins or implementation guidance"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Can we generate images 'in the style of Annie Leibovitz' for our hero campaign?",
+      "expected_output": "Direct answer: no, this is the copyright-risk anti-pattern. Should walk the copyright-and-likeness framework. Should explain the named-style and named-person prompts both invoke risk (named-person likeness rights, named-artist derivative-work risk). Should recommend describing the visual qualities the brand wants (lighting, composition, mood) without naming the artist. Should also walk derivative-work and recognizable-individual risks more broadly. Should recommend reverse image search on hero outputs.",
+      "assertions": [
+        "Direct refusal of the named-artist style prompt",
+        "Walks the copyright-and-likeness framework",
+        "Explains named-style invokes derivative-work risk",
+        "Recommends describing visual qualities without naming artist",
+        "Names recognizable-individual risk for likenesses",
+        "Recommends reverse image search on hero outputs",
+        "Output has Quick Wins or implementation guidance"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our prompts produce bad results. The product looks wrong. What are we doing wrong?",
+      "expected_output": "Walks the prompt-engineering framework. Should identify the most common cause: leaving the model to interpret lighting, angle, surface, and mood. Should walk the structured prompt: subject, lighting, angle, surface, mood, technicals. Should give a concrete example. Should also discuss negative prompts (no fingers, no logos, no text overlays). Should recommend iterating on one dimension at a time, not the full prompt.",
+      "assertions": [
+        "Walks the prompt-engineering framework",
+        "Identifies leaving the model to interpret as the cause",
+        "Walks the structured prompt format",
+        "Provides a concrete prompt example",
+        "Discusses negative prompts",
+        "Recommends iterating on one dimension at a time",
+        "Output has Quick Wins or implementation guidance"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We need text on our marketing image (a sale percentage). Which model should we use?",
+      "expected_output": "Identifies use case as text-in-image. Should recommend Ideogram 3.0 as the model best suited for text-in-image rendering. Should walk why other models are weaker (Flux Pro 1.1 photoreal but limited text, Midjourney v7 stylized but text limited). Should also recommend post-processing for final text legibility — render text in editing software over the generated background if the AI-rendered text is imperfect.",
+      "assertions": [
+        "Identifies text-in-image as the specific use case",
+        "Recommends Ideogram 3.0 as best for text-in-image",
+        "Walks why other models are weaker at text",
+        "Recommends post-processing for final text legibility",
+        "Notes that AI-rendered text is often imperfect",
+        "Output has model recommendation, prompt design"
+      ],
+      "files": []
+    }
+  ]
+}

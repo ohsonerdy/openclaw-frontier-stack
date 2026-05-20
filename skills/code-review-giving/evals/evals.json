@@ -1,0 +1,104 @@
+{
+  "skill_name": "code-review-giving",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm reviewing a 600-line PR that adds a new endpoint. The author included tests and the linter passes. I noticed they used spaces where I'd use tabs (the linter doesn't enforce it), they used a different naming style for one helper, and the error handler does `catch (err) { return null }`. What do I comment on?",
+      "expected_output": "Recommend focusing the comments on the empty-catch fail-open pattern as a blocking or question comment. Drop the spaces-vs-tabs comment entirely since the linter doesn't enforce it (fix the linter, not the PR). Drop or downgrade the naming-style comment to a nit unless the codebase has an existing convention being violated. Use the asking framing for the error handler (e.g. 'what's the intended behavior when this fails?'). Order security/correctness comments before style.",
+      "assertions": [
+        "Flags the catch-and-return-null as a fail-open pattern worth a blocking or question comment",
+        "Drops the spaces-vs-tabs comment because the linter does not enforce it",
+        "Recommends fixing the linter rather than commenting on style",
+        "Downgrades naming-style comment to nit or drops it",
+        "Uses asking framing for the error handler question",
+        "Orders correctness and security comments before style",
+        "Does not turn stylistic preferences into blocking comments"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I'm reviewing a PR but I only read the new business-logic files carefully — I skimmed the test fixtures and the generated migration. Should I approve it?",
+      "expected_output": "Recommend approving only what was read, declaring explicitly what was reviewed vs skimmed, and either asking the author to split the PR, requesting a second reviewer for the unreviewed sections, or leaving the PR open without a verdict. Should reinforce that 'don't approve what you didn't read' is the rule. Should suggest declaring 'I read X carefully, scanned Y' in the review summary so the author and next reviewer know coverage.",
+      "assertions": [
+        "Recommends not approving what was not read",
+        "Recommends declaring which files were read carefully vs skimmed",
+        "Suggests requesting a co-reviewer for the unreviewed sections",
+        "Considers leaving the PR open instead of approving",
+        "Suggests asking the author to split the PR if too large",
+        "Reinforces transparency about review coverage"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Someone asked me to do a drive-by review on a PR that's already been approved by the area owner. I noticed two suggestions and one thing I'd consider blocking. How should I handle it?",
+      "expected_output": "Recommend flagging the comments as drive-by, not blocking, and escalating the would-be blocking issue to the original reviewer rather than unilaterally requesting changes. Should reinforce that the original reviewer owns approval, that drive-bys don't carry veto authority, and that the comments should be informational. Should suggest a short note like 'drive-by, not blocking — original reviewer still owns approval' so the author isn't confused.",
+      "assertions": [
+        "Recommends labeling comments as drive-by",
+        "Does NOT use 'request changes' on a drive-by",
+        "Escalates the would-be blocking issue to the original reviewer",
+        "Notes that drive-by reviewers raise issues, not vetoes",
+        "Suggests a short framing note so the author understands the role",
+        "Does not pile on after another reviewer approved"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I'm reviewing a PR that bumps a dependency from 4.2 to 5.0. The PR description says 'minor version bump, all tests pass'. What should I comment on?",
+      "expected_output": "Flag that 4.2 to 5.0 is a major version bump (not minor), and recommend the deeper dependency-upgrade-safely workflow rather than approving on the basis of 'tests pass'. Should ask about breaking changes in the 5.0 changelog, peer dependency implications, and rollback plan. Should treat this as a blocking-tier review because the blast radius exceeds the diff.",
+      "assertions": [
+        "Corrects that 4.2 to 5.0 is a major version bump",
+        "References dependency-upgrade-safely as the deeper workflow",
+        "Does not approve based on 'tests pass' alone",
+        "Asks about breaking changes in the upstream changelog",
+        "Asks about rollback plan",
+        "Treats blast radius as exceeding the diff",
+        "Raises this as blocking-tier or asks the author to demonstrate the upgrade is safe"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I've reviewed a PR and I have one blocking concern (a missing test for an error path) plus four nits and two suggestions. I'm about to click Approve with the comments attached. Is that right?",
+      "expected_output": "Push back on the 'approve with active blocking comment' contradiction. Either downgrade the blocking comment to a strong suggestion (if it's really blocking, don't approve) or do not approve until the blocking issue is resolved. Recommend choosing 'request changes' for the blocking concern, with the nits and suggestions left as comments that don't gate the approval. Should reinforce that approve-with-blocking is the phantom-approval anti-pattern.",
+      "assertions": [
+        "Identifies the contradiction in approving with an active blocking comment",
+        "Either downgrades the blocking comment or does not approve",
+        "Recommends 'request changes' for genuine blocking concerns",
+        "Notes that approve-with-blocking is an anti-pattern (phantom approval)",
+        "Keeps nits and suggestions as comments that do not gate approval"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "The author of a PR I'm reviewing wrote a function that does what I would have written more simply. The code is correct and tested. I'm tempted to suggest the simpler approach. Should I?",
+      "expected_output": "Recommend NOT commenting unless the author's version is genuinely worse (less maintainable, less performant, has a bug). The 'would I write it this way' filter is the wrong filter. The right filter is 'is this code correct, safe, and maintainable'. If commented at all, it should be a nit or suggestion phrased as asking, not asserting. Should reinforce that reviewer restraint matters more than reviewer eye.",
+      "assertions": [
+        "Recommends not commenting if the code is correct and tested",
+        "Warns against the 'would I write it this way' filter",
+        "If commented at all, frames as nit or suggestion, not blocking",
+        "Uses asking framing rather than asserting",
+        "Reinforces reviewer restraint over reviewer style preference"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I'm the named reviewer on a PR that changes a public API endpoint. The author renamed a response field and added a new one. Tests pass. What's my review checklist?",
+      "expected_output": "Treat this as a public-contract change with the bar of api-deprecation and api-design. The rename is a breaking change for existing consumers; ask about the deprecation plan, sunset window, and migration guidance. Confirm consumers have been notified. Adding a new field is non-breaking. Should NOT approve unless the rename is handled as a deprecated-with-alias rather than a hard rename, or unless the API is documented as unstable.",
+      "assertions": [
+        "Identifies the rename as a breaking change",
+        "References api-deprecation for the breaking-change workflow",
+        "References api-design for the contract-design check",
+        "Distinguishes the new field (non-breaking) from the rename (breaking)",
+        "Asks about deprecation plan and sunset window",
+        "Does not approve a hard rename without a deprecation alias",
+        "Confirms consumer-side migration support"
+      ],
+      "files": []
+    }
+  ]
+}

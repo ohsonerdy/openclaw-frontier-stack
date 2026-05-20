@@ -1,0 +1,100 @@
+{
+  "skill_name": "ads",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're spending $80k/month on Meta and that's it. ROAS dropped from 3.2 to 1.8 over 4 months. What do I do?",
+      "expected_output": "Diagnoses single-channel concentration risk plus likely creative fatigue or audience saturation. Walks the channel portfolio framework (no channel above 60% at scale). Walks the exhausted-vs-scalable diagnostic. Recommends creative refresh first, then audience expansion test, then begin diversifying into a second channel. References ad-creative for refresh tactics.",
+      "assertions": [
+        "Identifies single-channel concentration as a structural risk",
+        "Walks the channel portfolio framework",
+        "Walks the exhausted-vs-scalable diagnostic",
+        "Recommends creative refresh before pausing or scaling down",
+        "Recommends starting a second-channel test",
+        "References ad-creative for refresh tactics",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our TikTok campaign is at 1.2 ROAS for two weeks. Should we pause it?",
+      "expected_output": "Not yet. Walks the when-to-pause discipline: 2 weeks is the refresh trigger, not the pause trigger. Notes TikTok's 3-day creative-fatigue cycle is faster than other channels and may explain the drop. Recommends 3-5 new creatives in the next week before any pause decision. References ad-creative for the refresh approach.",
+      "assertions": [
+        "Does not recommend immediate pause at 2 weeks",
+        "Walks the when-to-pause discipline (3-week pause rule)",
+        "Names TikTok's 3-day creative-fatigue cycle",
+        "Recommends new creative volume before pause decision",
+        "References ad-creative for refresh approach",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our last-click attribution says YouTube has 0.8 ROAS so my partner wants to kill it. But our multi-touch says 2.4. What do I do?",
+      "expected_output": "Walks the attribution-model-aware decisions framework. Notes YouTube is typically upper-funnel and last-click hides contribution. Recommends not pausing on last-click alone. Recommends reconciling across last-click, multi-touch, and (if available) MMM. Notes that where models disagree, customer-journey research breaks the tie. Likely recommends keeping YouTube at current spend pending deeper attribution reconciliation.",
+      "assertions": [
+        "Walks the attribution-model-aware framework",
+        "Notes YouTube is upper-funnel and last-click hides contribution",
+        "Recommends not pausing on last-click alone",
+        "Recommends reconciling across multiple attribution models",
+        "References paid-ltv-optimization for the deeper channel evaluation",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We're at $30k/month total spend, 95% on Meta, 5% testing Google. Should I diversify more?",
+      "expected_output": "At $30k/month, single-channel-heavy is mostly fine but the testing budget should grow. Walks the portfolio framework's scale-threshold logic (the no-channel-above-60% rule kicks in above $50k/month). Recommends growing the Google test to 15-20% before adding a third channel. References paid-ltv-optimization for the channel evaluation.",
+      "assertions": [
+        "Notes the portfolio rule kicks in above $50k/month",
+        "Walks the channel portfolio framework",
+        "Recommends growing the Google test before adding a third channel",
+        "References paid-ltv-optimization for channel evaluation",
+        "Does not recommend aggressive diversification at sub-scale"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "What's the brand vs direct-response budget split for a $150k/month spend?",
+      "expected_output": "Walks the brand-vs-DR framework. At $150k/month (mid stage), recommends 80% DR, 20% brand. Names brand placement examples (podcasts, YouTube pre-roll, OOH if local). Warns that brand investment is hard to measure short-term and looks worthless under last-click, but committing despite measurement asymmetry is the discipline.",
+      "assertions": [
+        "Walks the brand-vs-DR framework",
+        "Names 80/20 split for $150k/month",
+        "Provides brand placement examples (podcasts, YouTube pre-roll, OOH)",
+        "Warns about measurement asymmetry of brand spend",
+        "Recommends committing despite measurement difficulty"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Meta CPMs have doubled in 6 weeks at the same audience and creative. Spend the same, conversions down. Why?",
+      "expected_output": "Audience saturation, creative fatigue, or both. Walks the creative-fatigue cycles by channel (Meta ~2 weeks). Diagnoses that 6 weeks of same creative is well past Meta's fatigue threshold. Recommends new creative as the highest-leverage fix. References ad-creative for refresh design.",
+      "assertions": [
+        "Diagnoses creative fatigue and audience saturation",
+        "Walks the creative-fatigue cycle for Meta (~2 weeks)",
+        "Notes 6 weeks is well past fatigue threshold",
+        "Recommends new creative as highest-leverage fix",
+        "References ad-creative for refresh design"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Should I try Pinterest ads?",
+      "expected_output": "Depends. Asks about audience (Pinterest works for visual, aspirational, female-skewed verticals — home, beauty, apparel, food). Asks about current channel saturation. Recommends a 5-10% incubation-budget test with success criteria defined upfront. References ad-creative for Pinterest-native creative design.",
+      "assertions": [
+        "Asks about audience fit before recommending",
+        "Names Pinterest-fit verticals (visual, aspirational, female-skewed)",
+        "Recommends incubation-budget test (5-10%)",
+        "Recommends defining success criteria upfront",
+        "References ad-creative for Pinterest-native creative design"
+      ],
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "$schema": "openclaw-frontier.skill-eval.v1",
+  "skill_name": "marketplace-strategy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Should we go on Amazon? We're DTC-only at $8M revenue, 55% gross margin, $35 AOV.",
+      "expected_output": "Walks the marketplace-fit gate (Amazon passes on margin and AOV). Builds the unit economics: 15% referral + ~$4 FBA + ~25% ads on a $35 item leaves single-digit contribution. Recommends conditional yes, with hero SKUs DTC-exclusive and discovery SKUs on Amazon. Pulls margin by SKU and DTC LTV to compare against the marketplace customer-no-contact tradeoff.",
+      "assertions": [
+        "Applies the marketplace-fit gate",
+        "Builds the all-in Amazon fee math at the SKU AOV",
+        "Pulls modern.sales.margin_by_product",
+        "Recommends the hero-vs-discovery SKU split",
+        "Names the customer-data ownership tradeoff",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We're on Amazon and losing the Buy Box on our own SKU. Why?",
+      "expected_output": "Walks Buy Box mechanics. Five inputs: price, fulfillment method, performance metrics, inventory health, account standing. Pulls the SKU's competitor landscape and the brand's current ODR. Recommends FBA over FBM if not already, price-matching within 1-2%, fixing ODR if above 1%. Notes that brand-registered unique ASINs avoid the race-to-the-bottom dynamic.",
+      "assertions": [
+        "Names the five Buy Box inputs",
+        "Asks for current ODR and inventory health",
+        "Recommends FBA if not currently used",
+        "Names the 1% ODR threshold",
+        "Notes brand registry as the structural fix",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Since we launched on Amazon our DTC revenue is flat. Is Amazon eating us?",
+      "expected_output": "Walks the cannibalization measurement framework. Recommends a geo-holdout if possible, otherwise a time-series before/after with seasonality adjustment, and a customer-overlap audit. Notes 20-40% cannibalization is typical. Pulls channel revenue and cohort LTV to compare DTC customer value to marketplace customer value. Recommends accepting the cannibalization at a measured rate rather than reflexively pulling off Amazon.",
+      "assertions": [
+        "Walks the four cannibalization measurement methods",
+        "Pulls modern.sales.by_channel for the time-series",
+        "Names 20-40% cannibalization as typical",
+        "Recommends overlap audit against DTC email list",
+        "Conditions the marketplace decision on net incrementality",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Should we put all our SKUs on Amazon or just some?",
+      "expected_output": "Walks the SKU portfolio strategy. Hero SKUs DTC-exclusive (or limited marketplace inventory), discovery SKUs marketplace-led, bundle SKUs DTC-only. Notes that marketplace listings should subsidize DTC, not replace it. Pulls margin by SKU to identify which SKUs belong where. Warns against the everything-everywhere reflex.",
+      "assertions": [
+        "Walks the SKU portfolio strategy framework",
+        "Distinguishes hero, discovery, bundle, loss-leader",
+        "Pulls modern.sales.margin_by_product to inform the split",
+        "Names the marketplace-subsidizes-DTC principle",
+        "Warns against the everything-everywhere reflex",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Amazon is inviting us to go 1P / Vendor Central. Should we?",
+      "expected_output": "Distinguishes 1P from 3P. In 1P Amazon buys wholesale and controls pricing including the right to suppress your DTC floors. Right for: brands that want to offload merchandising and accept the customer-relationship hand-off. Wrong for: brands with DTC pricing discipline that cannot afford Amazon undercutting their own site. Recommends modeling the pricing impact before signing.",
+      "assertions": [
+        "Defines 1P / Vendor Central vs 3P / Seller Central",
+        "Names Amazon's pricing control in 1P",
+        "Conditions the decision on DTC pricing discipline",
+        "Names the customer-relationship hand-off",
+        "Recommends pricing impact modeling pre-signature",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We sell on Amazon but Walmart Marketplace keeps pitching us. Worth it?",
+      "expected_output": "Walks the Walmart fit gate. Smaller GMV than Amazon, lower competitive density in most categories. Right for: brands with strong reviews on Amazon already, broad-appeal price-conscious catalogs. Pulls the brand's existing Amazon performance as the strongest predictor. Conditions yes on existing Amazon traction; conditional no if the brand is still struggling on Amazon.",
+      "assertions": [
+        "Walks the Walmart Marketplace fit gate",
+        "Conditions on existing Amazon performance",
+        "Names lower competitive density as the upside",
+        "Notes the price-conscious customer profile",
+        "Recommends evaluating Amazon traction first",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our category on Amazon is dominated by 30 unbranded competitors all underpricing us. What do we do?",
+      "expected_output": "Identifies the unbranded-category race-to-the-bottom dynamic. The fix is structural: brand registry on unique ASINs, branded packaging, differentiated SKU configuration so the Buy Box does not pit you against generic competitors. If the catalog is genuinely commodity, recommend exiting Amazon for that category and concentrating on DTC where brand-pricing discipline holds. References retail-buyer-pitch if wholesale becomes the better alternative.",
+      "assertions": [
+        "Identifies the unbranded race-to-the-bottom dynamic",
+        "Recommends brand registry and unique ASIN setup",
+        "Names differentiated SKU configuration as the structural fix",
+        "Conditions on whether the catalog is genuinely commodity",
+        "References retail-buyer-pitch as an alternative channel",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    }
+  ]
+}

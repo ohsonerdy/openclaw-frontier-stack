@@ -1,0 +1,108 @@
+{
+  "skill_name": "schema-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm designing a schema for a new SaaS product. Each tenant has users, projects, tasks, and comments. What tables do I need?",
+      "expected_output": "Asks about workload before drawing tables. Read patterns, write rate, consistency requirements, tenancy model. Suggests tables sketched after the workload is documented. Likely tenants, users, memberships (M:N user-tenant), projects, tasks, comments. Recommends UUID PKs since this is public-facing data with tenant boundaries, FK constraints with selective CASCADE only on rows that have no meaning without parent. Notes the tenant_id column is on every table for row-level isolation.",
+      "assertions": [
+        "Asks about workload before drawing tables",
+        "Mentions read patterns, write rate, consistency",
+        "Asks about tenancy model (shared schema vs schema-per-tenant)",
+        "Recommends UUID PKs for public-facing data",
+        "Selective CASCADE only where appropriate",
+        "tenant_id on every table for row-level isolation",
+        "Recommends an ADR for the tenancy decision"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Should I use UUIDs or integer IDs for primary keys?",
+      "expected_output": "Walks through the tradeoffs. Integer IDs are smaller, faster on inserts, but leak count and require a DB round-trip. UUIDs (v4 random) don't leak count and let clients generate IDs without round-trips, but fragment indexes. UUID v7 is a reasonable middle ground (time-ordered, better index locality). Defaults: integer for internal-only data where count leakage doesn't matter; UUID v4 or v7 for public-facing or distributed-write scenarios.",
+      "assertions": [
+        "Walks through integer vs UUID tradeoffs",
+        "Notes integer leaks count over time",
+        "Notes UUID v4 fragments the index",
+        "Mentions UUID v7 as middle ground",
+        "Integer default for internal-only data",
+        "UUID default for public-facing data",
+        "Mentions client-side generation as UUID benefit"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "My orders table has 100M rows and our 'orders by user' query is slow. I added an index on user_id. Still slow.",
+      "expected_output": "Asks what the actual query is. 'Orders by user' often means orders by user filtered and ordered (recent orders by user). A single-column index on user_id can locate the rows but the database still has to sort them; a composite index on (user_id, created_at DESC) serves both filter and order. Recommends EXPLAIN ANALYZE to confirm the index is being used. Notes that pg_stat_user_indexes will show if the index is actually hot.",
+      "assertions": [
+        "Asks for the actual query and EXPLAIN ANALYZE",
+        "Recommends composite index (user_id, created_at DESC)",
+        "Notes single-column index does not cover ORDER BY",
+        "Mentions covering index for read columns",
+        "Recommends pg_stat_user_indexes or equivalent",
+        "References performance-profiling for deeper analysis"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Should I soft-delete users (deleted_at column) or move them to an archive table?",
+      "expected_output": "Walks through the tradeoffs. Soft delete is convenient but every query needs the filter, storage grows monotonically, and compliance-driven hard deletion is harder. Archive table is more work but has clearer semantics and supports compliance deletion. For user data subject to GDPR/regulatory hard-delete requirements, archive table is usually the right answer. For drafts and short-lived data, soft delete is fine. Recommends partial indexes if going soft-delete route.",
+      "assertions": [
+        "Walks through soft delete vs archive tradeoffs",
+        "Notes soft delete requires filter on every query",
+        "Notes GDPR / regulatory hard-delete compatibility",
+        "Soft delete fine for drafts and short-lived data",
+        "Archive table for long-lived audit-relevant data",
+        "Mentions partial indexes if soft-delete is chosen",
+        "Recommends explicit per-table decision"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I want to add a non-nullable 'plan_type' column to the users table. Production is live, 5M users.",
+      "expected_output": "Walks through the safe migration pattern. Cannot just ALTER TABLE ADD COLUMN NOT NULL — that requires a default or backfill. Multi-step: (1) add column as nullable with a meaningful default value, (2) backfill existing rows, (3) add NOT NULL constraint validated. In Postgres 11+, NOT NULL with a constant default is fast; pre-11 it rewrites the table. Recommends running the backfill in batches to avoid long-running transactions and lock contention.",
+      "assertions": [
+        "Recommends multi-step migration",
+        "Add column nullable with default first",
+        "Backfill existing rows in batches",
+        "Add NOT NULL constraint validated after backfill",
+        "Notes Postgres 11+ vs older behavior on default",
+        "Avoids long-running transaction / lock contention",
+        "Mentions monitoring during migration"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Can I just put all my user settings in a JSON column?",
+      "expected_output": "Diagnoses this as the common JSON-column antipattern. JSON is right for genuinely sparse/varying user-controlled settings. JSON is wrong as a substitute for column design — schema-by-convention is not schema. Asks whether the fields have a known fixed shape (if yes, columns) or vary per user/feature (if yes, JSON). Notes JSON columns make migrations and constraints harder. Recommends a hybrid: known fixed columns for known fixed fields, JSON only for genuinely user-defined attributes.",
+      "assertions": [
+        "Calls out JSON-everywhere as antipattern",
+        "Asks about fixed-shape vs varying-shape",
+        "Fixed shape = columns",
+        "Varying shape = JSON",
+        "Notes JSON columns make migrations harder",
+        "Recommends hybrid approach",
+        "Notes JSON column constraints are weak"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We have a many-to-many between users and projects. ON DELETE CASCADE on the join table?",
+      "expected_output": "Yes, CASCADE on the join table is appropriate. Membership rows have no meaning without either user or project. Distinguishes from CASCADE on rows with independent meaning (payments, audit records). Recommends explicitly NOT cascading from user to projects-owned-by-user or vice versa — those are domain entities with their own lifecycle. Notes that the FK column on the join table must be indexed (separate from the composite PK).",
+      "assertions": [
+        "CASCADE on the join table is appropriate",
+        "Membership rows have no meaning without parent",
+        "Distinguishes from CASCADE on independent entities",
+        "Do NOT cascade user to projects or vice versa",
+        "FK column on join table needs index",
+        "Notes cascade rules per relationship"
+      ],
+      "files": []
+    }
+  ]
+}

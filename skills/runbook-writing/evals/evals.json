@@ -1,0 +1,90 @@
+{
+  "skill_name": "runbook-writing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I just enabled an alert called `checkout_payment_5xx_rate_above_2pct` and need to write a runbook. Where do I start?",
+      "expected_output": "Title the runbook with the exact alert name (no paraphrasing). Six-section structure: title and trigger, immediate actions, diagnosis, mitigation, escalation, related runbooks. Trigger section should include the alert query, threshold, window, and known false positives. Immediate actions go first because the responder reads top to bottom under stress; immediate actions are reversible and bounded in blast radius (e.g., disable the payments-v2 flag, scale up the payments service, roll back the most recent deploy). Do not start with an architecture overview.",
+      "assertions": [
+        "Recommends exact match of runbook title to alert name",
+        "Names the six-section structure",
+        "Immediate actions go before diagnosis in the order",
+        "Immediate actions must be reversible and bounded in blast radius",
+        "Includes alert query, threshold, window, and known false positives in trigger",
+        "Calls out the anti-pattern of starting with architecture or background",
+        "Mentions related runbooks as a section"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "The current runbook for our database failover alert starts with: 'Step 1: investigate the cause. Step 2: check the dashboard. Step 3: ping #db-team and wait.' What's wrong?",
+      "expected_output": "Three problems. (1) 'Investigate the cause' is not an immediate action; investigation is diagnosis. Immediate actions are concrete commands the responder runs. (2) 'Check the dashboard' is too vague — needs a direct link to a specific dashboard panel, not the dashboard homepage. (3) 'Ping and wait' is not an immediate action; the responder was paged because immediate action is needed. Rewrite with reversible, bounded, one-command-per-line steps such as: confirm replica lag is under threshold, route reads to standby, scale up read pool. Escalation to #db-team belongs in the escalation tree with explicit criteria, not as step 3 of immediate actions.",
+      "assertions": [
+        "Identifies 'investigate the cause' as belonging in diagnosis, not immediate actions",
+        "Identifies the vague 'check the dashboard' as needing a specific panel link",
+        "Identifies 'ping and wait' as not an immediate action",
+        "Recommends concrete one-action-per-line reversible steps",
+        "Moves escalation to the escalation tree with criteria",
+        "Calls out the immediate-actions vs diagnosis distinction"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our escalation tree currently has six tiers: primary oncall, secondary oncall, manager, director, VP, CTO. Nothing says when to escalate. The oncall keeps escalating to the wrong tier. How do I fix this?",
+      "expected_output": "The escalation tree is missing criteria. Each tier needs an explicit condition for when to escalate to it. Tier 2: 'mitigation not confirmed within 20 minutes of the page, or tier 1 declares they need a second pair of eyes'. Tier 3 (domain expert or manager): 'sev 1 declared, or tier 2 also cannot mitigate, or incident has crossed 60 minutes unmitigated'. Six tiers is probably too many; most runbooks need three (primary, secondary, expert/manager). Without criteria, responders either over-escalate (waking unnecessary people) or under-escalate (struggling past the point of usefulness). Rewrite to three tiers, each with a measurable criterion.",
+      "assertions": [
+        "Identifies missing escalation criteria as the root cause",
+        "Recommends explicit criterion per tier (time-bounded or condition-bounded)",
+        "Recommends reducing six tiers to three (primary, secondary, expert/manager)",
+        "Names the failure modes: over-escalation and under-escalation",
+        "Gives concrete example criteria (20 minutes, 60 minutes, sev 1)",
+        "Names humans or rotations rather than just abstract titles"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We had an incident last night where the responder followed the runbook step by step, but step 4 said 'truncate the events_pending table to clear the backlog' without flagging it as irreversible. They did it and lost 30 minutes of pending events. How should the runbook be rewritten?",
+      "expected_output": "Two failures. (1) The step was irreversible but not annotated. Any irreversible or high-risk step must explicitly say so and require IC sign-off before running. Add a 'one-way action' warning and a 'page the incident commander before running' instruction. (2) The step may not have been the right mitigation at all — truncating pending events to clear a backlog is data loss. Rewrite to reversible alternatives first: pause the producer, drain the queue to a backup table, scale up consumers. Truncate only as a last resort with IC sign-off and a documented decision. Add a post-incident note to the runbook reflecting this lesson.",
+      "assertions": [
+        "Identifies the missing reversibility annotation as the root cause",
+        "Requires IC sign-off for one-way actions",
+        "Suggests reversible alternatives before truncation",
+        "Adds an explicit 'one-way action' warning to the runbook step",
+        "Recommends a post-incident note updating the runbook",
+        "Treats data loss as a mitigation outcome that needs explicit decision, not a default step"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our runbook library has 80 runbooks. About a third of them were written in 2023 and have not been touched since. The oncall says half the steps are wrong. What's the maintenance process?",
+      "expected_output": "Runbooks rot. The maintenance loop has two parts. (1) Post-incident update: every page that used a runbook generates one of three notes — worked as written, worked with caveats, did not help. The post-mortem includes a checkbox for runbook updates. (2) Periodic review: every runbook has a last-reviewed date and an owner. Runbooks not reviewed in 6 to 12 months get flagged for re-validation. Treat the third-of-library stale set as tech debt: triage by alert frequency (frequently firing alerts get priority), reassign owners, and rewrite or retire. Retire runbooks for alerts that no longer exist. Set a calendar reminder per quarter to re-walk the high-priority runbooks against the current system.",
+      "assertions": [
+        "Names the post-incident update loop (worked / worked with caveats / did not help)",
+        "Requires last-reviewed date and named owner per runbook",
+        "Triages stale runbooks by alert frequency",
+        "Recommends retiring runbooks for alerts that no longer exist",
+        "Suggests periodic re-walk against current system",
+        "Treats runbook maintenance as ongoing tech debt, not a one-time write"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "The runbook for our 'api_latency_p99_above_500ms' alert is 800 lines long and covers latency caused by database slowness, downstream timeouts, cache cold starts, and load spikes. The oncall says they get lost. What should I do?",
+      "expected_output": "The runbook is covering four different root causes. Split it. Each root cause gets its own runbook with its own trigger condition (often a more specific log signature or sub-metric than the original alert). The original runbook becomes a short branching index: 'If you see X in the logs, follow runbook A; if you see Y, follow runbook B; ...'. Each sub-runbook is under 200 lines. Cross-link them as related-runbooks (the upstream/downstream/adjacent relationships are now explicit). Target line length is under 200 lines per runbook; 800 lines is a strong signal of multiple runbooks fused together.",
+      "assertions": [
+        "Identifies that the runbook is covering multiple root causes and should be split",
+        "Recommends a top-level branching index pointing to sub-runbooks",
+        "Each sub-runbook gets its own trigger condition",
+        "Recommends under 200 lines per runbook as the rough target",
+        "Cross-links sub-runbooks as related-runbooks",
+        "Does not propose to keep the 800-line runbook intact"
+      ],
+      "files": []
+    }
+  ]
+}

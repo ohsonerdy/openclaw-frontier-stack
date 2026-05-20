@@ -1,0 +1,37 @@
+# GitHub Actions template for OpenClaw Frontier Stack verification.
+#
+# Do not enable this workflow until the repository owner approves CI setup.
+# Copy to `.github/workflows/verify-package.yml` only after replacing placeholders and confirming no secrets are required.
+
+name: Verify OpenClaw Frontier Stack package
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run package verifier
+        run: node scripts/verify-package.js
+      - name: Run full git history private-content scan
+        run: node scripts/verify-git-history-clean.js
+      - name: Check owner upload approval binding when present
+        run: node release-gate/scripts/verify-owner-upload-approval.js
+      - name: Assert not accidentally publishable without owner gates
+        run: |
+          node -e "const s=require('./release-gate/reports/latest-release-status.json'); if (s.readyForGithubUpload) { console.log('readyForGithubUpload=true; confirm this was intentional and owner-approved.'); } else { console.log(JSON.stringify({readyForGithubUpload:s.readyForGithubUpload, blockers:s.blockers}, null, 2)); }"

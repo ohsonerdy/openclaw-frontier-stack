@@ -1,0 +1,44 @@
+{
+  "schema": "openclaw-frontier.goal.v1",
+  "id": "GOAL-FRONTIER-FIXTURE-001",
+  "status": "active",
+  "owner": "orchestrator",
+  "source": "examples/goal-loop-demo/goal-fixture.json",
+  "title": "Run a synthetic multi-lane orchestration without live agents attached",
+  "definitionOfDone": "Every lane has a receipt with a non-empty verdict and the orchestrator produces a synthesis trace.",
+  "cadence": { "operatorUpdateMinutes": 30, "channel": "operator-chat" },
+  "lanes": [
+    {
+      "name": "implementation",
+      "role": "builder",
+      "summary": "Author the change set described by the goal.",
+      "expects": ["patch artifact", "smoke test plan"]
+    },
+    {
+      "name": "documentation",
+      "role": "docs",
+      "summary": "Document the change in operator-facing surface.",
+      "expects": ["doc diff", "changelog line"]
+    },
+    {
+      "name": "verification",
+      "role": "verifier",
+      "summary": "Run the verifier loop and capture receipts.",
+      "expects": ["verification report", "lane verdicts"]
+    },
+    {
+      "name": "release-packaging",
+      "role": "release_manager",
+      "summary": "Bundle the artifact for release.",
+      "expects": ["release manifest"]
+    },
+    {
+      "name": "final-approval",
+      "role": "sentinel",
+      "summary": "Gate the release on Sentinel policy.",
+      "expects": ["sentinel decision"]
+    }
+  ],
+  "green": [],
+  "red": ["No verifier receipt yet"]
+}

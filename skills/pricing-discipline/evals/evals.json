@@ -1,0 +1,119 @@
+{
+  "skill_name": "pricing-discipline",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Should I run a 20% off sitewide promo next week to hit my quarterly number?",
+      "expected_output": "Walks through the discount-as-acquisition-tax versus anchor-erosion framework before answering. Pulls margin by product to compute the contribution-margin cost. Asks who the marginal customer is and whether a sitewide discount is the right tool versus a targeted one. Should not give a yes/no without diagnosis.",
+      "assertions": [
+        "Walks through the acquisition-tax vs anchor-erosion frame",
+        "Calls modern.sales.margin_by_product to compute the cost",
+        "Asks who the marginal customer is",
+        "Recommends targeted over sitewide when marginal customer is a small share",
+        "Computes the contribution-margin math explicitly",
+        "Does not give a yes/no without diagnosis",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We promote 16 times a year. Is that too often?",
+      "expected_output": "Identifies 16 promos per year (roughly every 3 weeks) as discount-trained. Pulls AOV and conversion rate by week to show the pre-promo dead-zone effect. Recommends lengthening the cycle over 6-12 months. Names the reset cost and warns that customer file relearning takes time.",
+      "assertions": [
+        "Identifies 16x per year as discount-trained",
+        "Calls modern.sales.aov grouped by promo_status to show the gap",
+        "Names the pre-promo dead-zone effect on full-price weeks",
+        "Recommends lengthening cycle to ~4-6 promos per year",
+        "Acknowledges the 6-12 month reset cost",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our first-time customer discount is 15% off. Is that the right number?",
+      "expected_output": "Pulls cohort LTV by acquisition-discount band before answering. Frames the first-time discount as acquisition tax and asks whether LTV math supports it. Compares 15% against typical 10-15% one-time cap and discusses why subscription first-month discounts can run heavier than one-time discounts.",
+      "assertions": [
+        "Calls modern.retention.cohort_ltv grouped by acquisition_discount_band",
+        "Frames first-time discount as acquisition tax",
+        "Cites typical 10-15% one-time discount band",
+        "Distinguishes one-time first-order from subscription first-month asymmetry",
+        "Recommends comparing LTV of full-price acquired vs discount-acquired cohorts",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Black Friday is coming. How deep should we discount and for how long?",
+      "expected_output": "Applies the BFCM and event-pricing discipline framework. Recommends a tiered structure (10-15% sitewide, 25% specific categories, 35% clearance) over flat sitewide. Discusses duration trade, suppression of full-price launches inside the window, pre-announcement, and post-promo restoration period.",
+      "assertions": [
+        "Recommends tiered structure over flat sitewide",
+        "Cites specific tier depths (10-15 / 25 / 35)",
+        "Discusses duration trade between one-day and two-week BFCM",
+        "Recommends suppressing full-price launches inside the window",
+        "Recommends pre-announcement over surprise",
+        "Names the post-promo restoration period",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our subscription has 20% off first month. Should we make it 20% off forever to compete?",
+      "expected_output": "Identifies the subscription discount asymmetry. 20% off first month is recoverable on subsequent months at full price; 20% off forever is a permanent LTV compression and a different decision entirely. Walks through the cost math of each and warns against the conversion.",
+      "assertions": [
+        "Identifies the asymmetry between first-month and ongoing subscription discount",
+        "Warns against the conversion to off-forever",
+        "Names off-forever as a permanent margin floor decision",
+        "Walks through the cost math of each",
+        "Recommends harder first-month over off-forever if competition requires response",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Customers keep saying our products are too expensive. Should I lower prices?",
+      "expected_output": "Asks whether the hesitation is actually price-elasticity or something else (trust, uncertainty, fit). Walks through the no-discount-but-value-add alternatives. Pulls margin and channel data to evaluate. Recommends testing value-add alternatives before a structural price cut. Distinguishes a permanent price cut from a discount.",
+      "assertions": [
+        "Asks whether hesitation is actually price-elasticity",
+        "Walks through value-add alternatives (free shipping threshold, GWP, extended returns, loyalty credit)",
+        "Distinguishes a permanent price cut from a discount",
+        "Recommends testing value-add before structural price change",
+        "Calls modern.sales.margin_by_product to evaluate room",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our 15% discount on a $30 product with 30% margin. What's the actual cost?",
+      "expected_output": "Computes the contribution-margin math explicitly. 15% off $30 = $25.50 revenue. Landed cost 70% of $30 = $21. New contribution margin $4.50 on $25.50 vs $9 on $30. Margin retained is 50%. Names the rule that low-margin SKUs lose disproportionate margin to discount and recommends margin-aware discount caps.",
+      "assertions": [
+        "Computes the contribution-margin math step by step",
+        "Identifies the 50% margin-retained figure",
+        "Names the rule that low-margin SKUs lose disproportionate margin",
+        "Recommends margin-aware discount caps by SKU",
+        "Warns against applying the same discount across mixed-margin catalog",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Should I run different discount policies on different channels?",
+      "expected_output": "Affirms yes. Walks channel-by-channel: affiliate and deal sites only convert with codes; direct and email-to-loyal converts at full price. Pulls channel mix data and discount-by-channel intensity. Recommends a channel-specific discount cap policy. Names that discount discipline is channel-specific.",
+      "assertions": [
+        "Recommends channel-specific discount policy",
+        "Calls modern.sales.by_channel grouped by discount_band",
+        "Names affiliate and deal sites as code-dependent channels",
+        "Names direct and loyalist email as full-price channels",
+        "Recommends a per-channel discount cap policy",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

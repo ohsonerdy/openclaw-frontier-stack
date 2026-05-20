@@ -1,0 +1,106 @@
+{
+  "skill_name": "threat-modeling",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're building a new internal admin tool. Should we threat-model it?",
+      "expected_output": "Asks about scope, users, data sensitivity, and whether it crosses trust boundaries. Internal tools can still warrant a threat model if they handle sensitive data, grant elevated privileges, or are reachable from corporate network where insider threats apply. For trivial tools (read-only dashboard on internal-only data) the model may be lighter. Walks through the DFD and STRIDE approach.",
+      "assertions": [
+        "Asks about scope and data sensitivity",
+        "Internal tools can still warrant threat modeling",
+        "Considers insider threat for corporate network reachability",
+        "Walks through DFD construction",
+        "Walks through STRIDE",
+        "Recommends light vs full model based on stakes"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We're adding webhook delivery from our SaaS. Customers register a URL and we POST to it. Threat model this.",
+      "expected_output": "Identifies multiple categories: SSRF (URL is customer-controlled, target could be private), spoofing (recipients need to verify the webhook is from us, signed payloads), tampering (TLS in transit, payload integrity), denial of service (slow customer endpoints exhaust our delivery pool), repudiation (audit log of every delivery). Walks through STRIDE per flow. Mitigations: signed payloads, URL allowlist or private-IP blocklist, timeouts, retry budgets, delivery audit log.",
+      "assertions": [
+        "Identifies SSRF risk (customer URL)",
+        "Identifies spoofing - customers verify webhook origin",
+        "Walks through STRIDE per flow",
+        "Mitigation: signed payloads",
+        "Mitigation: URL allowlist or private-IP blocklist",
+        "Mitigation: timeouts and retry budgets",
+        "Audit log for repudiation",
+        "DoS via slow customer endpoints"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "What is the difference between a threat, a vulnerability, and a risk?",
+      "expected_output": "Threat is a potential adverse event. Vulnerability is a weakness that enables it. Risk is likelihood times impact. Threat without vulnerability is theoretical; vulnerability without threat is unlikely to be exploited; risk is the management measure. Notes that threat modeling produces threats; security review finds vulnerabilities; risk is the prioritization view.",
+      "assertions": [
+        "Defines threat as potential adverse event",
+        "Defines vulnerability as enabling weakness",
+        "Defines risk as likelihood times impact",
+        "Threat modeling produces threats",
+        "Security review finds vulnerabilities",
+        "Risk is the prioritization view"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We have a 2-year-old threat model. Should we refresh it?",
+      "expected_output": "Yes, threat models go stale. The system has likely changed; the threat landscape has changed; new attack patterns exist. An old threat model that's not refreshed gives false confidence. Recommends reviewing the current system against the old DFD, identifying changes, walking STRIDE on the new flows, and updating mitigations. Notes that a stale model is more dangerous than no model.",
+      "assertions": [
+        "Yes, refresh the threat model",
+        "Threat models go stale",
+        "Notes stale model gives false confidence",
+        "Recommends reviewing current system against old DFD",
+        "Walk STRIDE on new flows",
+        "Stale model more dangerous than no model"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Build me an attack tree for 'attacker reads another user's data' in a multi-tenant SaaS.",
+      "expected_output": "Top-down decomposition. Branches: direct API access (bypass authz, session reuse, predictable IDs), indirect database access (SQL injection, leaked credentials, backup exposure), side channels (timing, cache poisoning, log leak). Each branch decomposes further. Prioritizes branches by shortest path and highest reward. Notes attack trees are for prioritization not exhaustiveness.",
+      "assertions": [
+        "Top-down decomposition",
+        "Includes direct API access branch",
+        "Includes indirect database access branch",
+        "Includes side channels branch",
+        "Each branch decomposes further",
+        "Prioritizes by shortest path / reward",
+        "Notes purpose is prioritization"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We listed STRIDE threats and abuser stories. Now what? How do we decide what to fix?",
+      "expected_output": "Score each threat by likelihood and impact (low/medium/high). Prioritize by risk = likelihood × impact. Not by ease of fix — the trap is fixing easy low-risk threats and leaving hard high-risk ones unaddressed. Recommends mitigations from the four-bucket taxonomy (prevent / detect / respond / recover). Notes serious threats need at least two layers. State residual risks explicitly with rationale.",
+      "assertions": [
+        "Score by likelihood and impact",
+        "Prioritize by risk not by ease of fix",
+        "Four-bucket mitigation (prevent / detect / respond / recover)",
+        "Serious threats need at least two layers",
+        "State residual risks explicitly",
+        "Notes the trap of fixing easy threats first"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Should I model against nation-state attackers for our internal HR tool?",
+      "expected_output": "No, that's the wrong attacker profile. Internal HR tools face opportunistic attackers, insider threats, and possibly targeted external for senior staff. Nation-state modeling wastes effort if you're not actually a nation-state target. Recommends modeling for the realistic attacker class: opportunistic scanning, insider abuse, credential reuse. Defending against the wrong attacker is its own failure mode.",
+      "assertions": [
+        "No, not for internal HR tool",
+        "Wrong attacker profile wastes effort",
+        "Real threats: opportunistic, insider, possibly targeted",
+        "Defending against wrong attacker is a failure mode",
+        "Recommends modeling realistic attacker class",
+        "Notes insider threat is hardest for HR tools"
+      ],
+      "files": []
+    }
+  ]
+}

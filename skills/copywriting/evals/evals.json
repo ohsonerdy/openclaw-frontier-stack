@@ -1,0 +1,99 @@
+{
+  "skill_name": "copywriting",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write me a new PDP headline for my collagen powder. Current headline: 'Premium Hydrolyzed Marine Collagen Peptides Complex.'",
+      "expected_output": "Three variants of the H1, each following outcome-over-feature framing with specificity premium applied. Should mine customer language before drafting if review excerpts aren't supplied. Each variant should pair with a one-line explanation of structure. Provides recommended test pair. Should not deliver one variant.",
+      "assertions": [
+        "Returns three variants of the headline, not one",
+        "Applies outcome-over-feature framing in at least two variants",
+        "Uses specificity (numbers, names, dates) in the variants",
+        "Names the structure (AIDA, PAS, BAB, or none) per variant",
+        "Asks for or mines customer-language inputs",
+        "Recommends a test pair between variants"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our welcome email subject line is 'Welcome to our family!' Open rate is 18%. Help.",
+      "expected_output": "Diagnoses the subject line as generic and failing specificity, customer-language, and share filters. Offers three replacement variants using specificity premium (numbers, names, outcomes). Asks about audience source (where the signup came from — paid ad versus organic) before final recommendations. References email-marketing for broader subject-line testing methodology.",
+      "assertions": [
+        "Identifies the current subject line as failing the specificity filter",
+        "Offers three replacement variants",
+        "Each variant uses specificity (numbers or concrete language)",
+        "Asks about audience source before final recommendations",
+        "References email-marketing for broader testing methodology"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I'm writing a Meta ad for our new fitness apparel line targeting cold audiences. Help me pick a copy structure.",
+      "expected_output": "Recommends AIDA for cold audiences with no problem awareness, OR PAS if the apparel solves a known fit pain. Walks through which fits when. References ad-creative for the visual-pairing question. Should NOT default to PAS for every product.",
+      "assertions": [
+        "Distinguishes AIDA vs PAS vs BAB based on audience state",
+        "Recommends AIDA for cold, unaware audience by default",
+        "Notes PAS fits problem-aware audiences (fit pain in apparel)",
+        "References ad-creative for visual pairing",
+        "Does not default to one structure for all situations"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our CTA on the PDP says 'Add to Cart.' Conversion is below benchmark. Should we change it?",
+      "expected_output": "Recommends testing outcome-bearing CTA variants per the action+outcome framework. Provides 3-4 variants like 'Start my 30-day reset,' 'Get my first jar,' 'Send me the daily greens.' Notes first-person framing and concrete outcomes outperform 'Add to Cart' for cold traffic. References ab-testing for the test setup. Notes that 'Add to Cart' may be fine for warm traffic.",
+      "assertions": [
+        "Recommends outcome-bearing CTA variants over generic 'Add to Cart'",
+        "Provides at least 3 concrete CTA variants",
+        "Notes first-person framing often wins",
+        "Distinguishes cold vs warm traffic for CTA choice",
+        "References ab-testing for test setup",
+        "Output is structured with variants and explanation"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Audit this product description: 'Our innovative, premium daily greens powder uses cutting-edge bioavailability technology and a comprehensive blend of 47 superfoods for maximum health benefits.'",
+      "expected_output": "Audit flags the description as failing all three filters: specificity (no numbers other than 47, no outcomes), customer-language (inside-the-company words: innovative, premium, cutting-edge, comprehensive, maximum), and share filter (this paragraph could appear on any competitor). Provides a rewrite using outcome-over-feature framing and mined customer language. Notes that customer reviews would inform a better rewrite.",
+      "assertions": [
+        "Flags inside-the-company language (innovative, premium, cutting-edge, comprehensive, maximum)",
+        "Notes the description fails the specificity filter",
+        "Notes the description fails the share filter (could appear on any competitor)",
+        "Provides a rewrite using outcome-over-feature framing",
+        "Asks for or references customer reviews as input for a better rewrite",
+        "Walks the three filters explicitly"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Write three taglines for my skincare brand. The product is a vitamin C serum.",
+      "expected_output": "Three taglines using different structures (likely outcome-led, specificity-premium, or BAB). Each tagged with structure and rationale. Asks about ICP and competitor taglines before drafting to avoid me-too output. Notes that taglines benefit from review-mined phrases. Should not deliver one tagline.",
+      "assertions": [
+        "Returns three tagline variants",
+        "Tags each with structure or rationale",
+        "Asks about ICP or competitor positioning before drafting",
+        "References product-marketing-positioning for upstream positioning work",
+        "Each variant applies at least one of the frameworks"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "My welcome flow email body says: 'Thank you for joining our community! We're so excited to have you. Stay tuned for great content!' Help.",
+      "expected_output": "Audit identifies the body as failing the share filter and lacking specificity. Recommends rewriting to deliver on a specific promise (whatever the welcome offer is — discount, free shipping, founder note). Walks the headline-promise / body-delivers framework. Provides a rewrite. References email-marketing for the broader welcome flow structure.",
+      "assertions": [
+        "Identifies the body as failing the share filter",
+        "Walks the headline-promise / body-delivers framework",
+        "Provides a rewrite with specific promise and proof",
+        "References email-marketing for broader welcome flow",
+        "Asks what the welcome offer or promise actually is"
+      ],
+      "files": []
+    }
+  ]
+}

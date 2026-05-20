@@ -1,0 +1,36 @@
+{
+  "schema": "openclaw-frontier.cron-jobs.v1",
+  "jobs": [
+    {
+      "id": "daily-recap",
+      "schedule": "0 9 * * *",
+      "role": "executive-summary",
+      "subject": "scheduled:daily-recap",
+      "body": {
+        "goalsDir": "release-gate/goals",
+        "windowHours": 24,
+        "format": "ledger-summary"
+      }
+    },
+    {
+      "id": "hourly-bus-health",
+      "schedule": "0 * * * *",
+      "role": "researcher",
+      "subject": "scheduled:bus-health-check",
+      "body": {
+        "scope": "blackboard",
+        "checks": ["fact-count", "stale-claims"]
+      }
+    },
+    {
+      "id": "weekly-skill-eval",
+      "schedule": "*/15 * * * *",
+      "role": "reviewer",
+      "subject": "scheduled:skill-eval-window-probe",
+      "body": {
+        "windowMinutes": 15,
+        "mode": "dry-run"
+      }
+    }
+  ]
+}

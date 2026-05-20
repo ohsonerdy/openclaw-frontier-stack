@@ -1,0 +1,97 @@
+{
+  "skill_name": "seo-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our Shopify site has been losing organic traffic for 4 months. Run an SEO audit.",
+      "expected_output": "Pulls the 6-month organic trend first to scope the audit (declining traffic is a different audit from never-grew). Walks technical, on-page, content, and link layers in order. Builds a prioritized fix list with effort, impact band, and scope per item. Asks about any site migrations or template changes in the past 4 months as the first hypothesis for declining traffic.",
+      "assertions": [
+        "Pulls organic trend before scoping the audit",
+        "Asks about migrations or template changes in the decline window",
+        "Walks technical, on-page, content, and link layers",
+        "Produces a prioritized fix list with effort and impact bands",
+        "Does not produce a 200-item unranked list",
+        "Output names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We have 8,400 indexed URLs on Shopify and only 600 products. What's going on?",
+      "expected_output": "Diagnoses faceted-navigation indexation explosion (color, size, sort-order URLs all indexed). Recommends noindex on faceted-navigation URLs canonicalized to base collection. Walks the technical SEO checklist for ecomm pitfalls. Estimates the fix at +0-3% across site but flags it as a 1-day technical fix.",
+      "assertions": [
+        "Identifies faceted-navigation indexation explosion",
+        "Recommends noindex on faceted URLs with canonical to base",
+        "Notes this is a Shopify-common issue",
+        "Estimates effort and impact band honestly",
+        "Walks the technical SEO checklist"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We have a blog post 'Best Greens Powder 2026' and a category page /collections/greens. Neither ranks for 'best greens powder.' Why?",
+      "expected_output": "Diagnoses keyword cannibalization. Walks the content audit framework. Recommends merging the blog into the category page (or vice versa) and 301-redirecting. Notes that two pages targeting the same query usually means neither ranks because signal is split.",
+      "assertions": [
+        "Identifies the issue as cannibalization",
+        "Walks the content audit framework",
+        "Recommends merging and 301-redirecting one to the other",
+        "Notes that split signal usually means neither ranks",
+        "Identifies which page should likely win (category for commercial intent)"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our PDPs all have meta descriptions that say 'Buy now at our store.' Should we rewrite them?",
+      "expected_output": "Yes — meta description doesn't directly drive rankings but drives CTR which is a ranking signal. Recommends rewriting all PDP meta descriptions for click-through using specificity. Provides a worked example. References copywriting for the rewrite approach.",
+      "assertions": [
+        "Notes meta description drives CTR which is a ranking signal",
+        "Recommends rewriting for click-through, not for keyword density",
+        "Provides a worked example of a rewritten meta description",
+        "References copywriting for the rewrite approach",
+        "Identifies this as a relatively quick fix across all PDPs"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Should I disavow links?",
+      "expected_output": "Probably not unless there's deliberate negative SEO. Walks the link audit framework. Notes that most ecomm brands at DR 10-40 don't need disavow files. Asks about the brand's DR band before recommending. Notes Google's algorithm largely ignores low-quality links these days.",
+      "assertions": [
+        "Walks the link audit framework",
+        "Notes that most ecomm brands don't need disavow files",
+        "Asks about the brand's DR band before recommending",
+        "Names the three DR bands (under 20, 20-40, 40+) and tactics per band",
+        "Notes Google's algorithm largely ignores low-quality links now"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "I want to track 5,000 keywords for my supplement brand. How should I prioritize?",
+      "expected_output": "Pushback on tracking 5,000 keywords — that's noise. Recommends 5 commercial-priority queries per top category, tracked weekly. Walks the 'what's actually moving' framework. Names how to choose the priority queries (commercial intent, current rank band, competitive opportunity). Notes that movement on the priority 5 per category is the signal; everything else is not actionable.",
+      "assertions": [
+        "Pushes back on tracking 5,000 keywords as noise",
+        "Recommends 5 priority queries per top category",
+        "Walks the 'what's actually moving' framework",
+        "Names criteria for choosing priority queries",
+        "Recommends weekly tracking cadence"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Should I refresh blog posts from 2023 or write new ones?",
+      "expected_output": "Likely refresh, depending on the post. Walks the content audit framework's update-or-kill decision: posts that already rank in the top 30 deserve a refresh; posts that don't rank at all should be evaluated for kill-and-301 to a stronger page. Provides the decision rule. References content-strategy for production cadence.",
+      "assertions": [
+        "Recommends refresh-or-kill decision per post, not blanket",
+        "Names the top-30 rank threshold as the refresh trigger",
+        "Recommends kill-and-301 for posts that don't rank at all",
+        "References content-strategy for production cadence",
+        "Walks the content audit framework"
+      ],
+      "files": []
+    }
+  ]
+}

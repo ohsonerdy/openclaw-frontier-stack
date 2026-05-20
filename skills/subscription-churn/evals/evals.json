@@ -1,0 +1,114 @@
+{
+  "skill_name": "subscription-churn",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "My monthly churn is 9% and it's killing my LTV math. Where do I start?",
+      "expected_output": "Starts by separating voluntary from involuntary. If involuntary is more than 35% of total, recommends fixing dunning first as the higher-leverage win. Should pull the split via modern.subscriptions.churn_rate with split=voluntary/involuntary and walk through the diagnostic priority order before recommending tactics.",
+      "assertions": [
+        "Separates voluntary from involuntary churn before any tactic",
+        "Calls modern.subscriptions.churn_rate with the voluntary/involuntary split",
+        "Names the diagnostic priority order (involuntary first if >35%)",
+        "Cites the 20-40% churn reduction available from dunning work",
+        "Asks for the split if MCP not connected",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Our failed-payment recovery rate is 40%. Is that bad?",
+      "expected_output": "Diagnoses 40% as below the achievable band. Should walk through the dunning playbook: smart retry schedule (day 0, 2, 5, 9, 14, 21), payment-update prompts with tokenized magic links, pre-expiry card update reminders, backup payment method for high-value subscribers. Should recommend day-14 retry as the highest-marginal-leverage change.",
+      "assertions": [
+        "Identifies 40% as below the achievable band",
+        "Recommends the six-retry schedule explicitly",
+        "Recommends tokenized magic-link payment update flow",
+        "Recommends pre-expiry card update reminders as preventative dunning",
+        "Calls modern.subscriptions.dunning_recovery to baseline",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "What should my cancellation flow look like? Right now it's just a confirm-cancel button.",
+      "expected_output": "Walks through the save flow design framework: cancel reason capture, reason-routed offers, honest exit path. Should describe single-step deflection options (pause, skip, change cadence) and recommend they appear before any retention discount offer. Should warn against burying the cancel button.",
+      "assertions": [
+        "Recommends three-stage flow: reason capture, matched offer, final confirm",
+        "Lists single-step deflection options (pause, skip, change cadence)",
+        "Recommends these before any retention discount",
+        "Warns against burying the cancel button (dark pattern penalty)",
+        "Notes the 25-45% deflection rate from one-click options",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Most of my cancellations cite 'too expensive.' Should I offer a discount?",
+      "expected_output": "Walks through the cancel-reason taxonomy. 'Too expensive' should be answered with pause or downgrade, not discount. Discount erodes the price floor and trains future customers to cancel for a save offer. Should distinguish customers actually citing competitor price (where discount is appropriate) from customers citing absolute price (where it isn't).",
+      "assertions": [
+        "Recommends pause or downgrade over discount for 'too expensive'",
+        "Explains why discount erodes the price floor",
+        "Distinguishes 'too expensive' from 'found cheaper alternative'",
+        "Calls modern.subscriptions.cancel_reasons to confirm distribution",
+        "Recommends asking which alternative when customers cite competitors",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "My survival curve looks like a cliff at month 1 and then flattens out.",
+      "expected_output": "Applies the tenure-curve framework. Month-1 cliff indicates onboarding failure. The intervention is a day-21 check-in with activation prompt, before the month-1 billing event. Should ask about current onboarding sequence and recommend specific interventions before the month-1 renewal moment.",
+      "assertions": [
+        "Identifies month-1 cliff as onboarding failure shape",
+        "Recommends day-21 intervention before the month-1 billing event",
+        "Asks about current onboarding sequence",
+        "Distinguishes month-1 cliff from steady-state churn",
+        "Calls modern.retention.cohort_survival to verify shape",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Should I make pause and skip more prominent than cancel?",
+      "expected_output": "Yes, applies the skip-vs-cancel framework. Skip-first architecture deflects 30-50% of cancel intents with no offer cost. Should describe the choice architecture: skip as single-tap, cancel requiring confirmations, skip framed as the considerate option. Should also recommend time-bounded skips over indefinite skips because of the built-in re-engagement moment.",
+      "assertions": [
+        "Recommends skip-first architecture",
+        "Cites 30-50% deflection rate",
+        "Recommends single-tap skip vs confirmation-gated cancel",
+        "Recommends time-bounded skips over indefinite skips",
+        "Notes the return-rate difference between skip (60-80%) and cancel (15-25%)",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We have annual subscribers and we want to renew them. What's the best email?",
+      "expected_output": "Walks through the annual renewal moment intervention. 30 days pre-renewal: value summary email showing what the customer received over the year. Should explain this outperforms a discount renewal offer because it triggers value-recognition rather than cost-evaluation.",
+      "assertions": [
+        "Recommends 30-day pre-renewal value summary email",
+        "Explains why it outperforms discount renewal",
+        "Names the value-recognition vs cost-evaluation framing",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "How do I know if my voluntary churn is high or my involuntary churn is high?",
+      "expected_output": "Walks through the diagnostic signals for each. Involuntary signals: high failed-payment count, recovery under 50%, stale card-on-file population, single-payment-method subscribers. Voluntary signals: active cancellation flow firing, cancel reason distribution, survival curve inflections at usage moments rather than billing events. Should recommend tracking them separately if not already.",
+      "assertions": [
+        "Lists involuntary signals (failed-payment count, recovery, card staleness)",
+        "Lists voluntary signals (cancel flow firing, reasons, curve inflections)",
+        "Notes the recommendation to track separately if not already",
+        "Calls modern.subscriptions.churn_rate with the split parameter",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "skill_name": "content-strategy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We want to publish 5 blog posts per week, 3 newsletters per week, and 20 social posts per week. Our team is 2 marketers. Sustainable?",
+      "expected_output": "No — that's burnout cadence. Walks the sustainable-cadence framework. Recommends reducing to 1 blog/week, 1 newsletter/week, 3-5 social posts/week per primary platform, 1 video/week. Notes that consistency over 12 months beats volume over 6 weeks. References the team-capacity diagnostic questions.",
+      "assertions": [
+        "Pushes back on the proposed cadence as unsustainable",
+        "Walks the sustainable-cadence framework",
+        "Provides realistic cadence for 2-marketer team",
+        "Notes consistency over 12 months beats volume over 6 weeks",
+        "Walks the team-capacity diagnostic questions",
+        "Output names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Help me build a pillar/cluster model for my daily greens powder brand.",
+      "expected_output": "Walks the pillar/cluster framework with a worked example. Names 5-10 pillars (daily greens, afternoon energy, supplement stacking, sleep, etc.). For each pillar, names 5-10 clusters. Names the internal-linking rule (clusters link to pillar and 3-5 siblings). References ai-seo for AI-surface friendliness.",
+      "assertions": [
+        "Walks the pillar/cluster framework",
+        "Provides a worked example with 5+ pillars",
+        "Names 5-10 clusters per pillar",
+        "Names the internal-linking rule",
+        "References ai-seo for AI-surface friendliness"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We just published a 2,500-word pillar post about afternoon energy. Now what?",
+      "expected_output": "Walks the repurposing flow framework. Recommends 10-15 derivatives across newsletter, social, video, and ad creative substrate. Notes the discipline of planning derivatives before publishing (not after). Provides specific derivative plan: quote graphics, carousel, short-form videos, newsletter section, flow inserts. References social-strategy for platform-native repurposing and email-marketing for newsletter integration.",
+      "assertions": [
+        "Walks the repurposing flow framework",
+        "Provides 10-15 derivative outputs",
+        "Notes derivatives should be planned before publishing",
+        "References social-strategy and email-marketing",
+        "Lists specific derivative types (quotes, carousel, video, flow inserts)"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our blog has 200 posts from the past 5 years. Should I delete the bad ones?",
+      "expected_output": "Yes — kill-or-update audit. Walks the kill-or-update framework. Provides criteria: rank check, email engagement, internal-link references, on-strategy-now check. Recommends 301-redirect or 410 for kills, not just unpublish. References seo-audit for the cannibalization and thin-content checks.",
+      "assertions": [
+        "Recommends a kill-or-update audit",
+        "Walks the kill-or-update framework",
+        "Names the four criteria (rank, engagement, links, on-strategy)",
+        "Recommends 301 or 410 for kills",
+        "References seo-audit for cannibalization checks"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Should we focus on evergreen content or reactive (newsy) content?",
+      "expected_output": "Walks the evergreen vs reactive framework. Recommends 60/40 for typical brands, 70/30 for SEO-heavy, 50/50 for social-heavy. Notes evergreen compounds; reactive produces peak reach but decays. Asks about channel mix to recommend the split. Notes the rule that reactive shouldn't contradict evergreen pillars.",
+      "assertions": [
+        "Walks the evergreen vs reactive framework",
+        "Names typical ratios (60/40, 70/30, 50/50)",
+        "Notes evergreen compounds and reactive decays",
+        "Asks about channel mix",
+        "Notes reactive should reinforce evergreen, not contradict"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We publish content but it doesn't go anywhere. Distribution is an afterthought. Help.",
+      "expected_output": "Walks the distribution-built-in framework. Recommends every published piece have a planned distribution path before publish (newsletter slot, social derivatives, flow integration, internal links, ad creative substrate). Notes a piece without distribution gets the organic traffic it deserves and nothing else.",
+      "assertions": [
+        "Walks the distribution-built-in framework",
+        "Lists the distribution channels per published piece",
+        "Recommends planning distribution before publish",
+        "Notes pieces without distribution get only organic traffic",
+        "References social-strategy and email-marketing"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "What's the right content strategy for a brand that wants to win on AI search?",
+      "expected_output": "References ai-seo for the AI-surface specifics. Walks pillar/cluster as the AI-friendly structure. Recommends conversational-query optimization (pages answering questions in question form). Recommends FAQ sections per pillar. Notes that AI surfaces consume topical authority signals from internal linking and entity consistency.",
+      "assertions": [
+        "References ai-seo for AI-surface specifics",
+        "Walks pillar/cluster as AI-friendly structure",
+        "Recommends conversational-query optimization",
+        "Recommends FAQ sections per pillar",
+        "Notes topical authority comes from linking and entity consistency"
+      ],
+      "files": []
+    }
+  ]
+}

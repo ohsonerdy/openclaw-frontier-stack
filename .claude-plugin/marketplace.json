@@ -1,0 +1,28 @@
+{
+  "name": "openclaw-frontier-stack",
+  "owner": {
+    "name": "OpenClaw Maintainers",
+    "url": "https://github.com/ohsonerdy"
+  },
+  "plugins": [
+    {
+      "name": "openclaw-frontier-stack",
+      "source": {
+        "source": "github",
+        "owner": "ohsonerdy",
+        "repo": "openclaw-frontier-stack"
+      },
+      "description": "Interoperable agent skills + hooks + orchestration harness. 87 skills (47 marketing + creative, 37 engineering workflow, 3 operator), 11 role contracts, engineer CLI with goal templating + state persistence + ticketing v2, live agent runner, 4 coordination patterns plus subagent fan-out, goal v3 (failure-recovery, sub-goals, gantt, diff, cancellation), 5 autonomous loops, Rust core workspace with N-API FFI, Hermes-port system layer (cron, doctor, webhook, supply-chain advisory, event-hook lifecycle), graded release-gate with mutation testing and live-model scorecards, and a multi-host agent integration installer.",
+      "version": "0.8.1",
+      "license": "MIT",
+      "categories": [
+        "skills",
+        "hooks",
+        "orchestration",
+        "marketing",
+        "engineering",
+        "release-gates"
+      ]
+    }
+  ]
+}

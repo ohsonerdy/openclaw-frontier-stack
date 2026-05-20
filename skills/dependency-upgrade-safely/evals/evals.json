@@ -1,0 +1,108 @@
+{
+  "skill_name": "dependency-upgrade-safely",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Dependabot opened a PR to bump our framework from 4.3.1 to 5.0.0. Tests pass. Merge?",
+      "expected_output": "No, not just because tests pass. Major version bump on a framework is high blast radius. Full procedure: read the changelog and migration guide from 4.3.1 to 5.0.0 (every intermediate release), identify what surfaces of the framework you use, check test coverage of those surfaces, plan rollback. Do not merge until the changelog is understood and the breaking changes are confirmed handled.",
+      "assertions": [
+        "Says do not merge just because tests pass",
+        "Classifies as major version, high blast radius",
+        "Recommends reading the full changelog",
+        "Recommends reading the migration guide",
+        "Identifies what surfaces are used in the codebase",
+        "Checks test coverage of affected surfaces",
+        "Plans rollback before merge"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Security advisory says our JSON parser has a CVE. Upgrade is from 2.1.4 to 2.1.5. Patch only. Just merge it?",
+      "expected_output": "Compressed but not skipped procedure. Verify the CVE actually applies to the code paths you use. Minimal-bump update (2.1.4 -> 2.1.5, not 2.1.4 -> 3.0.0). Run the tests that exercise the affected parser surfaces. Ship with 24-hour monitoring window. Notes that patch versions sometimes have unintended regressions and that 'security patch' is not a license to skip review.",
+      "assertions": [
+        "Allows compressed procedure for security patch",
+        "Verifies the CVE applies to used code paths",
+        "Minimal version bump (2.1.4 -> 2.1.5)",
+        "Tests exercise affected parser surfaces",
+        "Ships with monitoring window post-deploy",
+        "Does NOT skip review entirely",
+        "References security-review for deeper analysis"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I want to upgrade 23 deps at once to clear out the Dependabot backlog. Same PR?",
+      "expected_output": "Split them. One PR per dep is the rule. Reasons: failure attribution (which one broke?), rollback granularity, review tractability. The exception is dev-only/lint/test-tooling deps with no production reachability; those can be batched. Recommends configuring Dependabot or Renovate to batch only the low-risk dev deps. Notes that 23 deps in one PR is unreviewable.",
+      "assertions": [
+        "Says split into separate PRs",
+        "One PR per production dep",
+        "Failure attribution as the main reason",
+        "Allows batching for dev/lint/test tooling",
+        "Recommends Dependabot/Renovate config to auto-batch dev deps",
+        "Notes 23-in-one is unreviewable"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "After upgrading our ORM, the test suite passes but production has elevated query latency. What should I do?",
+      "expected_output": "Roll back. Investigate the regression on a branch with profiling. Do not try to fix forward in production. After rollback, pin to the previous version explicitly in the manifest (floor pin) so the next install doesn't re-pull the broken version. Notes that ORM upgrades often change default query plans, lazy loading behavior, or N+1 patterns silently — characterization tests would have caught this.",
+      "assertions": [
+        "Rolls back to previous version",
+        "Pins explicitly in manifest (floor pin)",
+        "Does not try to fix forward in production",
+        "Investigates on a branch with profiling",
+        "Notes ORM upgrades change query plans silently",
+        "References performance-profiling for the investigation",
+        "Mentions characterization tests as preventive"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our auth library hasn't had a release in 22 months. There's a CVE in it. Now what?",
+      "expected_output": "This is the dying-dep scenario. The CVE may not be patched upstream. Options: (1) fork and patch ourselves, accepting maintenance cost; (2) replace with an actively maintained alternative, accepting the migration cost; (3) accept the risk with compensating controls (WAF rules, narrower attack surface) for a defined window. Recommends evaluating the alternatives now even if the immediate fix is fork-and-patch. Notes auth library is high-stakes; treat as project-priority.",
+      "assertions": [
+        "Identifies dying-dep scenario",
+        "Lists fork/replace/accept-with-mitigations as options",
+        "Notes auth library is high-stakes",
+        "Recommends evaluating replacement even if immediate fix is fork",
+        "Compensating controls (WAF, narrower surface) for accept path",
+        "References security-review for the auth library risk assessment"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "I bumped a direct dep from 3.1 to 3.2. The dep tree now has a new transitive dep I've never heard of. Should I worry?",
+      "expected_output": "Yes, this is the transitive-dep trap. Look up the new transitive dep, check its maintainer signal, check it doesn't introduce new vulnerabilities, and verify the version chosen is reasonable. Use npm ls / cargo tree / equivalent to see the full tree. If the new transitive dep is unfamiliar or low quality, the upgrade may not be worth it. Notes that transitive deps inherit your production trust boundary.",
+      "assertions": [
+        "Yes, worth investigating",
+        "Identifies as transitive-dep trap",
+        "Recommends running npm ls / cargo tree to see full tree",
+        "Check the new dep's maintainer signal",
+        "Check for vulnerabilities in the new dep",
+        "Transitive deps inherit production trust boundary",
+        "May skip upgrade if new transitive is low quality"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our codebase pins everything to exact versions and Dependabot creates a PR for every patch. We're drowning in PRs. What should we do?",
+      "expected_output": "Recommends loosening pinning strategy. Pin meaningfully (major.minor, e.g. ~4.3.0 to allow patches), let patches flow with minimal review, batch dev-only updates, full procedure on minor/major. The lockfile is the safety net against semver lies. Reserve the PR-per-update for minor and major. Notes that exact-version pinning everywhere stops Dependabot from helping; it just creates noise.",
+      "assertions": [
+        "Recommends loosening pinning strategy",
+        "Allows patches to flow with minimal review",
+        "Lockfile as safety net",
+        "Batches dev-only updates",
+        "Reserves PR-per-update for minor and major",
+        "Notes exact-pinning everywhere creates noise",
+        "Mentions ~ or ^ semver ranges as options"
+      ],
+      "files": []
+    }
+  ]
+}

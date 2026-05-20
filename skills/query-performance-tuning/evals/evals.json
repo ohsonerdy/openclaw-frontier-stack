@@ -1,0 +1,91 @@
+{
+  "skill_name": "query-performance-tuning",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our query `SELECT * FROM orders WHERE customer_id = 12345 ORDER BY created_at DESC LIMIT 20` is taking 4 seconds on a 200M-row table. We don't have an index on customer_id. Should we add `CREATE INDEX ON orders(customer_id)`?",
+      "expected_output": "Probably not quite that index. First, confirm with EXPLAIN ANALYZE that the slow node is a sequential scan. Then, look at the query shape: it filters on customer_id and orders by created_at, returning the top 20. The right index is composite: `(customer_id, created_at DESC)`. With this index, the database can satisfy the WHERE and the ORDER BY directly from the index without a separate sort, returning the top 20 in roughly log time. A single-column index on `customer_id` alone would speed up the filter but still require a sort step. Verify with EXPLAIN ANALYZE after the index is added; confirm the plan uses the index and the sort node is gone.",
+      "assertions": [
+        "Recommends running EXPLAIN ANALYZE first",
+        "Recommends a composite index on (customer_id, created_at DESC)",
+        "Explains that the composite supports both WHERE and ORDER BY",
+        "Notes that a single-column index would still require a sort",
+        "Recommends verifying the plan after the index is added",
+        "Identifies the slow node as a sequential scan before optimization"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We have an API endpoint that returns a list of users, each with their last 5 orders. The endpoint is slow. The slow-query log shows 200 nearly identical queries fired in close succession. What's happening?",
+      "expected_output": "Classic N+1. The endpoint fires one query for the users (returns N users), then one query per user to fetch their orders (N more queries). Total: 1 + N. Fix with eager loading: tell the ORM to fetch the orders in the same query (JOIN) or in a batched second query (WHERE user_id IN (...)). SQLAlchemy: selectinload or joinedload. Django: prefetch_related. Active Record: includes. The result is 1 or 2 queries instead of 201. Per-query latency may be fine (each query is fast); the total request latency is the unit that matters. Confirm the fix by checking the slow-query log shows only the 1 or 2 queries after the change.",
+      "assertions": [
+        "Identifies the pattern as N+1",
+        "Describes 1 + N query count and how it arises",
+        "Recommends eager loading via the ORM",
+        "Names specific ORM mechanisms (selectinload/joinedload/prefetch_related/includes)",
+        "Notes that per-query latency is fine; total request latency is the issue",
+        "Recommends confirming the fix by re-checking the slow-query log"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our query was fast last week and slow this week. The schema didn't change. The EXPLAIN plan now shows a sequential scan instead of an index scan. What happened?",
+      "expected_output": "Likely a stats or planner-state issue, not a missing-index issue. Hypotheses to check in order: (1) ANALYZE has not run recently, so the planner's row estimates are stale; run ANALYZE on the affected tables. (2) The data distribution has shifted (a small filter that used to be highly selective is now matching more rows); the planner correctly switched to a sequential scan because the index scan would touch most of the table anyway. (3) Parameter sniffing: a cached plan from a previous parameter value is being reused for a value where it's wrong; force re-plan. (4) Index bloat: the index is so bloated that the planner correctly avoids it; reindex. Capture EXPLAIN ANALYZE with realistic parameters and check the rows-estimated vs rows-actual mismatch; if estimates are off by more than 10x, stats are the cause.",
+      "assertions": [
+        "Identifies stats staleness as the first hypothesis",
+        "Recommends running ANALYZE",
+        "Considers data-distribution shift as a legitimate reason for plan change",
+        "Considers parameter sniffing",
+        "Considers index bloat",
+        "Recommends EXPLAIN ANALYZE with realistic parameters",
+        "Notes the rows-estimated vs rows-actual gap as a stats-staleness signal"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our orders table is 80GB. The instance has 16GB of RAM. Queries hit cold cache constantly and p99 is 8 seconds. What's the right intervention?",
+      "expected_output": "Working set exceeds memory. No index tuning fixes this; the database is disk-bound. Three intervention paths in increasing order of architectural change. (1) Scale memory: size up the instance so the working set fits. Quick fix if the working set is bounded. (2) Partition the orders table by date or by tenant; queries only touch their partition; per-query working set is smaller. (3) Archive cold data: move orders older than N months to a separate cold-storage table or external store. The hot table shrinks and fits in memory. Choose based on access pattern: if queries usually hit recent orders, archive is the cleanest fix; if queries hit any tenant's data uniformly, partition by tenant; if neither pattern dominates, scale memory while planning the partition.",
+      "assertions": [
+        "Identifies the issue as working-set-exceeds-memory",
+        "States that index tuning does not fix a disk-bound query",
+        "Proposes three paths: scale memory, partition, archive",
+        "Each path has a decision criterion based on access pattern",
+        "Mentions partitioning by date or tenant specifically",
+        "Mentions archiving cold data to shrink the hot table"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Someone proposed denormalizing our order-totals table because the join across orders + line_items is slow. We haven't tried indexes yet. Is denormalization the right move?",
+      "expected_output": "No, not as the first move. Indexing has lower maintenance cost than denormalization. Run EXPLAIN ANALYZE on the join query. Likely fixes in order: (1) Index on the join column (line_items.order_id is a candidate). (2) Composite index that covers the WHERE and ORDER BY of the query. (3) Index INCLUDE the columns the query reads so it doesn't visit the heap. After indexes, if the join is still too slow (working set too large, or the join inherently requires too much work), then consider denormalization: a precomputed order_totals column, a materialized view, or a separate read store. The decision rule: try indexes first; denormalize only when indexes are insufficient. Denormalization adds write amplification, consistency lag, and a maintenance burden.",
+      "assertions": [
+        "Recommends indexing first, before denormalization",
+        "Identifies denormalization as having higher maintenance cost",
+        "Recommends EXPLAIN ANALYZE before deciding",
+        "Lists indexing options: join column, composite, INCLUDE",
+        "Names denormalization options if indexes insufficient (computed column, materialized view, separate read store)",
+        "Calls out write amplification and consistency lag as denormalization costs"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our writes have slowed by 40% over the last quarter. We've added 6 new indexes during that time as we tuned various read queries. Could the indexes be the cause?",
+      "expected_output": "Yes, very likely. Each index is updated on every insert and on every update that touches an indexed column. Six new indexes can plausibly cause 40% write slowdown on a hot table, especially if some of the indexes touch frequently-updated columns. Investigate: (1) Are all six indexes actually being used? Check pg_stat_user_indexes (Postgres) or sys.dm_db_index_usage_stats (SQL Server). Unused indexes are pure overhead — drop them. (2) Are some indexes redundant (one index a prefix of another)? Drop the prefix. (3) Are some indexes covering columns that change frequently (every update writes the index)? Reconsider whether the read query needs them. The principle: add the smallest index that supports the query, not the most comprehensive one. An index that's not used is write overhead with no read benefit.",
+      "assertions": [
+        "Identifies the indexes as a plausible cause of write slowdown",
+        "Recommends checking index usage stats",
+        "Recommends dropping unused indexes",
+        "Recommends dropping prefix-redundant indexes",
+        "Notes that indexes on frequently-updated columns amplify writes",
+        "States the principle: smallest index that supports the query",
+        "Treats index overhead as a real cost, not theoretical"
+      ],
+      "files": []
+    }
+  ]
+}

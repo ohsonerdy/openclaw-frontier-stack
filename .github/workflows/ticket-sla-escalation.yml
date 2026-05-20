@@ -1,0 +1,145 @@
+name: Ticket SLA escalation
+
+# Hourly job that surfaces breached tickets (those past their slaHours target
+# without reaching `archived` state) and opens or updates a tracking issue
+# labelled `ticket-sla-breach`. Same dedup pattern as autonomous-loops.yml:
+# one open issue per breached ticket id, comment with elapsed time on each
+# re-run, close-on-resolution handled out of band by the operator.
+#
+# This loop is read-mostly: it never writes to the tickets.jsonl ledger — it
+# only reads via `openclaw ticket sla-breaches --json`. The escalation lives
+# in GitHub issues; the ledger remains the source of truth for ticket state.
+
+on:
+  schedule:
+    # Hourly. Run at minute 0 so the workflow lines up with operator dashboards.
+    - cron: "0 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "If true, only print breaches; do not open or update issues."
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ticket-sla-escalation
+  cancel-in-progress: false
+
+jobs:
+  escalate:
+    name: Open or update issues for SLA-breached tickets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install (no scripts)
+        run: npm install --ignore-scripts
+
+      - name: Detect SLA breaches
+        id: breaches
+        env:
+          OPENCLAW_TICKETS_PATH: release-gate/tickets.jsonl
+        run: |
+          set -e
+          if [ ! -f "${OPENCLAW_TICKETS_PATH}" ]; then
+            echo "No tickets.jsonl present — nothing to escalate."
+            echo "breach_count=0" >> "$GITHUB_OUTPUT"
+            echo "[]" > breaches.json
+            exit 0
+          fi
+          node bin/openclaw ticket sla-breaches --json > breaches.json
+          BREACH_COUNT="$(node -e 'console.log(JSON.parse(require("fs").readFileSync("breaches.json", "utf8")).count || 0)')"
+          echo "breach_count=${BREACH_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "Detected ${BREACH_COUNT} SLA breach(es)."
+
+      - name: Open or update GitHub issues per breach
+        if: steps.breaches.outputs.breach_count != '0' && github.event.inputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BREACH_COUNT: ${{ steps.breaches.outputs.breach_count }}
+        run: |
+          set -e
+          node -e '
+            const fs = require("fs");
+            const { execSync } = require("child_process");
+            const payload = JSON.parse(fs.readFileSync("breaches.json", "utf8"));
+            const breaches = payload.breaches || [];
+            for (const b of breaches) {
+              const title = `ticket-sla-breach: ${b.id} (elapsed ${b.elapsedHours}h)`;
+              // Dedup search: one open issue per ticket id.
+              const search = execSync(
+                `gh issue list --label ticket-sla-breach --state open --search "${b.id}" --json number,title --jq ".[0].number // empty"`,
+                { encoding: "utf8" }
+              ).trim();
+              const body = [
+                "Automated SLA-escalation report from .github/workflows/ticket-sla-escalation.yml.",
+                "",
+                `- Ticket: \`${b.id}\``,
+                `- State: \`${b.state}\``,
+                `- Priority: \`${b.priority}\``,
+                `- Title: ${b.title}`,
+                `- Assigned to: ${b.assignedTo || "(unassigned)"}`,
+                `- SLA hours: ${b.slaHours}`,
+                `- Elapsed hours: ${b.elapsedHours}`,
+                `- Created: ${b.createdAt}`,
+                `- Last update: ${b.updatedAt}`,
+                "",
+                "Resolve by moving the ticket to `archived` via `openclaw ticket close <id> --by <agent> --resolution <text>`.",
+              ].join("\n");
+              const safeTitle = title.replace(/`/g, "");
+              const bodyFile = `/tmp/breach-${b.id.replace(/[^A-Za-z0-9._-]+/g, "-")}.md`;
+              fs.writeFileSync(bodyFile, body);
+              if (search) {
+                console.log(`Updating existing issue #${search} for ${b.id}`);
+                execSync(`gh issue comment "${search}" --body-file "${bodyFile}"`, { stdio: "inherit" });
+              } else {
+                console.log(`Opening new issue for ${b.id}`);
+                execSync(`gh issue create --title ${JSON.stringify(safeTitle)} --label ticket-sla-breach --body-file "${bodyFile}"`, { stdio: "inherit" });
+              }
+            }
+          '
+
+      - name: Summarize into job summary
+        if: always()
+        env:
+          BREACH_COUNT: ${{ steps.breaches.outputs.breach_count }}
+        run: |
+          {
+            echo "## Ticket SLA escalation"
+            echo ""
+            echo "- Breaches detected: ${BREACH_COUNT}"
+            echo "- Dry-run: ${{ github.event.inputs.dry_run || 'false' }}"
+            echo ""
+            if [ -s breaches.json ]; then
+              echo "### Breach detail"
+              echo '```json'
+              cat breaches.json
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload breach payload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ticket-sla-breaches
+          path: breaches.json
+          if-no-files-found: warn
+          retention-days: 30

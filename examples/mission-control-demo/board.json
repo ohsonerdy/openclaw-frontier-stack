@@ -1,0 +1,80 @@
+{
+  "schema": "openclaw-frontier.mission-control-board.v1",
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "source": "synthetic-demo",
+  "lanes": [
+    { "id": "planned", "title": "Planned" },
+    { "id": "active", "title": "Active" },
+    { "id": "review", "title": "Review" },
+    { "id": "gated", "title": "Gated" },
+    { "id": "done", "title": "Done" }
+  ],
+  "cards": [
+    {
+      "id": "card-root-orchestrator",
+      "lane": "done",
+      "title": "Orchestrator: coordinate demo health endpoint",
+      "owner": "orchestrator",
+      "taskId": "task-1",
+      "status": "done",
+      "artifacts": ["out/trace.json", "out/summary.md"],
+      "summary": "Orchestrator coordinates a synthetic coding swarm and returns a traceable result."
+    },
+    {
+      "id": "card-architect-plan",
+      "lane": "done",
+      "title": "Architect: implementation plan",
+      "owner": "architect",
+      "taskId": "task-2",
+      "status": "done",
+      "artifacts": ["architect-plan"],
+      "summary": "Plan target files, risks, and test path."
+    },
+    {
+      "id": "card-scout-memory",
+      "lane": "done",
+      "title": "Scout: memory retrieval",
+      "owner": "scout",
+      "taskId": "task-4",
+      "status": "done",
+      "artifacts": ["synthetic-memory-hits"],
+      "summary": "Retrieve synthetic coordination rule before implementation."
+    },
+    {
+      "id": "card-builder-patch",
+      "lane": "review",
+      "title": "Builder: demo health endpoint patch",
+      "owner": "builder",
+      "taskId": "task-6",
+      "status": "ready-for-review",
+      "claims": ["src/demo-app.js"],
+      "artifacts": ["out/demo-health-endpoint.patch"],
+      "summary": "Path claimed before writing synthetic patch artifact."
+    },
+    {
+      "id": "card-reviewer-pass",
+      "lane": "done",
+      "title": "Reviewer: patch review",
+      "owner": "reviewer",
+      "taskId": "task-8",
+      "status": "done",
+      "artifacts": ["review-pass"],
+      "summary": "Review passes: synthetic patch, no external IO, no private data."
+    },
+    {
+      "id": "card-sentinel-gate",
+      "lane": "gated",
+      "title": "Sentinel: release/privacy decision",
+      "owner": "sentinel",
+      "taskId": "task-10",
+      "status": "gated",
+      "decision": "APPROVE_RELEASE_CANDIDATE",
+      "artifacts": ["sentinel-demo-approval"],
+      "summary": "production-ready approval; not public upload authorization."
+    }
+  ],
+  "writeback": {
+    "mode": "dry-run-only",
+    "requiresApproval": true
+  }
+}

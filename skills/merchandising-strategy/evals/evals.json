@@ -1,0 +1,112 @@
+{
+  "skill_name": "merchandising-strategy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our PDP feels cluttered. What should we keep and what should we cut?",
+      "expected_output": "Walks the PDP-element-ordering framework. Should identify the seven structural elements and their canonical eye-path ordering: hero → price → CTA → variant → bullets → social proof → related. Should warn against adding too many secondary CTAs (quiz, bundle promo, subscribe callout, referral prompt). Should recommend picking one secondary CTA at most and subordinating the rest. Should ask what device the user is auditing for.",
+      "assertions": [
+        "Checks for .agents/modern-ai-context.md",
+        "Walks the PDP-element-ordering framework",
+        "Names the eye-path ordering (hero, price, CTA, variant, bullets, social proof, related)",
+        "Warns against multiple competing secondary CTAs",
+        "Recommends one secondary CTA at most",
+        "Calls modern.sales.aov segmented by page_template",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections",
+        "Names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Should we curate our collection pages or use algorithmic sorting?",
+      "expected_output": "Walks the curated-vs-algorithmic framework. Should not give a generic answer; should ask about catalog size and brand voice. Recommends curated for small to mid-size catalogs and editorial-voice brands, algorithmic for large catalogs with personalization signals. Should recommend the hybrid: curated guardrails on algorithmic collections (a human-curated first row, algorithm fills the rest). Should warn against pure algorithmic with no human guardrails.",
+      "assertions": [
+        "Walks the curated-vs-algorithmic framework",
+        "Asks about catalog size and brand voice",
+        "Recommends curated for small catalogs and editorial-voice brands",
+        "Recommends algorithmic for large catalogs with personalization",
+        "Recommends the hybrid with curated first row over algorithmic remainder",
+        "Warns against pure algorithmic with no human guardrails",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Where should we put product recommendations? PDP, cart, post-purchase?",
+      "expected_output": "Walks the recommendation-surface-placement framework. Should rank surfaces by conversion per impression: cart drawer (5-12%) > cart cross-sell (3-8%) > post-purchase upsell (5-15%) > PDP related (1-4%) > homepage > email. Should recommend investing in cart-drawer first because it is often the highest-leverage underutilized surface. Should connect to SKU-affinity logic.",
+      "assertions": [
+        "Walks the recommendation-surface-placement framework",
+        "Ranks surfaces by conversion per impression",
+        "Names cart drawer as highest conversion surface",
+        "Recommends investing in cart drawer first as underutilized",
+        "Connects to SKU-affinity logic",
+        "Calls modern.sales.sku_affinity via modern-mcp if connected",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We label our newest product as 'best-seller' to drive attention. Is that bad?",
+      "expected_output": "Direct answer: yes, this is the badge-abuse anti-pattern. Should walk the best-seller-badging-discipline framework. Best-seller should be a real signal (top 5 SKUs by units or top 10 by revenue in trailing 30 days). Should explain that customers detect inconsistency between badged products and actual store traffic, and trust erodes. Should recommend rotating best-seller list, category-specific badging, and discipline on adjacent badges (customer favorite, new, editor's pick).",
+      "assertions": [
+        "Identifies the practice as badge-abuse anti-pattern",
+        "Walks the best-seller-badging-discipline framework",
+        "Defines best-seller as a real signal (top SKUs by units or revenue)",
+        "Explains trust erosion when badges don't match actual traffic",
+        "Recommends rotating best-seller list",
+        "Discusses adjacent badge discipline (customer favorite, new, editor's pick)",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Our holiday merchandising flopped. Calendar said December but sales were flat. What went wrong?",
+      "expected_output": "Walks the seasonal-merchandising-rhythm framework. Should explain that seasonal merchandising requires alignment of three inputs: calendar, behavior, inventory. Calendar alone is insufficient. Should ask what behavior signals were monitored (search-term volume, returning-visitor frequency, cart abandonment patterns) and what inventory state was. Should diagnose likely failure modes: gift-friendly bundles vs regular catalog with snowflake banner; out-of-stock by mid-month; behavior shifts that calendar missed.",
+      "assertions": [
+        "Walks the seasonal-merchandising-rhythm framework",
+        "Names the three inputs (calendar, behavior, inventory)",
+        "Explains that calendar alone is insufficient",
+        "Asks what behavior signals were monitored",
+        "Asks what inventory state was during the campaign",
+        "Names common failure modes (regular catalog with banner, mid-month stock-out, behavior shifts)",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We're surfacing an out-of-stock SKU as our top recommendation. How big a deal is that?",
+      "expected_output": "Direct answer that this is the inventory-aware-merchandising failure mode. Should walk the framework: out-of-stock SKUs should not appear in first row of collections, cart-drawer recommendations, or post-purchase surfaces. Should recommend integrating inventory data into merchandising surfaces in real-time. Should also identify the opposite mistake: overstock SKUs languishing instead of being promoted. Should recommend a weekly merchandising review at minimum.",
+      "assertions": [
+        "Identifies the inventory-aware-merchandising failure",
+        "Walks the inventory-aware-merchandising framework",
+        "Recommends removing out-of-stock from first row, cart drawer, post-purchase",
+        "Recommends integrating inventory data in real-time",
+        "Identifies the opposite mistake of overstock languishing",
+        "Recommends regular merchandising review cadence",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our collection grids look fine but conversion is flat. What should we look at?",
+      "expected_output": "Walks the visual-hierarchy-on-collection-grids framework. Should audit first row vs later rows, image consistency, pricing visibility (hidden price is a common conversion killer), variant indicators on grid cards, and loaded-rows pacing on long collections. Should note that brands often over-invest in PDP design and under-invest in collection grids, even though most product discovery happens on collection pages.",
+      "assertions": [
+        "Walks the visual-hierarchy-on-collection-grids framework",
+        "Audits first row vs later rows",
+        "Names image consistency as a scan-speed lever",
+        "Names price visibility as a conversion lever (hidden price is bad)",
+        "Names variant indicators on grid cards",
+        "Names loaded-rows pacing for long collections",
+        "Notes the over-investment in PDP vs collection grids",
+        "Output has Quick Wins, High-Impact Changes, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

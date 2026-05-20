@@ -1,0 +1,17 @@
+{
+  "name": "@openclaw-frontier/signed-bus",
+  "version": "0.1.0",
+  "description": "Signed TASK/RESULT/FACT/DECISION envelopes over NATS JetStream for coding-swarm coordination.",
+  "main": "lib/signed-bus-client.js",
+  "scripts": {
+    "test:envelope": "node test/envelope-local.test.js",
+    "test:roundtrip": "node test/roundtrip.js"
+  },
+  "dependencies": {
+    "nats": "^2.29.3",
+    "uuid": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

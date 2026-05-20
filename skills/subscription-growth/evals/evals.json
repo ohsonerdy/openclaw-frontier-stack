@@ -1,0 +1,104 @@
+{
+  "skill_name": "subscription-growth",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our subscription brand has been flat at 12k active subscribers for three months. Acquisition feels fine but we can't grow. Help.",
+      "expected_output": "Diagnosis grounded in the net-subscriber-growth decomposition. The response should pull the subscriber growth equation inputs, separate trial-driven adds from direct signups, compare gross adds against voluntary + involuntary churn, and flag whether the issue is acquisition leak or churn leak. If reactivation potential is meaningful, recommend it as the first move before touching net-new acquisition.",
+      "assertions": [
+        "Checks for .agents/modern-ai-context.md",
+        "Calls modern.subscriptions.active_count via modern-mcp if connected",
+        "Calls modern.subscriptions.churn_rate split by voluntary and involuntary",
+        "Applies the net-new vs reactivation framework decomposition",
+        "Flags whether the bottleneck is gross adds or churn",
+        "Recommends reactivation flow as a candidate first move",
+        "Output has Quick Wins, High-Impact, Test Ideas sections",
+        "Names a single highest-leverage next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Trial-to-paid conversion is 32%. Is that bad? How do I fix it?",
+      "expected_output": "Diagnosis that 32% is below the typical 40-60% band, then walks through the four levers of trial-to-paid mechanics — activation depth, reminder cadence, trial length, trial friction — in order. Should ask about activation rate and reminder cadence before recommending discount tactics. Should not jump to discount.",
+      "assertions": [
+        "Identifies 32% as below the typical 40-60% band",
+        "Walks through the four levers of trial-to-paid mechanics in order",
+        "Asks about activation rate before recommending discount tactics",
+        "Recommends trial-end reminder cadence (7/3/1 days) as a Quick Win",
+        "Does not lead with a discount as the primary fix",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Should I push annual plans? Right now everyone signs up monthly.",
+      "expected_output": "A targeted answer that uses the annual-vs-monthly framework. Should explain that annual at signup is usually the wrong placement and recommend a month-2 or month-3 'switch to annual' offer instead. Should walk through the cash-flow impact of converting a monthly subscriber to annual and connect it to paid CAC payback economics.",
+      "assertions": [
+        "Recommends against annual at signup unless trial conversion is broken",
+        "Recommends a month-2 or month-3 switch-to-annual offer placement",
+        "Walks through the cash-flow impact of annual conversion",
+        "Names the 17% conventional discount band",
+        "Connects annual placement to CAC payback economics",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Our onboarding sequence is two welcome emails. Should we do more?",
+      "expected_output": "Diagnosis that onboarding is about activation depth, not email count. Should ask what the activation moment is for the product (first shipment consumed, first session completed, etc.), then design the onboarding sequence to drive customers to that moment. Should distinguish reminder cadence from activation prompts.",
+      "assertions": [
+        "Defines activation moment first, then designs around it",
+        "Distinguishes activation prompts from reminder cadence",
+        "Recommends measuring activation rate as the leading indicator",
+        "Does not just recommend 'more emails'",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I'm 4 months in with ~800 active subscribers on my new supplement brand. Where should I focus?",
+      "expected_output": "Activates the founding-customer cohort acceleration framework because the brand is under 12 months and under 1k subscribers. Should recommend founders-only pricing preservation, direct founder communication, and beta access tactics. Should also walk through whether net-new acquisition or activation deepening matters more at this scale.",
+      "assertions": [
+        "Activates the founding-cohort framework explicitly",
+        "Recommends founders-only pricing preservation",
+        "Recommends direct founder communication tactics",
+        "Discusses beta product access as a retention lever",
+        "Notes that the framework changes above ~5k subscribers",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "I want to redesign my subscription landing page. What matters most for conversion?",
+      "expected_output": "Walks through the five subscription-specific CRO levers in order of impact — cancellation transparency, shipment cadence preview, pause option visibility, social proof shape, first-shipment composition. Should distinguish these from generic CRO tactics. Should ask about current cancellation language and pause availability before recommending tests.",
+      "assertions": [
+        "Lists the five subscription-specific CRO levers in order of impact",
+        "Distinguishes from generic CRO tactics",
+        "Asks about current cancellation transparency and pause option",
+        "Recommends cancellation transparency near CTA as a Quick Win",
+        "Recommends shipment cadence preview for replenishment brands",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our paid channel CAC is $48 and our average subscription value is $32/month. Is that working?",
+      "expected_output": "Subscription payback math: at $32/month and 65-70% retention at month 3, payback is approximately 2-3 months depending on churn. Should explicitly compute months-to-payback factoring in churn timing, then place the channel in the LTV decision framework. Should reference paid-ltv-optimization for the deeper channel-by-channel analysis.",
+      "assertions": [
+        "Computes months-to-payback factoring in churn timing",
+        "Does not just do CAC / monthly value math",
+        "Distinguishes subscription payback from one-time-purchase payback",
+        "References paid-ltv-optimization for deeper channel analysis",
+        "Calls modern.ads.cac_by_channel filtered to subscription_first_purchase",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

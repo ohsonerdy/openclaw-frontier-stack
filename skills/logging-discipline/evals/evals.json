@@ -1,0 +1,106 @@
+{
+  "skill_name": "logging-discipline",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our logs are free-text with no structure. The on-call says they can't filter by user or by endpoint during incidents. What do I do?",
+      "expected_output": "Move to structured logging: every line a parseable record with timestamp, level, event identifier in the message field, structured key-value fields for variables, and correlation IDs. The variables (user, endpoint, latency, error code) move out of interpolated prose into typed fields. Recommend including request ID, trace ID, and user ID hash on every line. The migration is at the logger layer; existing call sites largely stay the same.",
+      "assertions": [
+        "Recommends moving to structured logging",
+        "Names timestamp, level, message, fields, correlation IDs as the shape",
+        "Moves variables out of interpolated prose into fields",
+        "Recommends request ID, trace ID, user ID hash",
+        "Notes that the migration is at the logger layer",
+        "Distinguishes event identifier (message) from variables (fields)"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We've been logging full request bodies for debugging. Security review just flagged that we're logging customer emails and addresses in cleartext. How do I fix this?",
+      "expected_output": "Stop logging full request bodies. The fix is at the logger layer, not the call sites — define a PII field list and redact or hash automatically. For diagnostic detail, replace with IDs (request ID, user ID hash) and metadata (route, response code, latency). If the raw body is occasionally needed for diagnosis, gate it behind a flag with a sampling rate. Audit existing logs for already-leaked PII; rotate retention if compliance requires.",
+      "assertions": [
+        "Stops logging full request bodies",
+        "Implements PII redaction at the logger layer (not call sites)",
+        "Defines a PII field list (email, address, etc.)",
+        "Replaces bodies with IDs and metadata",
+        "Gates any body logging behind a flag with sampling",
+        "Audits existing logs for already-leaked PII",
+        "Considers compliance retention implications"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our log bill jumped from $5k to $35k a month. Nothing major shipped. What's likely going on?",
+      "expected_output": "Audit log volume by service and level. Common culprits: an INFO log added inside a hot loop, a DEBUG-level enabled accidentally in prod, a third-party library that logs aggressively, or a noisy path (e.g. health check, retries on a flaky downstream). Levers: drop DEBUG and TRACE in prod, downgrade noisy INFO, sample hot paths by request ID, separate high-volume streams. Set up volume monitoring per service so this is detectable next time.",
+      "assertions": [
+        "Audits volume by service and level",
+        "Looks for INFO in hot loops",
+        "Checks if DEBUG was enabled in prod",
+        "Investigates third-party library log behavior",
+        "Recommends dropping DEBUG/TRACE in prod",
+        "Recommends sampling hot paths by request ID",
+        "Sets up volume monitoring per service"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Engineer wants to add a WARN log every time a retry happens. We see thousands of retries a day from a flaky downstream. What do I tell them?",
+      "expected_output": "WARN should be reserved for things worth investigating. If retries happen thousands of times a day and nobody acts on them, the WARN becomes ignored. Two options: downgrade to INFO with a counter that aggregates retry rate, or keep at WARN but only emit when retry count exceeds a threshold (signal vs noise). The deeper fix is to either treat the downstream flakiness as a problem (file an issue, escalate) or accept it as known and don't warn about each instance.",
+      "assertions": [
+        "Identifies WARN that nobody investigates becomes ignored",
+        "Recommends downgrading high-volume retries to INFO with counter",
+        "Alternatively emits WARN only above a threshold",
+        "Treats downstream flakiness as the underlying issue to fix",
+        "Distinguishes signal vs noise in WARN level",
+        "References level discipline explicitly"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "An engineer is debugging an issue across three services. They can't tell which logs belong to the same request. What's missing?",
+      "expected_output": "Missing correlation IDs. Generate a request ID at the edge (load balancer, API gateway) and propagate it through every downstream call via a header like X-Request-Id. Every log line in every service includes the request ID. Also propagate trace ID (OpenTelemetry) and user ID hash. Specifically check async boundaries — queue messages, background jobs, retries — which often drop the correlation ID; pass it as part of the payload.",
+      "assertions": [
+        "Identifies missing correlation IDs",
+        "Generates request ID at the edge",
+        "Propagates request ID via header to downstream services",
+        "Includes request ID on every log line",
+        "Also recommends trace ID (OpenTelemetry)",
+        "Calls out async boundaries (queues, jobs) as common drop points",
+        "Includes user ID hash for user-level filtering"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We log everything at INFO. Production produces about 30 INFO lines per request. Is that fine?",
+      "expected_output": "Likely too verbose. 30 INFO lines per request means INFO is being used as DEBUG. Audit which lines are real business events worth recording (orders, signups, key state transitions) and which are execution traces ('entering function X', 'fetched 12 rows'). The execution-trace ones belong at DEBUG, off in prod. Apply the 2am filter — would an on-call landing on this line know what to do? — and downgrade or drop the ones that fail. Also consider sampling if some high-volume paths must stay at INFO.",
+      "assertions": [
+        "Identifies 30 INFO lines per request as too verbose",
+        "Notes this is DEBUG-level information tagged as INFO",
+        "Distinguishes business events from execution traces",
+        "Recommends downgrading execution traces to DEBUG",
+        "Applies the 2am filter to existing lines",
+        "Considers sampling for high-volume paths that must stay at INFO"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We want to sample our high-traffic endpoint's logs at 1%. Random per-line, or by request?",
+      "expected_output": "By request, not per-line. Sample by request ID hash so all logs for a given request are kept or dropped together. Random per-line sampling produces orphan log lines that can't be assembled into a request trace, making debugging harder. Tag the kept logs with `sample_rate: 100` (meaning 1-in-100 kept) so downstream aggregations multiply counts correctly. Consider tail-based sampling — keep traces that surfaced an error or were slow — for high-signal results.",
+      "assertions": [
+        "Recommends sampling by request ID, not per-line",
+        "Hashes request ID for sampling key",
+        "Notes random per-line breaks request reconstruction",
+        "Tags kept logs with sample_rate for downstream aggregation",
+        "Mentions tail-based sampling for error/slow traces",
+        "Frames sampling decision as preserving the full trace, not individual lines"
+      ],
+      "files": []
+    }
+  ]
+}

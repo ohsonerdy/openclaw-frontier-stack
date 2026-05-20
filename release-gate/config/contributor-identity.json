@@ -1,0 +1,12 @@
+{
+  "schema": "openclaw-frontier.contributor-identity.v1",
+  "comment": "Single source of truth for the expected public contributor identity. Gates read from here instead of hardcoding. To migrate to a different org-level account, edit this file and re-run the gate chain. Individual contributor handles MUST NOT appear here.",
+  "owner": "ohsonerdy",
+  "ownerEmail": "179361416+ohsonerdy@users.noreply.github.com",
+  "repo": "ohsonerdy/openclaw-frontier-stack",
+  "targetMigration": {
+    "comment": "When the modernai org is provisioned, edit the fields above to: owner='modernai-release-bot', ownerEmail='<bot-id>+modernai-release-bot@users.noreply.github.com', repo='modernai/modern-skills'. Then re-run the gate chain. The git history rewrite + GitHub repo rename happens in coordination with this edit.",
+    "targetOwner": "modernai-release-bot",
+    "targetRepo": "modernai/modern-skills"
+  }
+}

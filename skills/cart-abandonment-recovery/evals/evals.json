@@ -1,0 +1,101 @@
+{
+  "skill_name": "cart-abandonment-recovery",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "My cart abandonment is killing us. 78% of carts never become orders.",
+      "expected_output": "Diagnosis that 78% abandonment is roughly average and that the framing itself is the trap — the real question is recovery rate on those carts, not the abandonment rate itself. The response should walk through the form-friction taxonomy first to plug in-session leaks, then audit the recovery flow, and finally suggest retargeting layering. Should not start with a discount-based recovery flow.",
+      "assertions": [
+        "Reframes abandonment rate as a recovery question",
+        "Walks through the five-friction taxonomy",
+        "Calls modern.flows.revenue_by_flow to audit existing flows",
+        "Calls modern.sales.aov with abandonment-band parameters if connected",
+        "Does not lead with discount as the primary recovery lever",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want to set up an abandonment email flow. What should the timing look like?",
+      "expected_output": "Walks through the four-touchpoint recovery flow timing: 15-30 min, 1 hour, 24 hours, 72 hours. Should describe the distinct job of each touch (soft reminder, reassurance, light incentive, final discount). Should warn against discount-led recovery on touch 1 or 2.",
+      "assertions": [
+        "Lists the four touchpoints with their timing windows",
+        "Names the distinct job of each touch",
+        "Warns against discount-led recovery on early touches",
+        "Distinguishes SMS use for touch 1 (fastest channel)",
+        "Notes the SMS opt-in requirement",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We have a $400 AOV electronics product. Cart abandonment is way higher than our other products.",
+      "expected_output": "Identifies high-AOV abandonment as a different problem from low-AOV abandonment. Should apply the abandonment value-band segmentation framework, recommending personalized treatment, possibly human follow-up for very high carts, and noting that trust signals (return policy, reviews, security) warrant more weight at this AOV. Should not recommend a blanket discount.",
+      "assertions": [
+        "Applies the value-band segmentation framework",
+        "Recommends personalized treatment for high-AOV carts",
+        "Suggests human follow-up for very high-value carts",
+        "Emphasizes trust signals over discount",
+        "Notes the higher-AOV-cart leak as warranting its own treatment",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Should we use exit-intent popups?",
+      "expected_output": "Walks through the exit-intent rules. Should recommend cart/checkout-only firing, suppression for repeat customers and email-click visitors, and a 50% holdout test for at least 4 weeks. Should warn that broad-site exit-intent often cannibalizes organic conversion at a rate that masks gross impact.",
+      "assertions": [
+        "Recommends cart/checkout-only firing, not broad-site",
+        "Lists the suppression rules (repeat customer, email click, post-popup session)",
+        "Recommends a 50% holdout test for at least 4 weeks",
+        "Warns about cannibalization of organic conversion",
+        "Recommends one specific value (free-shipping reminder, AOV-conditional discount) not generic signup",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We require account creation before checkout. Is that hurting us?",
+      "expected_output": "Direct answer: yes, almost certainly. Should cite the account-required friction as one of the highest-leakage decisions, estimating 20-30% of would-be buyers lost. Should recommend offering guest checkout as the default and prompting account creation in the confirmation email post-purchase.",
+      "assertions": [
+        "Cites account-required as a high-leakage friction source",
+        "Estimates 20-30% conversion loss from account requirement",
+        "Recommends guest checkout as default",
+        "Recommends post-purchase account creation prompt",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We're running Meta retargeting for abandoned carts AND we have a Klaviyo abandonment flow. The numbers don't add up. Are they double-counting?",
+      "expected_output": "Walks through the retargeting layering and deduplication framework. Should explain that yes, attribution is likely double-counting, and recommend the deduplication rule (first-touched channel within a 1-hour window). Should suggest holding retargeting until touch 3 to avoid paying for conversions email would have captured.",
+      "assertions": [
+        "Confirms the double-counting risk in retargeting + email layering",
+        "Explains the deduplication rule (first-touched within 1 hour)",
+        "Recommends starting retargeting at touch 3 (24 hours), not earlier",
+        "Calls modern.ads.spend filtered to retargeting campaigns",
+        "Sets a frequency cap recommendation (3 impressions/day)",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our checkout has 8 form fields and 3 steps. Is that too many?",
+      "expected_output": "8 fields is healthy (under the 12 threshold). 3 steps is in the typical band. Should validate that the brand is in good shape on form-count but ask whether shipping reveal happens before checkout begins (a separate friction question). Should not recommend changes for the sake of changes.",
+      "assertions": [
+        "Validates 8 fields and 3 steps as healthy",
+        "Names the 12-field healthy threshold",
+        "Pivots to checking other friction sources (shipping reveal, payment options, account requirement)",
+        "Does not recommend changes without evidence of a leak",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "skill_name": "winback-flows",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have 18,000 lapsed customers. What's the best winback offer?",
+      "expected_output": "Pushes back on the single-offer framing. Walks through the lapse-segment taxonomy first, then the recency-based offer ladder. Should pull lapsed count by recency band and ask about historical AOV before recommending offer intensity. Should warn that a single offer to all 18,000 trains regular buyers to lapse for the discount.",
+      "assertions": [
+        "Walks through the four-segment lapse taxonomy",
+        "Calls modern.retention.lapsed_count with recency buckets",
+        "Pulls historical AOV to inform offer intensity",
+        "Warns against single-offer-to-all approach",
+        "Names the discount-training risk for the regular buyer file",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Customers who haven't ordered in 6 months — should I email them a 20% off code?",
+      "expected_output": "Identifies 6 months as light-lapsed territory (90-180 days) or just at the boundary into deep-lapsed (180-365). Should warn against leading with a hard discount on light-lapsed customers because it trains the regular file to lapse for the discount. Should walk through the recency-based offer ladder and recommend a softer first touch.",
+      "assertions": [
+        "Identifies 6 months as light-lapsed or boundary-to-deep-lapsed",
+        "Warns against hard discount on light-lapsed",
+        "Names the discount-training risk explicitly",
+        "Recommends the segment-appropriate touch sequence",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I have a bunch of customers who haven't ordered in 2+ years. Worth sending to them?",
+      "expected_output": "Identifies 730+ days as cold-lapsed. Should recommend suppression rather than sending. Notes that reactivation rate is under 1% and that sending to cold-lapsed customers damages list health (spam complaints lower inbox placement for the rest of the list).",
+      "assertions": [
+        "Identifies 730+ days as cold-lapsed",
+        "Recommends suppression rather than sending",
+        "Explains the list-health damage from sending to cold-lapsed",
+        "Names the spam complaint / inbox placement risk",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We have some high-AOV customers ($400+) who are deep-lapsed. Any ideas?",
+      "expected_output": "Applies the channel mix framework. For very high-AOV deep-lapsed customers, recommends phone outreach (8-15% conversion) or direct mail postcard (3-5% conversion) over generic email. Should walk through the cost economics and note that personal outreach beats automated flows at this AOV.",
+      "assertions": [
+        "Recommends phone outreach for very high-AOV deep-lapsed",
+        "Recommends direct mail postcard as an alternative",
+        "Cites the conversion rates (8-15% phone, 3-5% direct mail)",
+        "Walks through cost economics that support personal outreach",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "How do I prevent winback from being annoying?",
+      "expected_output": "Walks through the do-not-contact rules. Refund history, quality complaints, NPS detractors, unsubscribe history, cross-brand active customers. Should explain that these are not just hygiene but protective of list health, and that one bad winback can damage inbox placement for the whole list.",
+      "assertions": [
+        "Lists the five do-not-contact rule categories",
+        "Explains the list-health protection rationale",
+        "Notes the inbox placement impact of one bad campaign",
+        "Recommends a suppression audit before any winback launches",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "How do I know which lapsed customers are most likely to come back?",
+      "expected_output": "Walks through the repurchase-intent prediction signals: browse behavior, email engagement, support tickets, wishlist activity, referral activity. Should explain that layering intent signals on recency creates a matrix where some deep-lapsed customers outperform some light-lapsed customers. Recommends building the matrix and allocating winback budget against it.",
+      "assertions": [
+        "Lists the five repurchase-intent prediction signals",
+        "Explains the recency × intent matrix concept",
+        "Notes that high-intent deep-lapsed can outperform low-intent light-lapsed",
+        "Recommends building the matrix as a segmentation tool",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Our winback flow is one email with a 25% off code. Should we do more?",
+      "expected_output": "Yes, but the answer depends on what segment is being sent to. Single-email 25%-off is too generic and too aggressive for light-lapsed (trains regular buyers to lapse) and possibly too soft for cold-lapsed (no point). Should recommend rebuilding as a recency-based offer ladder with at least three segment-specific flows.",
+      "assertions": [
+        "Identifies the single-email approach as too generic",
+        "Recommends segment-specific flows",
+        "Notes 25% off is wrong for light-lapsed (too aggressive)",
+        "Recommends rebuilding as the offer ladder",
+        "Pulls modern.flows.revenue_by_flow to baseline current performance",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

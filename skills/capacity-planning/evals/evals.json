@@ -1,0 +1,114 @@
+{
+  "schema": "openclaw-frontier.skill-eval.v1",
+  "skill_name": "capacity-planning",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're launching a campaign next month that marketing says could 5x traffic for two hours. Our current service runs at 70% peak utilization. The team wants to just turn on autoscaling and trust it. Is that the right move?",
+      "expected_output": "No. Autoscaling alone is wrong for a known event of this size. Three issues. First, autoscalers react in minutes (metrics window + scale-out decision + boot time); a sudden 5x burst lands on the unscaled fleet before scale-out completes. Second, you're starting at 70% utilization, which means even a 2x burst before scale-out completes will saturate the fleet. Third, autoscaling doesn't scale the downstreams — database connections, cache, external quotas — which often fail before the replicas do. The right move: pre-provision for the projected peak (5x current peak) plus headroom, before the event window starts. Pre-scale downstreams to match. Pre-warm caches and connections. Run a load test at the pre-scaled size with a realistic request mix and ramp profile to confirm the new size handles the peak. Keep autoscaling enabled as a safety net for anything above the forecast, with abort criteria (traffic shedding, feature flags) if the forecast is exceeded.",
+      "assertions": [
+        {"type": "contains", "value": "pre-provision"},
+        {"type": "contains", "value": "autoscaling"},
+        {"type": "contains", "value": "downstream"},
+        {"type": "contains", "value": "headroom"},
+        {"type": "contains", "value": "load test"},
+        {"type": "contains", "value": "abort criteria"},
+        {"type": "not-contains", "value": "trust the autoscaler"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "What headroom should our user-facing checkout service run at? It's revenue-critical and has variable demand.",
+      "expected_output": "For a revenue-critical user-facing service with variable demand, target peak utilization in the 50-60% range. The reasoning: the autoscaler has reaction lag (minutes), so the unscaled fleet has to absorb whatever lands during the lag window. Variable demand means the peak-to-trough ratio is uncertain; conservative headroom protects against forecast error. Revenue-critical raises the cost-of-outage side of the trade-off; the extra spend on headroom is cheaper than the lost transactions during a saturation event. If the service has historically saturated or had close calls, push the target lower (45-50%). If the demand shape is well-characterized and the autoscaler has proven fast, 60% is defensible. Document the chosen number and the reasoning; revisit quarterly and after every capacity-related incident. Avoid headroom-as-slogan ('run lean'); pick a specific number and defend it.",
+      "assertions": [
+        {"type": "contains", "value": "50-60%"},
+        {"type": "contains", "value": "autoscaler"},
+        {"type": "contains", "value": "reaction"},
+        {"type": "contains", "value": "revenue"},
+        {"type": "contains", "value": "quarterly"},
+        {"type": "not-contains", "value": "90% utilization is fine"},
+        {"type": "not-contains", "value": "run lean"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our load test fires 10,000 RPS against a single endpoint with a tiny synthetic payload, no auth, no database calls (mocked). It passes. We expect 10,000 RPS in production. Are we sized correctly?",
+      "expected_output": "No. The load test is not predictive of production. Five mismatches. First, production fires a mix of endpoints, not one; the test misses the contention between endpoints. Second, real payloads are larger and exercise different serialization, validation, and downstream code paths. Third, real auth introduces token validation, possibly a database lookup, and additional latency per request. Fourth, mocking the database hides the actual bottleneck — production almost always has a database-bound step. Fifth, the absence of a realistic ramp profile means the test doesn't exercise cold-start behavior. Redo the test with: a request mix matching production proportions, realistic payload sizes, real auth, real database (or a faithful copy), and a ramp profile that resembles real traffic onset. Expect the resulting capacity number to be much lower than the synthetic test suggested.",
+      "assertions": [
+        {"type": "contains", "value": "request mix"},
+        {"type": "contains", "value": "payload"},
+        {"type": "contains", "value": "auth"},
+        {"type": "contains", "value": "database"},
+        {"type": "contains", "value": "ramp"},
+        {"type": "not-contains", "value": "the load test is sufficient"},
+        {"type": "not-contains", "value": "10,000 RPS confirmed"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We measured per-replica capacity as 200 RPS by saturating one instance. We need to handle 10,000 RPS at peak with 40% headroom. How many replicas, and what's the gotcha?",
+      "expected_output": "Sizing math: required capacity = projected peak × (1 + headroom) = 10,000 × 1.4 = 14,000 RPS. Divide by per-replica capacity: 14,000 / 200 = 70 replicas, round up. The gotcha: per-replica capacity from a single-instance test assumes linear scaling. Confirm linearity with a scaling test (2, 4, 8 replicas at the same per-replica RPS) before trusting the multiplication. Non-linear scaling usually means a shared bottleneck — database connections, cache thrashing, external service rate limits — that adding replicas doesn't fix. If you find non-linearity, address the upstream constraint before increasing the fleet size; otherwise you're paying for replicas that can't actually serve traffic. Also verify the downstream (database, cache, external APIs) scales to support 70 replicas' connection draw and request rate.",
+      "assertions": [
+        {"type": "contains", "value": "70"},
+        {"type": "contains", "value": "linear"},
+        {"type": "contains", "value": "scaling test"},
+        {"type": "contains", "value": "shared bottleneck"},
+        {"type": "contains", "value": "downstream"},
+        {"type": "not-contains", "value": "just multiply"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We had an outage last week: traffic spiked 3x in 30 seconds, fleet saturated, errors for 7 minutes until autoscaling caught up. The team wants to fix this. What are the levers?",
+      "expected_output": "Four levers, prioritized by leverage. First and biggest: raise the baseline (pre-scaled) capacity so the unscaled fleet absorbs more burst before saturation. The autoscaler will always have minutes of reaction lag; the baseline has to survive the lag window. Second: tune the autoscaler — shorter metrics window, more aggressive scale-out threshold, faster instance boot (warm pools, smaller base images). Third: shed load during the burst — feature flags to disable non-critical work, queue admission control to drop low-priority requests, return cached responses for read-heavy paths. Fourth: investigate whether the burst itself is expected or whether something upstream amplified normal traffic into a spike. Document the chosen lever combination and run a load test that reproduces the 3x burst to confirm the new configuration survives it. The post-incident output should be a revised capacity plan with a higher baseline and a defined burst-handling strategy.",
+      "assertions": [
+        {"type": "contains", "value": "baseline"},
+        {"type": "contains", "value": "autoscaler"},
+        {"type": "contains", "value": "shed load"},
+        {"type": "contains", "value": "burst"},
+        {"type": "contains", "value": "load test"},
+        {"type": "not-contains", "value": "autoscaling is enough"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Our service runs at 5% utilization on a fleet of 40 m5.xlarge instances. Finance is asking why. Should we cut the fleet?",
+      "expected_output": "Investigate before cutting. 5% utilization can mean three things. (1) The fleet was sized for a peak that no longer exists (demand fell, never re-planned); cutting is appropriate. (2) The fleet was sized for a peak that still exists but is rare (a known event, seasonal); cutting introduces risk at the next peak. (3) The fleet has a non-CPU bottleneck (memory, network, connection limits, downstream call patterns) and CPU underutilization is normal for the workload. Cutting on CPU alone misses the real constraint. Start by looking at the historical peak utilization over the last 90 days, not just current. If peak is also low, cut toward a target headroom (e.g., re-size to put peak utilization at 60% with autoscaling enabled). Run a load test at the smaller size to confirm the projected peak fits. Don't cut by intuition; the cost of a capacity-driven outage from a wrong cut exceeds the savings.",
+      "assertions": [
+        {"type": "contains", "value": "historical peak"},
+        {"type": "contains", "value": "bottleneck"},
+        {"type": "contains", "value": "load test"},
+        {"type": "contains", "value": "headroom"},
+        {"type": "contains", "value": "90 days"},
+        {"type": "not-contains", "value": "cut the fleet immediately"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We have a service whose capacity plan was written 18 months ago at launch. Traffic has grown 4x since then and nobody has revisited it. The on-call says it's been close to saturation a couple times. What do we do?",
+      "expected_output": "Treat this as overdue work. Step 1: re-baseline. Measure current peak, growth trend, demand shape — the 18-month-old numbers are obsolete. Step 2: re-derive per-replica capacity if the service has changed (new endpoints, new dependencies, code-path changes invalidate the old number). Step 3: recompute the fleet size against current peak + projected growth + headroom. The 'close to saturation' signal is a leading indicator of an outage; act before it fires. Step 4: define a cadence — quarterly review at minimum, with a triggering event after any incident or known traffic event. The capacity plan should have an explicit owner and a last-reviewed date in the service catalog. Capacity planning is not a one-time exercise; the plan goes stale as the system and demand evolve.",
+      "assertions": [
+        {"type": "contains", "value": "re-baseline"},
+        {"type": "contains", "value": "per-replica capacity"},
+        {"type": "contains", "value": "quarterly"},
+        {"type": "contains", "value": "saturation"},
+        {"type": "contains", "value": "owner"},
+        {"type": "not-contains", "value": "the old plan is still fine"},
+        {"type": "length-at-least", "value": 400}
+      ],
+      "files": []
+    }
+  ]
+}

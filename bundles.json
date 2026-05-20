@@ -1,0 +1,130 @@
+{
+  "schema": "openclaw-frontier.bundles.v1",
+  "version": "1.0.0",
+  "description": "Curated skill bundles for the OpenClaw Frontier Stack. Each bundle names a coherent slice of the public skill catalog so plugin hosts and operators can install a focused subset rather than the full surface. Bundles are metadata-only; the skills themselves are already in-repo under skills/.",
+  "bundles": {
+    "marketing-core": {
+      "description": "Modern Skills marketing essentials for operators and agencies. Covers conversion, retention, copy, SEO, subscription growth, and the day-to-day ecomm decisions that drive revenue.",
+      "skills": [
+        "cohort-retention",
+        "subscription-churn",
+        "subscription-growth",
+        "repeat-purchase",
+        "cart-abandonment-recovery",
+        "cro",
+        "copywriting",
+        "ai-seo",
+        "seo-audit",
+        "email-marketing",
+        "paid-ltv-optimization",
+        "winback-flows",
+        "customer-research",
+        "launch"
+      ]
+    },
+    "marketing-extended": {
+      "description": "Marketing surface beyond the core: ads, programmatic SEO, pricing, bundles, referrals, partner programs, and the AI-creative skills for image and video generation.",
+      "skills": [
+        "ads",
+        "ad-creative",
+        "ab-testing",
+        "programmatic-seo",
+        "schema-markup",
+        "content-strategy",
+        "social-strategy",
+        "bundle-pricing",
+        "pricing-discipline",
+        "pricing-experiments",
+        "cross-sell-mapping",
+        "referral-program-design",
+        "affiliate-program-design",
+        "loyalty-program-design",
+        "influencer-program-design",
+        "attribution-model-design",
+        "merchandising-strategy",
+        "nps-and-detractor-handling",
+        "dunning-deep-dive",
+        "retail-buyer-pitch",
+        "product-marketing-positioning",
+        "customer-data-platform-strategy",
+        "ai-image-generation",
+        "ai-video-generation",
+        "ucp-agentic-commerce-strategy"
+      ]
+    },
+    "engineering-core": {
+      "description": "Engineering workflow essentials complementary to obra/superpowers. Incident lifecycle, ADRs, API and schema design, refactoring safety, and the monitoring and alerting basics.",
+      "skills": [
+        "incident-response",
+        "root-cause-analysis",
+        "post-mortem-writing",
+        "architecture-decision-records",
+        "api-design",
+        "schema-design",
+        "code-review-giving",
+        "code-review-receiving",
+        "refactoring-safety",
+        "performance-profiling",
+        "monitoring-and-alerting",
+        "logging-discipline",
+        "runbook-writing"
+      ]
+    },
+    "engineering-reliability": {
+      "description": "Reliability and operations workflow: on-call, deploys, capacity, disaster recovery, load testing, backups, and the verification rituals that keep production honest.",
+      "skills": [
+        "oncall-rotation-design",
+        "oncall-handoff-rituals",
+        "postdeploy-verification",
+        "load-testing",
+        "disaster-recovery-exercise-design",
+        "backup-and-restore",
+        "database-migration-safety",
+        "dependency-upgrade-safely",
+        "api-deprecation",
+        "feature-experiment-design",
+        "logging-platform-selection",
+        "local-dev-environment",
+        "change-management-policy",
+        "slo-design"
+      ]
+    },
+    "engineering-security": {
+      "description": "Security workflow: review patterns, threat modeling, secrets handling, dependency hygiene, and the audit rituals that gate sensitive code paths.",
+      "skills": [
+        "security-review",
+        "threat-modeling",
+        "secrets-management",
+        "feature-flagging",
+        "dependency-upgrade-safely",
+        "database-migration-safety",
+        "verified-history-scan",
+        "safe-public-release",
+        "incident-response",
+        "post-mortem-writing"
+      ]
+    },
+    "operator-core": {
+      "description": "Operators running the OpenClaw release-gate and durable task ledger. Three host-neutral procedural skills that ship the operator-safe release pipeline.",
+      "skills": [
+        "safe-public-release",
+        "durable-task-ledger",
+        "verified-history-scan"
+      ]
+    },
+    "agent-substrate": {
+      "description": "Building skills on top of OpenClaw's agent runtime (signed-bus, ticketing, goal-loop). Covers the cross-cutting concerns every agent integration must address.",
+      "skills": [
+        "secrets-management",
+        "feature-flagging",
+        "logging-discipline",
+        "monitoring-and-alerting",
+        "incident-response",
+        "post-mortem-writing",
+        "architecture-decision-records",
+        "api-design",
+        "threat-modeling"
+      ]
+    }
+  }
+}

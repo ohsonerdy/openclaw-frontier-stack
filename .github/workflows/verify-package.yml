@@ -1,0 +1,41 @@
+﻿name: Verify OpenClaw Frontier Stack package
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+env:
+  OPENCLAW_FRONTIER_CONTENTION_WORKERS: "32"
+
+jobs:
+  verify-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install package metadata
+        run: npm install --ignore-scripts
+      - name: Run acceptance scenarios
+        run: npm run smoke
+      - name: Run package verifier
+        run: npm run verify
+      - name: Run full git history private-content scan
+        run: npm run verify:history
+      - name: Build downloadable release artifact
+        run: npm run release:pack
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openclaw-frontier-stack-npm-pack
+          path: release-gate/artifacts/*.tgz

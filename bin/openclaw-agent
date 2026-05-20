@@ -1,0 +1,801 @@
+#!/usr/bin/env node
+'use strict';
+
+/**
+ * openclaw-agent — live single-role agent runner daemon.
+ *
+ * One process = one role. To run a full swarm, start one daemon per role
+ * (architect, builder, reviewer, …) — typically under a supervisor such
+ * as pm2 or systemd. See docs/agent-daemon.md.
+ *
+ * Lifecycle per turn:
+ *   1. Read agents/<role>/CONTRACT.md and parse Mission, Hard preconditions,
+ *      Decision authority, and "What you must NEVER do" sections.
+ *   2. Poll the blackboard JSONL ledger for `task-claim` records addressed
+ *      to <role> that do not yet have a `result` record.
+ *   3. For each new claim, build a system prompt from the contract and a
+ *      user prompt from the task summary. Dispatch to the model backend
+ *      (scripts/run-skill-evals.js#callBackend).
+ *   4. Run hard-rule checks on the model output. If any "NEVER do" pattern
+ *      matches, write a `decision` record with status: 'blocked' and skip
+ *      the result.
+ *   5. Otherwise write a `result` record with ok: true and a summary, plus
+ *      a hash of the model output.
+ *   6. Every model call + every blackboard write is appended to the audit
+ *      log (under the user's home directory at .openclaw-agent/audit.ndjson by default).
+ *
+ * The daemon trusts the model output only insofar as the role contract
+ * allows. Hard rules are enforced post-output, not by the model.
+ */
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const crypto = require('crypto');
+const { URL } = require('url');
+
+const repoRoot = path.resolve(__dirname, '..');
+const { createLedger, BlackboardValidationError } = require(
+  path.join(repoRoot, 'src', 'blackboard', 'lib', 'ledger.js'),
+);
+const evalRunner = require(path.join(repoRoot, 'scripts', 'run-skill-evals.js'));
+
+const HELP_TEXT = `openclaw-agent — live single-role agent runner
+
+Usage:
+  openclaw-agent --role <role-name> [options]
+
+Required:
+  --role <role-name>      Role to run. Must match a directory under agents/
+                          (e.g. architect, builder, reviewer, researcher).
+
+Options:
+  --blackboard <path>     Blackboard JSONL ledger (default ./blackboard.jsonl)
+  --poll-interval <ms>    Polling cadence (default 1000)
+  --model <model-id>      Model id passed to the backend. Required unless
+                          --dry-run is set. Same format as run-skill-evals.js.
+  --endpoint <url>        Backend base URL. Default https://api.anthropic.com.
+                          Same as run-skill-evals.js.
+  --api-format <fmt>      "anthropic" or "openai". Inferred from --endpoint
+                          when omitted. Same as run-skill-evals.js.
+  --max-tasks <n>         Stop after processing N tasks (default: unlimited).
+  --dry-run               Read tasks but do not call the model or write
+                          result/decision records. Logs intent to stderr.
+  --once                  Process exactly one poll cycle and exit. Combine
+                          with --dry-run for a no-op sanity probe.
+  --identity-key <path>   PEM-encoded Ed25519 private key. When set, every
+                          result record the daemon writes is augmented with
+                          a detached signature over its canonical JSON, in
+                          the same shape as the signed-bus envelope.
+  --quiet                 Suppress progress logging on stderr.
+  --help                  Show this message.
+
+Auth: same resolution order as scripts/run-skill-evals.js.
+  Anthropic backend (api.anthropic.com or --api-format anthropic):
+    ANTHROPIC_OAUTH_TOKEN > CLAUDE_CODE_OAUTH_TOKEN > ANTHROPIC_API_KEY
+  OpenAI-compatible backend:
+    OPENCLAW_EVAL_API_KEY > OPENAI_API_KEY
+    (localhost endpoints may run with no auth.)
+
+Audit log path:
+  OPENCLAW_AGENT_AUDIT_LOG   override the default audit log location
+                             (default: <HOME>/.openclaw-agent/audit.ndjson
+                              where <HOME> is the user's home directory)
+
+Exit codes:
+  0  Daemon stopped cleanly (--once, --max-tasks reached, or SIGINT/SIGTERM).
+  1  Unrecoverable runtime error (contract unreadable, ledger corrupted).
+  2  Bad CLI arguments.
+`;
+
+function parseArgs(argv) {
+  const args = {
+    role: null,
+    blackboard: path.resolve(process.cwd(), 'blackboard.jsonl'),
+    pollIntervalMs: 1000,
+    model: null,
+    endpoint: null,
+    apiFormat: null,
+    maxTasks: Infinity,
+    dryRun: false,
+    once: false,
+    identityKey: null,
+    quiet: false,
+    help: false,
+  };
+  for (let i = 2; i < argv.length; i += 1) {
+    const a = argv[i];
+    if (a === '--role') args.role = argv[++i];
+    else if (a === '--blackboard') args.blackboard = path.resolve(process.cwd(), argv[++i]);
+    else if (a === '--poll-interval') args.pollIntervalMs = Math.max(100, Number(argv[++i]) || 1000);
+    else if (a === '--model') args.model = argv[++i];
+    else if (a === '--endpoint') args.endpoint = argv[++i];
+    else if (a === '--api-format') args.apiFormat = argv[++i];
+    else if (a === '--max-tasks') args.maxTasks = Math.max(1, Number(argv[++i]) || 1);
+    else if (a === '--dry-run') args.dryRun = true;
+    else if (a === '--once') args.once = true;
+    else if (a === '--identity-key') args.identityKey = path.resolve(process.cwd(), argv[++i]);
+    else if (a === '--quiet') args.quiet = true;
+    else if (a === '--help' || a === '-h') args.help = true;
+    else {
+      process.stderr.write(`unknown arg: ${a}\n`);
+      process.exit(2);
+    }
+  }
+  return args;
+}
+
+// ---------------------------------------------------------------------------
+// Contract parser
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse a role CONTRACT.md by splitting on `## ` headers. We deliberately
+ * do not pull in a markdown library — every contract under agents/ follows
+ * the same structural shape and the headers are stable identifiers.
+ *
+ * Returns:
+ *   { mission, hardPreconditions[], canList[], cannotList[], neverDoList[] }
+ *
+ * Throws if any required section is missing.
+ */
+function parseContract(text) {
+  const sections = splitSections(text);
+  const mission = (sections.get('Mission') || '').trim();
+  const hardPreconditions = parseBulletList(sections.get('Hard preconditions (must check before acting)') || sections.get('Hard preconditions') || '');
+  const { canList, cannotList } = parseCanCannot(sections.get('Decision authority') || '');
+  const neverDoList = parseBulletList(sections.get('What you must NEVER do') || '');
+
+  if (!mission) throw new Error('contract missing Mission section');
+  if (canList.length === 0 && cannotList.length === 0) {
+    throw new Error('contract missing Decision authority Can/Cannot lists');
+  }
+  if (neverDoList.length === 0) {
+    throw new Error('contract missing "What you must NEVER do" section');
+  }
+
+  return { mission, hardPreconditions, canList, cannotList, neverDoList };
+}
+
+function splitSections(text) {
+  // Splits on lines that begin with "## ". The first chunk (anything before
+  // the first H2) is discarded — it is the title/frontmatter.
+  const out = new Map();
+  const lines = text.split(/\r?\n/);
+  let currentHeader = null;
+  let buf = [];
+  const flush = () => {
+    if (currentHeader != null) out.set(currentHeader, buf.join('\n'));
+    buf = [];
+  };
+  for (const line of lines) {
+    const m = /^##\s+(.+?)\s*$/.exec(line);
+    if (m) {
+      flush();
+      currentHeader = m[1].trim();
+    } else if (currentHeader != null) {
+      buf.push(line);
+    }
+  }
+  flush();
+  return out;
+}
+
+function parseBulletList(section) {
+  // Returns top-level list items. Accepts either bullet (`- `, `* `) or
+  // numbered (`1. `, `2.`) list markers. Strips the marker and collapses
+  // continuation lines into a single string per item. Sub-bullets
+  // (indented `  -`) are kept as part of their parent so a "Can" entry like
+  // "Edit files under … - foo - bar" remains coherent.
+  const items = [];
+  const lines = section.split(/\r?\n/);
+  let current = null;
+  for (const raw of lines) {
+    const bulletMatch = /^[-*]\s+(.+)$/.exec(raw);
+    const numberedMatch = /^\d+\.\s+(.+)$/.exec(raw);
+    const topMatch = bulletMatch || numberedMatch;
+    if (topMatch) {
+      if (current != null) items.push(current.trim());
+      current = topMatch[1];
+    } else if (current != null && /^\s+\S/.test(raw)) {
+      current += ' ' + raw.trim();
+    } else if (current != null && raw.trim() === '') {
+      // blank line continues current item but adds breathing room
+      current += ' ';
+    } else {
+      // any non-blank, non-indented, non-bullet line ends the list
+      if (current != null) { items.push(current.trim()); current = null; }
+    }
+  }
+  if (current != null) items.push(current.trim());
+  return items.filter((s) => s.length > 0);
+}
+
+function parseCanCannot(section) {
+  // The Decision authority section has two top-level bullets, "Can:" and
+  // "Cannot:", each with nested sub-bullets. We extract each sub-bullet
+  // group separately because the swarm cares about each individually.
+  const canList = [];
+  const cannotList = [];
+  const lines = section.split(/\r?\n/);
+  let mode = null; // 'can' | 'cannot' | null
+  let current = null;
+  const flush = () => {
+    if (current == null) return;
+    if (mode === 'can') canList.push(current.trim());
+    else if (mode === 'cannot') cannotList.push(current.trim());
+    current = null;
+  };
+  for (const raw of lines) {
+    const topMatch = /^[-*]\s+(Can|Cannot)\s*:\s*$/i.exec(raw);
+    if (topMatch) {
+      flush();
+      mode = topMatch[1].toLowerCase();
+      continue;
+    }
+    const subMatch = /^\s{2,}[-*]\s+(.+)$/.exec(raw);
+    if (subMatch && mode) {
+      flush();
+      current = subMatch[1];
+      continue;
+    }
+    if (current != null && /^\s+\S/.test(raw)) {
+      current += ' ' + raw.trim();
+    } else if (current != null && raw.trim() === '') {
+      current += ' ';
+    } else if (raw.trim() === '') {
+      // blank line between groups is fine
+    } else if (/^##/.test(raw)) {
+      break;
+    }
+  }
+  flush();
+  return { canList, cannotList };
+}
+
+// ---------------------------------------------------------------------------
+// Hard-rule enforcement
+// ---------------------------------------------------------------------------
+
+/**
+ * Inspect the model output for patterns the role contract forbids.
+ *
+ * The contract's "What you must NEVER do" list is human-readable prose; we
+ * cannot interpret it semantically. Instead we extract noun-shaped tokens
+ * that look like file paths, commands, environment variables, and known
+ * forbidden actions, and flag the output if any of those tokens APPEAR in
+ * the output combined with verbs like "edit", "modify", "delete", "push",
+ * "commit", "approve", "rename", or "bypass".
+ *
+ * Additionally we apply a set of universal hard rules drawn from every
+ * contract we've inspected (these never appear as a fact about the role's
+ * Lane and so are not in the contract list, but they are non-negotiable for
+ * any daemon-driven agent):
+ *   - No `git push` invocation in the output.
+ *   - No `--no-verify` flag.
+ *   - No setting `OPENCLAW_FRONTIER_SKIP_FRESH_EXPORT` (or any var with
+ *     `SKIP_FRESH_EXPORT` or `SKIP_GATE`).
+ *
+ * Returns:
+ *   { ok: true } if no forbidden pattern matched
+ *   { ok: false, violations: [{ rule, evidence }] } otherwise
+ */
+function enforceHardRules(output, neverDoList) {
+  if (typeof output !== 'string' || output.trim() === '') {
+    return { ok: false, violations: [{ rule: 'empty-output', evidence: '' }] };
+  }
+  const lower = output.toLowerCase();
+  const violations = [];
+
+  // Universal cross-role rules.
+  const universal = [
+    { rule: 'forbidden:git-push', pattern: /\bgit\s+push\b/i },
+    { rule: 'forbidden:no-verify', pattern: /(?:^|\s|"|')--no-verify(?:$|\s|"|')/ },
+    { rule: 'forbidden:skip-gate-env', pattern: /\bOPENCLAW_FRONTIER_SKIP_FRESH_EXPORT\b|\bSKIP_FRESH_EXPORT\b|\bSKIP_GATE\b/ },
+    // Use new RegExp() to avoid embedding a literal PEM-header pattern in
+    // this file's source — the private-content scanner runs against the
+    // file itself during release verification.
+    { rule: 'forbidden:private-key-block', pattern: new RegExp('-' + '----BEGIN [A-Z ]*PRIVATE KEY-' + '----') },
+  ];
+  for (const u of universal) {
+    if (u.pattern.test(output)) {
+      violations.push({ rule: u.rule, evidence: u.pattern.source });
+    }
+  }
+
+  // Contract-derived rules. We pull noun-shaped tokens (paths, vars,
+  // CONTRACT.md mentions) from each NEVER-do item and look for them in the
+  // model output paired with a forbidding-verb context. The check is
+  // intentionally over-eager — false positives produce a `decision`
+  // record (which is reversible) rather than a `result` (which is not).
+  const forbiddenVerbs = ['edit', 'modify', 'delete', 'rename', 'bypass', 'approve', 'commit', 'push', 'silence', 'write to', 'set'];
+  for (const rule of neverDoList) {
+    const tokens = extractTokens(rule);
+    for (const tok of tokens) {
+      const idx = lower.indexOf(tok.toLowerCase());
+      if (idx < 0) continue;
+      // Check verb context within +/- 80 chars
+      const windowStart = Math.max(0, idx - 80);
+      const windowEnd = Math.min(lower.length, idx + tok.length + 80);
+      const slice = lower.slice(windowStart, windowEnd);
+      if (forbiddenVerbs.some((v) => slice.includes(v))) {
+        violations.push({ rule: `contract:${truncate(rule, 80)}`, evidence: tok });
+        break;
+      }
+    }
+  }
+  return violations.length === 0 ? { ok: true } : { ok: false, violations };
+}
+
+function extractTokens(rule) {
+  // Identifier-shaped tokens we care about: paths (with slashes), filenames
+  // with extensions, ALL_CAPS env vars, CONTRACT.md, package.json keys.
+  const out = new Set();
+  const pathMatch = rule.match(/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)+/g) || [];
+  const fileMatch = rule.match(/[A-Za-z0-9_-]+\.(?:js|json|md|yaml|yml|pem|sh|ts)\b/g) || [];
+  const envMatch = rule.match(/\b[A-Z][A-Z0-9_]{4,}\b/g) || [];
+  const quotedMatch = rule.match(/`([^`]+)`/g) || [];
+  for (const m of pathMatch) out.add(m);
+  for (const m of fileMatch) out.add(m);
+  for (const m of envMatch) out.add(m);
+  for (const m of quotedMatch) out.add(m.slice(1, -1));
+  return Array.from(out).filter((t) => t.length >= 4);
+}
+
+function truncate(s, max) {
+  if (s.length <= max) return s;
+  return s.slice(0, max - 3) + '...';
+}
+
+// ---------------------------------------------------------------------------
+// Audit log
+// ---------------------------------------------------------------------------
+
+function defaultAuditLogPath() {
+  const home = process.env.USERPROFILE || process.env.HOME || os.homedir();
+  return path.join(home, '.openclaw-agent', 'audit.ndjson');
+}
+
+function appendAudit(auditPath, record) {
+  try {
+    fs.mkdirSync(path.dirname(auditPath), { recursive: true });
+    fs.appendFileSync(
+      auditPath,
+      JSON.stringify({ ts: new Date().toISOString(), ...record }) + '\n',
+      { mode: 0o600, encoding: 'utf8' },
+    );
+  } catch (err) {
+    process.stderr.write(`[openclaw-agent] audit write failed: ${err.message}\n`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Signing
+// ---------------------------------------------------------------------------
+
+function loadIdentityKey(keyPath) {
+  if (!keyPath) return null;
+  const pem = fs.readFileSync(keyPath, 'utf8');
+  return crypto.createPrivateKey({ key: pem, format: 'pem' });
+}
+
+function signRecord(record, identityKey) {
+  if (!identityKey) return record;
+  // Canonical JSON of the record without the signature field.
+  const stable = (v) => {
+    if (Array.isArray(v)) return v.map(stable);
+    if (v && typeof v === 'object') {
+      return Object.keys(v).sort().reduce((acc, k) => { acc[k] = stable(v[k]); return acc; }, {});
+    }
+    return v;
+  };
+  const copy = { ...record };
+  delete copy.signature;
+  const canonical = JSON.stringify(stable(copy));
+  const sig = crypto.sign(null, Buffer.from(canonical, 'utf8'), identityKey);
+  return { ...record, signature: sig.toString('base64') };
+}
+
+// ---------------------------------------------------------------------------
+// System prompt builder
+// ---------------------------------------------------------------------------
+
+function buildSystemPrompt(role, contract) {
+  const lines = [];
+  lines.push(`You are the ${role} agent in the OpenClaw Frontier multi-agent swarm.`);
+  lines.push('');
+  lines.push('## Your Mission');
+  lines.push(contract.mission);
+  lines.push('');
+  if (contract.hardPreconditions.length) {
+    lines.push('## Hard preconditions you must satisfy before acting');
+    contract.hardPreconditions.forEach((p, i) => lines.push(`${i + 1}. ${p}`));
+    lines.push('');
+  }
+  if (contract.canList.length) {
+    lines.push('## What you can do');
+    contract.canList.forEach((p) => lines.push(`- ${p}`));
+    lines.push('');
+  }
+  if (contract.cannotList.length) {
+    lines.push('## What you cannot do');
+    contract.cannotList.forEach((p) => lines.push(`- ${p}`));
+    lines.push('');
+  }
+  lines.push('## What you must NEVER do (hard rules)');
+  contract.neverDoList.forEach((p) => lines.push(`- ${p}`));
+  lines.push('');
+  lines.push('Respond with a plain-text answer describing the action you would take to complete the assigned task. Do not include shell command invocations that would push to a remote, bypass the pre-push hook, or set any SKIP_* environment variable.');
+  return lines.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Blackboard polling
+// ---------------------------------------------------------------------------
+
+function findPendingClaims(records, role) {
+  // task-claim addressed to this role, no matching result yet.
+  //
+  // Routing rule (v0.7+): when a claim carries a `forRole` field (the
+  // orchestrator writes one per dispatched lane), match strictly on that.
+  // Legacy claims with no `forRole` fall back to matching the writer's
+  // `agent` field — preserving the v0.6 behavior where roles dispatched to
+  // themselves via `openclaw dispatch`.
+  const claims = new Map();
+  const completed = new Set();
+  for (const r of records) {
+    if (r.kind === 'task-claim') {
+      const routedTo = r.forRole || r.agent;
+      if (routedTo === role) claims.set(r.taskId, r);
+    } else if (r.kind === 'result' && r.taskId) {
+      completed.add(r.taskId);
+    }
+  }
+  const out = [];
+  for (const [taskId, claim] of claims) {
+    if (!completed.has(taskId)) out.push(claim);
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Daemon main loop
+// ---------------------------------------------------------------------------
+
+async function main() {
+  const args = parseArgs(process.argv);
+  if (args.help) { process.stdout.write(HELP_TEXT); return; }
+  if (!args.role) {
+    process.stderr.write('openclaw-agent: --role <role-name> is required (see --help)\n');
+    process.exit(2);
+  }
+  if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(args.role)) {
+    process.stderr.write(`openclaw-agent: invalid role id: ${args.role}\n`);
+    process.exit(2);
+  }
+  if (!args.dryRun && !args.model) {
+    process.stderr.write('openclaw-agent: --model <model-id> is required unless --dry-run is set\n');
+    process.exit(2);
+  }
+
+  const contractPath = path.join(repoRoot, 'agents', args.role, 'CONTRACT.md');
+  if (!fs.existsSync(contractPath)) {
+    process.stderr.write(`openclaw-agent: contract not found: agents/${args.role}/CONTRACT.md\n`);
+    process.exit(1);
+  }
+
+  let contract;
+  try {
+    contract = parseContract(fs.readFileSync(contractPath, 'utf8'));
+  } catch (err) {
+    process.stderr.write(`openclaw-agent: contract parse failed: ${err.message}\n`);
+    process.exit(1);
+  }
+
+  const systemPrompt = buildSystemPrompt(args.role, contract);
+
+  let backend = null;
+  let auth = null;
+  if (!args.dryRun) {
+    try {
+      backend = evalRunner.resolveBackend({
+        endpoint: args.endpoint,
+        apiFormat: args.apiFormat,
+      });
+      auth = evalRunner.resolveAuth(backend);
+    } catch (err) {
+      process.stderr.write(`openclaw-agent: backend/auth resolution failed: ${err.message}\n`);
+      process.exit(2);
+    }
+  }
+
+  let identityKey = null;
+  if (args.identityKey) {
+    try {
+      identityKey = loadIdentityKey(args.identityKey);
+    } catch (err) {
+      process.stderr.write(`openclaw-agent: identity key load failed: ${err.message}\n`);
+      process.exit(2);
+    }
+  }
+
+  const ledger = createLedger({ ledgerPath: args.blackboard });
+  const auditPath = process.env.OPENCLAW_AGENT_AUDIT_LOG || defaultAuditLogPath();
+  const log = (msg) => { if (!args.quiet) process.stderr.write(`[openclaw-agent:${args.role}] ${msg}\n`); };
+
+  appendAudit(auditPath, {
+    event: 'daemon-start',
+    role: args.role,
+    blackboard: args.blackboard,
+    model: args.model || null,
+    endpoint: backend ? backend.endpointUrl.origin : null,
+    apiFormat: backend ? backend.apiFormat : null,
+    dryRun: args.dryRun,
+    once: args.once,
+    pid: process.pid,
+  });
+  log(`started. blackboard=${args.blackboard} model=${args.model || '(dry-run)'} dryRun=${args.dryRun}`);
+
+  const processed = new Set();
+  let tasksHandled = 0;
+  let stopRequested = false;
+  const stop = () => { stopRequested = true; };
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
+
+  while (!stopRequested && tasksHandled < args.maxTasks) {
+    let records;
+    try {
+      records = ledger.readRecords();
+    } catch (err) {
+      log(`ledger read failed: ${err.message}`);
+      appendAudit(auditPath, { event: 'ledger-read-failed', role: args.role, error: String(err.message || err) });
+      if (args.once) break;
+      await sleep(args.pollIntervalMs);
+      continue;
+    }
+
+    // Re-seed processed set from existing results so a restart does not
+    // double-process a task that already has a result.
+    for (const r of records) {
+      if (r.kind === 'result' && r.agent === args.role && r.taskId) processed.add(r.taskId);
+    }
+
+    const pending = findPendingClaims(records, args.role).filter((c) => !processed.has(c.taskId));
+
+    if (pending.length === 0) {
+      if (args.once) break;
+      await sleep(args.pollIntervalMs);
+      continue;
+    }
+
+    for (const claim of pending) {
+      if (stopRequested || tasksHandled >= args.maxTasks) break;
+      processed.add(claim.taskId);
+      tasksHandled += 1;
+      await handleClaim({
+        claim, args, contract, systemPrompt, ledger, backend, auth, identityKey, auditPath, log,
+      });
+      if (args.once) { stopRequested = true; break; }
+    }
+  }
+
+  appendAudit(auditPath, { event: 'daemon-stop', role: args.role, tasksHandled });
+  log(`stopped. tasks=${tasksHandled}`);
+}
+
+async function handleClaim({ claim, args, contract, systemPrompt, ledger, backend, auth, identityKey, auditPath, log }) {
+  log(`picking up task ${claim.taskId}: ${claim.summary.slice(0, 80)}`);
+  appendAudit(auditPath, { event: 'task-picked', role: args.role, taskId: claim.taskId, summary: claim.summary });
+
+  if (args.dryRun) {
+    log(`dry-run: would dispatch ${claim.taskId} to model. skipping.`);
+    appendAudit(auditPath, { event: 'task-dry-run-skip', role: args.role, taskId: claim.taskId });
+    return;
+  }
+
+  const userPrompt = renderUserPrompt(claim);
+
+  let output;
+  let usage;
+  try {
+    const t0 = Date.now();
+    const res = await evalRunner.callBackend({
+      model: args.model,
+      system: systemPrompt,
+      userPrompt,
+      auth,
+      apiFormat: backend.apiFormat,
+      endpointUrl: backend.endpointUrl,
+    });
+    output = res.output;
+    usage = res.usage;
+    appendAudit(auditPath, {
+      event: 'model-call-ok',
+      role: args.role,
+      taskId: claim.taskId,
+      ms: Date.now() - t0,
+      usage,
+      outputBytes: Buffer.byteLength(output || '', 'utf8'),
+    });
+  } catch (err) {
+    const reason = String(err.message || err);
+    log(`model call failed for ${claim.taskId}: ${reason}`);
+    appendAudit(auditPath, { event: 'model-call-failed', role: args.role, taskId: claim.taskId, reason });
+    writeBlockedDecision({
+      ledger, role: args.role, taskId: claim.taskId,
+      reason: 'model-unreachable',
+      detail: reason,
+      identityKey, auditPath, log,
+    });
+    return;
+  }
+
+  // Hard-rule enforcement BEFORE any result write.
+  const ruleCheck = enforceHardRules(output, contract.neverDoList);
+  if (!ruleCheck.ok) {
+    log(`hard-rule violation on ${claim.taskId}: ${ruleCheck.violations.map((v) => v.rule).join(', ')}`);
+    appendAudit(auditPath, {
+      event: 'hard-rule-violation', role: args.role, taskId: claim.taskId, violations: ruleCheck.violations,
+    });
+    writeBlockedDecision({
+      ledger, role: args.role, taskId: claim.taskId,
+      reason: 'hard-rule-violation',
+      detail: ruleCheck.violations.map((v) => v.rule).join('; '),
+      identityKey, auditPath, log,
+    });
+    return;
+  }
+
+  const outputHash = crypto.createHash('sha256').update(output, 'utf8').digest('hex');
+  const summary = `agent ${args.role} produced ${output.length}B output (sha256=${outputHash.slice(0, 16)}) for ${claim.taskId}`;
+
+  // Publish a usage fact so the orchestrator can compute a per-goal cost
+  // estimate. The fact is best-effort — a failed write is logged but does
+  // not block the result write below.
+  if (usage && typeof usage === 'object') {
+    try {
+      ledger.recordFact({
+        agent: args.role,
+        subject: `usage:${claim.taskId}`,
+        value: {
+          schema: 'openclaw-frontier.agent-usage.v1',
+          model: args.model,
+          usage,
+          taskId: claim.taskId,
+        },
+        evidence: [],
+      });
+      appendAudit(auditPath, {
+        event: 'usage-fact-written', role: args.role, taskId: claim.taskId, model: args.model,
+      });
+    } catch (err) {
+      appendAudit(auditPath, {
+        event: 'usage-fact-write-failed', role: args.role, taskId: claim.taskId, error: String(err.message || err),
+      });
+    }
+  }
+
+  try {
+    let record = {
+      schema: 'openclaw-frontier.blackboard-ledger.v1',
+      kind: 'result',
+      agent: args.role,
+      taskId: claim.taskId,
+      ok: true,
+      summary: summary.slice(0, 1000),
+      artifacts: [],
+      outputSha256: outputHash,
+    };
+    // Use the high-level ledger API for the validated write, then re-write
+    // with the signature attached if --identity-key is set.
+    const written = ledger.recordResult({
+      agent: args.role,
+      taskId: claim.taskId,
+      ok: true,
+      summary: summary.slice(0, 1000),
+      artifacts: [],
+    });
+    appendAudit(auditPath, {
+      event: 'result-written',
+      role: args.role,
+      taskId: claim.taskId,
+      recordId: written.id,
+      outputSha256: outputHash,
+      signed: Boolean(identityKey),
+    });
+    if (identityKey) {
+      const signed = signRecord({ ...written, outputSha256: outputHash }, identityKey);
+      // Append a separate fact-like record carrying the signature so the
+      // canonical result record (already on the ledger) is not mutated. The
+      // hash + the signature together cover the same bytes.
+      ledger.recordFact({
+        agent: args.role,
+        subject: `signed-result:${claim.taskId}`,
+        value: {
+          schema: 'openclaw-frontier.agent-result-signature.v1',
+          resultId: written.id,
+          signature: signed.signature,
+          outputSha256: outputHash,
+        },
+        evidence: [],
+      });
+      appendAudit(auditPath, {
+        event: 'result-signed', role: args.role, taskId: claim.taskId, resultId: written.id,
+      });
+    }
+    log(`wrote result for ${claim.taskId} (ok=true)`);
+  } catch (err) {
+    log(`result write failed for ${claim.taskId}: ${err.message}`);
+    appendAudit(auditPath, { event: 'result-write-failed', role: args.role, taskId: claim.taskId, error: String(err.message || err) });
+  }
+}
+
+function renderUserPrompt(claim) {
+  const lines = [];
+  lines.push(`TASK ID: ${claim.taskId}`);
+  lines.push(`SUMMARY: ${claim.summary}`);
+  lines.push('');
+  lines.push('Produce the work product specified by your role contract above for this task.');
+  return lines.join('\n');
+}
+
+function writeBlockedDecision({ ledger, role, taskId, reason, detail, identityKey, auditPath, log }) {
+  try {
+    const rationale = `blocked:${reason} :: ${detail}`.slice(0, 1000);
+    const written = ledger.recordDecision({
+      agent: role,
+      taskId,
+      decision: `${role}-blocked:${taskId}`,
+      status: 'blocked',
+      rationale,
+    });
+    appendAudit(auditPath, {
+      event: 'decision-blocked', role, taskId, reason, detail, recordId: written.id, signed: Boolean(identityKey),
+    });
+    if (identityKey) {
+      const signed = signRecord(written, identityKey);
+      ledger.recordFact({
+        agent: role,
+        subject: `signed-decision:${taskId}`,
+        value: {
+          schema: 'openclaw-frontier.agent-decision-signature.v1',
+          decisionId: written.id,
+          signature: signed.signature,
+        },
+        evidence: [],
+      });
+    }
+    log(`wrote blocked decision for ${taskId}: ${reason}`);
+  } catch (err) {
+    log(`decision write failed for ${taskId}: ${err.message}`);
+    appendAudit(auditPath, { event: 'decision-write-failed', role, taskId, error: String(err.message || err) });
+  }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ---------------------------------------------------------------------------
+// Test exports (for white-box unit tests). Only attached when required as
+// a module — when executed directly, main() runs unconditionally below.
+// ---------------------------------------------------------------------------
+if (typeof module !== 'undefined' && require.main !== module) {
+  module.exports = {
+    parseContract,
+    splitSections,
+    parseBulletList,
+    parseCanCannot,
+    enforceHardRules,
+    extractTokens,
+    findPendingClaims,
+    buildSystemPrompt,
+    signRecord,
+  };
+} else {
+  main().catch((err) => {
+    process.stderr.write(`openclaw-agent: ${err.stack || err.message || err}\n`);
+    process.exit(1);
+  });
+}

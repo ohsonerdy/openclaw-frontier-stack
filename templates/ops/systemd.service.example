@@ -1,0 +1,24 @@
+[Unit]
+Description=OpenClaw Frontier signed bus listener
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=orchestrator-frontier
+Group=orchestrator-frontier
+WorkingDirectory=/opt/openclaw-frontier-stack
+EnvironmentFile=/etc/orchestrator-frontier/signed-bus.env
+ExecStart=/usr/bin/node /opt/openclaw-frontier-stack/src/signed-bus/examples/listener.js
+Restart=on-failure
+RestartSec=5s
+StartLimitIntervalSec=300
+StartLimitBurst=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/orchestrator-frontier /var/log/orchestrator-frontier
+
+[Install]
+WantedBy=multi-user.target

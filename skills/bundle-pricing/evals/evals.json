@@ -1,0 +1,97 @@
+{
+  "skill_name": "bundle-pricing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Should I bundle? My AOV is stuck at $48.",
+      "expected_output": "Walks through the bundle-vs-AOV diagnostic order before recommending bundles. Should check natural SKU affinity first, then existing bundle merchandising, then absence of bundles, then discount discipline. Should not jump to 'yes, build a bundle' without diagnosis.",
+      "assertions": [
+        "Walks through the four-step bundle-vs-AOV diagnostic order",
+        "Calls modern.sales.sku_affinity to check natural affinity",
+        "Calls modern.sales.aov to check AOV trend, not just level",
+        "Does not jump to bundle recommendation without affinity check",
+        "Asks about catalog and discount frequency",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want to make a starter bundle for first-time customers. What should be in it?",
+      "expected_output": "Applies the affinity-based composition framework. Recommends a two-SKU bundle (three-SKU costs trust at first purchase), anchored to a top-seller, with complementary not substitutable items, with at least 5% co-purchase affinity in unbundled orders. Should pull affinity data and recommend specific SKU pairs.",
+      "assertions": [
+        "Recommends two-SKU bundle for first-time customers (not three-SKU)",
+        "Recommends anchor to top-seller SKU",
+        "Names the complementary-not-substitutable rule",
+        "Names the 5% affinity threshold",
+        "Calls modern.sales.sku_affinity to identify candidates",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Is it better to discount a single product or to bundle it with something else?",
+      "expected_output": "Walks through the bundle-vs-single-SKU discount strategy. Bundle discount preserves the single-SKU price floor; single-SKU discount erodes it. Should describe the cannibalization check and explain that for AOV-driving brands, bundle discount is the safer long-term lever.",
+      "assertions": [
+        "Recommends bundle discount over single-SKU discount for price-floor preservation",
+        "Explains why single-SKU discount erodes pricing power",
+        "Describes the cannibalization check using affinity data",
+        "Notes when single-SKU discount may still be appropriate (acquisition)",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I'm thinking about a 'good better best' structure for my bundles. How big should each tier be?",
+      "expected_output": "Walks through anchor pricing and good-better-best. Tier 1: 2-SKU, 15% off, broad appeal. Tier 2: 3-4 SKU, 20-25% off, intended winner. Tier 3: 5+ SKU, 30-35% off, anchor. Should explain why the anchor tier is critical even though it sells low volume.",
+      "assertions": [
+        "Describes three tiers with sizes and discount percentages",
+        "Names Tier 2 as the intended winner",
+        "Explains why Tier 3 anchor sells low volume but does perceptual work",
+        "Cites the 20-40% Tier 2 sales drop when anchor is removed",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I'm a supplement brand. Should I bundle sleep aids together or mix categories?",
+      "expected_output": "Applies the bundle composition rules. Three sleep aids in one bundle creates a choice problem; the customer doesn't know which one to take when. Better to bundle for a use case (e.g. Sleep Better Pack with sleep aid + magnesium for muscle relaxation + tea), creating a sequential routine. Should name the cross-category vs within-category outperformance.",
+      "assertions": [
+        "Recommends use-case bundling over category bundling",
+        "Names the cross-category vs within-category outperformance",
+        "Names the sequential-use vs parallel-use rule",
+        "Calls modern.sales.sku_affinity to identify cross-category pairs",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Where should I show my bundles? On the product page, in the cart, or after purchase?",
+      "expected_output": "Walks through sequential vs simultaneous reveal. Simultaneous (product page) sets AOV ceiling. Sequential (cart upgrade) captures committed customers. Post-purchase seeds the next-order conversation. Recommends mixing placements rather than relying on one.",
+      "assertions": [
+        "Describes all three reveal placements",
+        "Recommends mixing placements rather than relying on one",
+        "Names which placement raises AOV most at the decision moment",
+        "Names which placement has highest attach rate per impression",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "What should I name my bundles?",
+      "expected_output": "Applies the bundle naming framework. Outcome names beat content names. 'The Morning Routine' beats 'Cleanser + Toner + Moisturizer Bundle.' The name should answer 'why buy?' not 'what is this?' Should give examples specific to the user's category.",
+      "assertions": [
+        "Recommends outcome-based naming over content-based naming",
+        "Gives 'Morning Routine' vs 'Cleanser+Toner+Moisturizer' style examples",
+        "Explains the name answers 'why buy?' not 'what is this?'",
+        "Output has Quick Wins, High-Impact, Test Ideas sections"
+      ],
+      "files": []
+    }
+  ]
+}

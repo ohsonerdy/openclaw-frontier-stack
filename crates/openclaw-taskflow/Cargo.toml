@@ -1,0 +1,16 @@
+[package]
+name = "openclaw-taskflow"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Rust port of the OpenClaw Frontier Stack in-memory task flow: durable FSM with queued/claimed/waiting/done/failed/blocked transitions."
+keywords = ["openclaw", "taskflow", "fsm", "state-machine"]
+categories = ["data-structures"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

@@ -1,0 +1,145 @@
+name: Supply-chain advisory check
+
+# Daily supply-chain advisory check. Runs the real
+# `npm run verify:supply-chain` (npm audit + osv-scanner, with allowlist
+# applied), then opens or updates a GitHub issue when HIGH or CRITICAL
+# advisories are not covered by an unexpired allowlist entry. Operator-safe
+# permissions: only `issues: write` and `contents: read`.
+
+on:
+  schedule:
+    # Daily at 04:00 UTC. Stays clear of:
+    #   - dependency-vulnerability-scan.yml at 06:00 UTC
+    #   - scheduled-evals.yml at 09:00 UTC
+    #   - perf-baseline-drift loop at Monday 11:00 UTC
+    - cron: "0 4 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: supply-chain-advisory-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Run supply-chain advisory verifier
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install osv-scanner
+        run: |
+          set -e
+          OSV_VERSION="1.9.2"
+          curl -fsSL -o /tmp/osv-scanner \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_linux_amd64"
+          chmod +x /tmp/osv-scanner
+          sudo mv /tmp/osv-scanner /usr/local/bin/osv-scanner
+          osv-scanner --version
+
+      - name: Materialize lockfile
+        run: |
+          set -e
+          # Build a lockfile without running install scripts so npm audit
+          # and osv-scanner have something to chew on.
+          npm install --package-lock-only --ignore-scripts
+
+      - name: Run supply-chain advisory check
+        id: check
+        run: |
+          set +e
+          mkdir -p release-gate/reports
+          REPORT="release-gate/reports/supply-chain-advisory-$(date -u +%Y-%m-%d).json"
+          npm run --silent verify:supply-chain > "${REPORT}"
+          STATUS=$?
+          echo "exit_code=${STATUS}" >> "$GITHUB_OUTPUT"
+          echo "report=${REPORT}" >> "$GITHUB_OUTPUT"
+          # Surface a brief summary for the job log without leaking findings
+          # before the issue body is constructed.
+          node -e '
+            const fs = require("fs");
+            const r = JSON.parse(fs.readFileSync(process.env.REPORT, "utf8"));
+            const n = r.npmAudit || {}; const o = r.osvScan || {};
+            console.log("ok=" + r.ok + " npm.high=" + (n.high||0) + " npm.crit=" + (n.critical||0)
+              + " osv.high=" + (o.high||0) + " osv.crit=" + (o.critical||0)
+              + " allowlistApplied=" + (Array.isArray(r.allowlistApplied) ? r.allowlistApplied.length : 0));
+          ' || true
+        env:
+          REPORT: ${{ steps.check.outputs.report }}
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supply-chain-advisory-${{ github.run_id }}
+          path: release-gate/reports/supply-chain-advisory-*.json
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Open or update advisory issue
+        if: steps.check.outputs.exit_code != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPORT: ${{ steps.check.outputs.report }}
+        run: |
+          set -e
+          DATE_UTC="$(date -u +%Y-%m-%d)"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BODY_FILE="$(mktemp)"
+          {
+            echo "Automated supply-chain advisory check by the supply-chain-advisory.yml workflow."
+            echo ""
+            echo "- Date (UTC): ${DATE_UTC}"
+            echo "- Workflow run: ${RUN_URL}"
+            echo ""
+            echo "### Findings"
+            echo ""
+            echo '```json'
+            cat "${REPORT}"
+            echo '```'
+            echo ""
+            echo "Next step: run \`npm run verify:supply-chain\` locally, apply fixes, or add a justified allowlist entry to \`release-gate/supply-chain-allowlist.json\` (every entry needs a \`reason\` and an \`expires\` within 90 days)."
+          } > "${BODY_FILE}"
+          TITLE="Supply-chain advisory findings ${DATE_UTC}"
+          EXISTING="$(gh issue list --label supply-chain-advisory --state open --search "${DATE_UTC}" --json number --jq '.[0].number // empty')"
+          if [ -n "${EXISTING}" ]; then
+            gh issue comment "${EXISTING}" --body-file "${BODY_FILE}"
+          else
+            gh issue create --title "${TITLE}" --label supply-chain-advisory --body-file "${BODY_FILE}"
+          fi
+
+      - name: Close stale issues when clean
+        if: steps.check.outputs.exit_code == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          DATE_UTC="$(date -u +%Y-%m-%d)"
+          OPEN_NUMS="$(gh issue list --label supply-chain-advisory --state open --json number --jq '.[].number')"
+          if [ -z "${OPEN_NUMS}" ]; then
+            echo "No open supply-chain-advisory issues to close."
+            exit 0
+          fi
+          SHA="${GITHUB_SHA}"
+          for NUM in ${OPEN_NUMS}; do
+            gh issue comment "${NUM}" --body "Resolved in commit ${SHA} (clean supply-chain check on ${DATE_UTC})."
+            gh issue close "${NUM}" --reason completed
+          done
+
+      - name: Fail-soft when blocking advisories exist
+        if: steps.check.outputs.exit_code != '0'
+        run: |
+          echo "Supply-chain advisory check reported blocking findings; see issue and report artifact."
+          exit 1

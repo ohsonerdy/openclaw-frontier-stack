@@ -1,0 +1,21 @@
+{
+  "schema": "openclaw-frontier.goal.v1",
+  "description": "Standard executive-summary flow: read the blackboard, categorize activity, write a one-page summary. Short sequential chain; voting is overkill for a digest.",
+  "titleTemplate": "Daily summary: ${context}",
+  "definitionOfDone": "An executive summary for \"${context}\" is on disk with categorized activity counts and a one-paragraph narrative.",
+  "cadence": { "operatorUpdateMinutes": 240, "channel": "operator-chat" },
+  "lanes": [
+    {
+      "name": "summary-pipeline",
+      "pattern": "chain",
+      "summary": "Read, categorize, summarize for ${context}",
+      "steps": [
+        { "id": "read-blackboard", "role": "researcher", "summary": "Read the blackboard ledger for ${context} (the relevant time window)", "expects": ["raw-extract.json"] },
+        { "id": "categorize", "role": "researcher", "summary": "Categorize activity for ${context} (tasks / results / decisions / facts)", "expects": ["categorized.json"] },
+        { "id": "write-summary", "role": "scribe", "summary": "Write the executive summary for ${context}", "expects": ["summary.md"] }
+      ]
+    }
+  ],
+  "green": [],
+  "red": ["blackboard not yet read for ${context}"]
+}

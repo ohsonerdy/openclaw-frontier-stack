@@ -1,0 +1,112 @@
+{
+  "skill_name": "api-deprecation",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We want to remove our v1 API. We've had v2 out for a year. Who's using v1? How do we shut it off?",
+      "expected_output": "First instrument: add per-consumer telemetry to v1 (request counter, last-seen, frequency). Build a dashboard. Identify the consumers still calling. Then announce: emails to each consumer (specific engineer/team, not a distribution list), changelog, Sunset and Deprecation headers on every v1 response, public docs marker. Sunset window 6-12 months for a public API. Provide migration support: side-by-side docs, sample diffs, ideally a codemod. Schedule brownouts before sunset. Return 410 Gone on sunset; not 404 or 500. Have a recovery playbook for high-volume holdouts.",
+      "assertions": [
+        "Instruments v1 with per-consumer telemetry first",
+        "Identifies consumers via dashboard",
+        "Announces to specific contacts, not a generic distribution",
+        "Adds Sunset and Deprecation HTTP headers",
+        "Sets 6-12 month sunset window for public API",
+        "Provides migration support beyond docs",
+        "Schedules brownouts before sunset day",
+        "Returns 410 Gone on sunset (not 404 or 500)",
+        "Plans recovery for high-volume holdouts"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We're renaming a response field from `user_name` to `username` in our public API. Tests pass. Ship it?",
+      "expected_output": "Do NOT just rename. This is a breaking change. Run both fields in parallel through a deprecation window: keep `user_name` populated alongside the new `username`, mark `user_name` as deprecated in the schema and docs, instrument which consumers still read `user_name`, sunset window of 6-12 months for public API. Announce via the deprecation channels. Add the Deprecation header. Provide migration support. Remove `user_name` only after the sunset window and telemetry shows it's safe.",
+      "assertions": [
+        "Does not approve a hard rename",
+        "Runs both old and new field names in parallel",
+        "Marks the old field as deprecated in schema and docs",
+        "Instruments which consumers still read the old field",
+        "Sets 6-12 month sunset window for public API",
+        "Announces via standard deprecation channels",
+        "Removes only after sunset window and telemetry confirms",
+        "Notes a hard rename is a breaking change"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Our deprecation date is tomorrow. The usage dashboard shows one customer still making 5000 requests/hour to the deprecated endpoint. What do I do?",
+      "expected_output": "Identify the customer immediately. Personal call or message — confirm they understand the sunset is tomorrow, find out what's blocking them. Decide: extend by a defined short window (1-4 weeks) via allow-list for just this customer, or hold the line and let them hit the brownout. If they're critical (major customer, contract), extend with explicit communication. If they're unresponsive, hold. Avoid pushing the date silently — that trains everyone deprecations are theater. Post-mortem the deprecation afterward to find what about announce/mark/migrate didn't reach this consumer.",
+      "assertions": [
+        "Identifies the customer immediately",
+        "Makes direct personal contact",
+        "Considers an extension via allow-list for this customer only",
+        "Distinguishes critical-customer extension from holding the line",
+        "Avoids silently pushing the sunset date",
+        "Plans a post-mortem of the deprecation process",
+        "Considers what about announce/mark/migrate failed for this consumer"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We have a single internal team consuming our deprecated API. Do we still need a 90-day window?",
+      "expected_output": "No — internal API with a single-team consumer can use 1-2 sprints (2-4 weeks). Coordinate directly with the consumer team since they're in the same org. Skip the formal email-broadcast process; use a shared planning conversation, a ticket on their backlog, and a deadline they agreed to. Still instrument the surface, still use the Sunset and Deprecation headers as good practice, but the formal long window is for public consumers, not internal teams.",
+      "assertions": [
+        "Uses a shorter window (2-4 weeks) for single-team internal consumers",
+        "Coordinates directly with the consumer team",
+        "Notes that 90-180 days is for external/partner APIs",
+        "Notes that 6-12 months is for public APIs",
+        "Keeps Sunset and Deprecation headers as good practice",
+        "Still instruments the surface for usage tracking"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We've discovered a security issue in our v1 API. The patch is hard. We want to deprecate and sunset v1. How quickly can we move?",
+      "expected_output": "Security-driven deprecation compresses the timeline dramatically. Move as quickly as is safely possible, not the standard 6-12 months. Coordinate with security on the urgency and the public communication. Notify consumers immediately with the truncated timeline; explain the urgency without disclosing the specific vulnerability (until coordinated disclosure if applicable). Provide aggressive migration support — direct outreach to top consumers, parallel-run wherever possible, hand-holding. The brownout pattern still applies. Document the truncated timeline rationale in an ADR.",
+      "assertions": [
+        "Compresses the timeline for security urgency",
+        "Coordinates with security on disclosure",
+        "Notifies consumers with truncated timeline and rationale",
+        "Provides aggressive migration support",
+        "Still uses brownouts",
+        "Documents in an ADR or post-deprecation record",
+        "Avoids disclosing specific vulnerability detail before coordinated disclosure"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We just announced a deprecation, but the usage dashboard is flat — no consumers have migrated. We're three weeks in. What's happening?",
+      "expected_output": "The announcement didn't reach the right people. Audit the announcement channels: did the email go to a generic distribution? Was the Sunset header added? Is the docs marker visible? Are integration contacts current? Send a follow-up via different channels — personal email to specific engineers, not 'api-support@'. Add a dashboard banner if you have one. Confirm the deprecation is visible in the API responses. Track who hasn't acknowledged. The announcement is iterative, not a single broadcast.",
+      "assertions": [
+        "Diagnoses the announcement didn't reach the right people",
+        "Audits the announcement channels",
+        "Questions if email went to specific engineer or generic distribution",
+        "Verifies Sunset and Deprecation headers are present",
+        "Sends follow-up via different channels",
+        "Confirms deprecation visible in API responses",
+        "Treats the announcement as iterative, not one broadcast"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We're about to sunset an endpoint. Should we just remove the route entirely on day one?",
+      "expected_output": "No — return 410 Gone with a body pointing to the migration guide, not removing the route. 404 suggests the surface never existed (misleading); 500 suggests an error (will trigger consumer retries and alerts); 410 Gone correctly says 'this used to exist; it's gone now'. Leave the 410 response for a defined grace period (about 3 months). Monitor the 410 rate — a spike means a late-arriving consumer just discovered the deprecation. After the grace period, the route can be removed from the routing layer.",
+      "assertions": [
+        "Returns 410 Gone, not removing the route",
+        "Rejects 404 as misleading",
+        "Rejects 500 as triggering retries and alerts",
+        "Includes a body pointing to the migration guide",
+        "Keeps 410 for a defined grace period (about 3 months)",
+        "Monitors 410 rate after sunset",
+        "Removes from routing layer only after grace period"
+      ],
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,301 @@
+{
+  "schema": "openclaw-frontier.skill-trigger-cases.v1",
+  "generatedAt": "2026-05-19",
+  "note": "Test cases for the skill-triggering-accuracy grader. Each case is the user's request as it would arrive in an operator-facing prompt. expectedSkill is the single correct pick; expectedSkills (array) is for ambiguous cases where any of several skills is acceptable. expectedSkill: 'none' means no skill should fire. All scenarios use generic placeholders; no PII, no real engineer names, no real customer data.",
+  "cases": [
+    {
+      "id": "trig-001",
+      "kind": "clear-match",
+      "request": "Help me write a post-mortem for last week's outage.",
+      "expectedSkill": "post-mortem-writing",
+      "rationale": "Direct mention of post-mortem writing."
+    },
+    {
+      "id": "trig-002",
+      "kind": "clear-match",
+      "request": "We just had a Sev 1. What do we do first?",
+      "expectedSkill": "incident-response",
+      "rationale": "Active incident with severity classification."
+    },
+    {
+      "id": "trig-003",
+      "kind": "clear-match",
+      "request": "Our PDP for the daily greens powder is converting at 1.2%. Industry benchmark is 2-3%. What's broken?",
+      "expectedSkill": "cro",
+      "rationale": "PDP conversion lift is the core CRO domain."
+    },
+    {
+      "id": "trig-004",
+      "kind": "clear-match",
+      "request": "I need to design an A/B test for a new pricing page. How do I size it?",
+      "expectedSkill": "ab-testing",
+      "rationale": "Sample-size and test design are A/B testing skill domain."
+    },
+    {
+      "id": "trig-005",
+      "kind": "clear-match",
+      "request": "Our cart abandonment rate is 78%. Build me a recovery flow.",
+      "expectedSkill": "cart-abandonment-recovery",
+      "rationale": "Cart-abandonment recovery flow design."
+    },
+    {
+      "id": "trig-006",
+      "kind": "clear-match",
+      "request": "Write me a runbook for restarting our checkout queue worker.",
+      "expectedSkill": "runbook-writing",
+      "rationale": "Runbook authoring is the explicit skill."
+    },
+    {
+      "id": "trig-007",
+      "kind": "clear-match",
+      "request": "I want to model an SLO for our checkout API. What's a reasonable target?",
+      "expectedSkill": "slo-design",
+      "rationale": "Explicit SLO design request."
+    },
+    {
+      "id": "trig-008",
+      "kind": "clear-match",
+      "request": "We're rolling out a new feature flag. What's the right rollout shape and kill-switch design?",
+      "expectedSkill": "feature-flagging",
+      "rationale": "Feature flag rollout design."
+    },
+    {
+      "id": "trig-009",
+      "kind": "clear-match",
+      "request": "Plan a load test for our checkout flow before the holiday season.",
+      "expectedSkill": "load-testing",
+      "rationale": "Load-test design."
+    },
+    {
+      "id": "trig-010",
+      "kind": "clear-match",
+      "request": "I'm doing a threat-model on our new auth flow. Walk me through STRIDE for the login endpoint.",
+      "expectedSkill": "threat-modeling",
+      "rationale": "Explicit STRIDE threat-modeling exercise."
+    },
+    {
+      "id": "trig-011",
+      "kind": "clear-match",
+      "request": "Help me draft email copy for a winback campaign targeting customers who haven't ordered in 6 months.",
+      "expectedSkill": "winback-flows",
+      "rationale": "Lapsed-customer reactivation flow."
+    },
+    {
+      "id": "trig-012",
+      "kind": "clear-match",
+      "request": "Our subscription churn just spiked 4 points month-over-month. What do I look at first?",
+      "expectedSkill": "subscription-churn",
+      "rationale": "Subscription churn diagnosis."
+    },
+    {
+      "id": "trig-013",
+      "kind": "clear-match",
+      "request": "I need to write an ADR for our switch from Postgres to a managed serverless DB.",
+      "expectedSkill": "architecture-decision-records",
+      "rationale": "Explicit ADR authoring."
+    },
+    {
+      "id": "trig-014",
+      "kind": "clear-match",
+      "request": "We're rotating database credentials next sprint. What's the safe approach?",
+      "expectedSkill": "secrets-management",
+      "rationale": "Credential rotation is core secrets-management."
+    },
+    {
+      "id": "trig-015",
+      "kind": "clear-match",
+      "request": "I want to do an SEO audit on our top 10 collection pages.",
+      "expectedSkill": "seo-audit",
+      "rationale": "Explicit SEO audit request."
+    },
+    {
+      "id": "trig-016",
+      "kind": "clear-match",
+      "request": "Help me write good schema markup for our supplement PDPs so they show up in rich results.",
+      "expectedSkill": "schema-markup",
+      "rationale": "JSON-LD / structured-data design."
+    },
+    {
+      "id": "trig-017",
+      "kind": "clear-match",
+      "request": "We need a positioning statement for our new electrolyte SKU. The current messaging is muddled.",
+      "expectedSkill": "product-marketing-positioning",
+      "rationale": "Explicit positioning / messaging work."
+    },
+    {
+      "id": "trig-018",
+      "kind": "oblique-match",
+      "request": "The latency on our /checkout endpoint p99 just doubled but nothing in the deploy log explains it.",
+      "expectedSkill": "performance-profiling",
+      "rationale": "Latency regression diagnosis without naming the skill."
+    },
+    {
+      "id": "trig-019",
+      "kind": "oblique-match",
+      "request": "Our new checkout shipped last night and now everything's burning. The team is in a Zoom and nobody knows who owns what.",
+      "expectedSkill": "incident-response",
+      "rationale": "Active production fire without saying 'incident'."
+    },
+    {
+      "id": "trig-020",
+      "kind": "oblique-match",
+      "request": "We're spending $80 CAC and our LTV looks like $120. Channel-mix question: should we lean more into Meta or pull back?",
+      "expectedSkill": "paid-ltv-optimization",
+      "rationale": "Paid channel LTV economics decision."
+    },
+    {
+      "id": "trig-021",
+      "kind": "oblique-match",
+      "request": "We have a 4M-user product and a dev wants to add user_id as a Prometheus label. Is this a problem?",
+      "expectedSkill": "observability-pillars-integration",
+      "rationale": "Metric cardinality / observability pillars knowledge."
+    },
+    {
+      "id": "trig-022",
+      "kind": "oblique-match",
+      "request": "Mobile is converting 3x worse than desktop on our PDP. Help me figure out why.",
+      "expectedSkill": "cro",
+      "rationale": "Device-split conversion gap is a core CRO diagnosis."
+    },
+    {
+      "id": "trig-023",
+      "kind": "oblique-match",
+      "request": "Our oncall rotation feels brutal. Two people doing 1-week shifts. Everyone is burning out.",
+      "expectedSkill": "oncall-rotation-design",
+      "rationale": "Oncall structure problem without naming the skill."
+    },
+    {
+      "id": "trig-024",
+      "kind": "oblique-match",
+      "request": "We're shipping a breaking change to our public API in 90 days. How do we communicate this to integrators?",
+      "expectedSkill": "api-deprecation",
+      "rationale": "Public API breaking change is the deprecation playbook."
+    },
+    {
+      "id": "trig-025",
+      "kind": "oblique-match",
+      "request": "I want to upgrade us from Node 18 to Node 22. What can go wrong and how do I sequence it?",
+      "expectedSkill": "dependency-upgrade-safely",
+      "rationale": "Runtime / dependency major upgrade safety."
+    },
+    {
+      "id": "trig-026",
+      "kind": "oblique-match",
+      "request": "Our flagship powder is $42 single, $112 for a 3-pack. What other tiers should we offer to lift AOV?",
+      "expectedSkill": "bundle-pricing",
+      "rationale": "Bundle / tiering design for AOV."
+    },
+    {
+      "id": "trig-027",
+      "kind": "oblique-match",
+      "request": "We rewrote the homepage hero and conversions went up 12%. How do I know it wasn't just seasonality?",
+      "expectedSkill": "ab-testing",
+      "rationale": "Statistical-significance / holdout question."
+    },
+    {
+      "id": "trig-028",
+      "kind": "oblique-match",
+      "request": "We have customers asking for an iOS app, an Android app, and a Spanish version. What do I prioritize?",
+      "expectedSkill": "international-expansion",
+      "rationale": "International / localization prioritization."
+    },
+    {
+      "id": "trig-029",
+      "kind": "oblique-match",
+      "request": "Our Meta ad creative is fatigued. CPMs are climbing and CTR is dropping every week.",
+      "expectedSkill": "ad-creative",
+      "rationale": "Ad creative fatigue is the creative skill domain."
+    },
+    {
+      "id": "trig-030",
+      "kind": "oblique-match",
+      "request": "Walk me through what should be in our quarterly disaster-recovery drill.",
+      "expectedSkill": "disaster-recovery-exercise-design",
+      "rationale": "DR exercise design."
+    },
+    {
+      "id": "trig-031",
+      "kind": "no-match",
+      "request": "What's the weather in Tokyo today?",
+      "expectedSkill": "none",
+      "rationale": "Outside any skill domain."
+    },
+    {
+      "id": "trig-032",
+      "kind": "no-match",
+      "request": "Translate 'good morning' into Japanese.",
+      "expectedSkill": "none",
+      "rationale": "General language task, not a skill domain."
+    },
+    {
+      "id": "trig-033",
+      "kind": "no-match",
+      "request": "Tell me a joke about graph databases.",
+      "expectedSkill": "none",
+      "rationale": "Casual chit-chat."
+    },
+    {
+      "id": "trig-034",
+      "kind": "no-match",
+      "request": "Help me plan a vacation to Lisbon next month.",
+      "expectedSkill": "none",
+      "rationale": "Personal travel planning, outside skills."
+    },
+    {
+      "id": "trig-035",
+      "kind": "no-match",
+      "request": "What's 47 times 92?",
+      "expectedSkill": "none",
+      "rationale": "Bare arithmetic, not a workflow."
+    },
+    {
+      "id": "trig-036",
+      "kind": "no-match",
+      "request": "Write me a haiku about distributed systems.",
+      "expectedSkill": "none",
+      "rationale": "Creative one-off, not a skill workflow."
+    },
+    {
+      "id": "trig-037",
+      "kind": "ambiguous",
+      "request": "Our cart conversion is dropping. Should I fix the cart page or fix the abandonment flow?",
+      "expectedSkills": ["cro", "cart-abandonment-recovery"],
+      "rationale": "Could be CRO (fix the page) or cart-abandonment-recovery (fix the flow); both are valid framings."
+    },
+    {
+      "id": "trig-038",
+      "kind": "ambiguous",
+      "request": "We had a production outage caused by a bad migration. Walk me through what to do.",
+      "expectedSkills": ["incident-response", "root-cause-analysis", "post-mortem-writing"],
+      "rationale": "Active fire (incident-response), the diagnosis (root-cause-analysis), or the writeup (post-mortem-writing) are all plausible."
+    },
+    {
+      "id": "trig-039",
+      "kind": "ambiguous",
+      "request": "Our checkout button copy is flat. Should we test variations?",
+      "expectedSkills": ["copywriting", "cro", "ab-testing"],
+      "rationale": "Copy rewrite (copywriting), conversion lift (cro), or test design (ab-testing) are all reasonable."
+    },
+    {
+      "id": "trig-040",
+      "kind": "ambiguous",
+      "request": "We want to give engineers more on-call autonomy without burning them out.",
+      "expectedSkills": ["oncall-rotation-design", "oncall-handoff-rituals", "service-ownership-boundaries"],
+      "rationale": "Rotation shape, handoff rituals, and ownership boundaries all touch this."
+    },
+    {
+      "id": "trig-041",
+      "kind": "ambiguous",
+      "request": "How do we get loyal customers to buy more often?",
+      "expectedSkills": ["repeat-purchase", "loyalty-program-design", "subscription-growth"],
+      "rationale": "Repeat-purchase mechanics, loyalty program, or subscription-growth all fit the framing."
+    },
+    {
+      "id": "trig-042",
+      "kind": "ambiguous",
+      "request": "We're getting hammered by detractors on social. Help me respond.",
+      "expectedSkills": ["nps-and-detractor-handling", "social-strategy"],
+      "rationale": "Detractor handling specifically, or broader social strategy."
+    }
+  ]
+}

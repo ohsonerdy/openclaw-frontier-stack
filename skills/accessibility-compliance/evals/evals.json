@@ -1,0 +1,105 @@
+{
+  "$schema": "openclaw-frontier.skill-eval.v1",
+  "skill_name": "accessibility-compliance",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We just got a demand letter from a plaintiff firm in New York alleging ADA violations. What do we do?",
+      "expected_output": "Surfaces that legal counsel must be looped in immediately and the workstream is legal-led incident response. Walks the typical demand letter pattern and settlement range. Recommends not responding directly without counsel. Walks the defensive posture: get a current audit, publish an accessibility statement, document a remediation roadmap. Names New York as a heavy plaintiff-firm jurisdiction.",
+      "assertions": [
+        "Recommends legal counsel involvement immediately",
+        "Names New York as heavy plaintiff-firm jurisdiction",
+        "Walks the typical demand letter pattern",
+        "Names settlement range $20-100k",
+        "Recommends audit and accessibility statement as defense",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "An overlay vendor is pitching us AccessiBe. They say it makes us ADA compliant. Should we?",
+      "expected_output": "Recommend against. Overlay widgets have been specifically targeted by the plaintiff bar and courts have ruled they do not create ADA compliance. The widget creates an audit trail that increases liability while not fixing underlying failures. Recommends the genuine remediation path: hybrid or full audit plus prioritized fixes plus accessibility statement.",
+      "assertions": [
+        "Recommends against the overlay vendor",
+        "Names the plaintiff-bar targeting of overlay users",
+        "Names courts ruling overlays do not create compliance",
+        "Names the audit-trail liability risk",
+        "Recommends genuine remediation path",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "What WCAG failures are most likely on our Shopify store?",
+      "expected_output": "Lists the most-failed WCAG criteria in ecomm. Color contrast (4.5:1 normal text), keyboard access (focus traps in modals, custom components), form labels, focus visible, name-role-value on custom components. Walks the four POUR principles. Names color contrast and keyboard access as the top-two failure patterns to remediate first.",
+      "assertions": [
+        "Lists the most-failed WCAG criteria in ecomm",
+        "Names color contrast 4.5:1 requirement",
+        "Names keyboard access failures",
+        "Walks the POUR principles",
+        "Prioritizes top two failure patterns",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "How do we test our site for screen-reader accessibility?",
+      "expected_output": "Walks the screen reader testing protocol. Names NVDA on Firefox as the plaintiff testing tool, VoiceOver on Safari for Mac/iOS. Test cadence: critical flows every release, top 10 templates quarterly. Protocol: tab navigation only, listen for role/name/value/state announcements, complete a purchase end-to-end. Names common findings.",
+      "assertions": [
+        "Names NVDA as the de facto plaintiff testing tool",
+        "Names VoiceOver, JAWS, TalkBack as the test stack",
+        "Recommends test cadence per release and quarterly",
+        "Walks the test protocol step by step",
+        "Names common findings: modals, add-to-cart, form errors",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Should we get a full audit or just run automated tools?",
+      "expected_output": "Conditional. Walks the four audit options. Automated catches 25-40% of violations. Hybrid catches 60-80% at $5-15k. Full manual catches 90%+ at $15-40k. Recommends automated in CI plus hybrid audit at year one for most brands. Full audit at $25M revenue or under litigation pressure. Notes that user testing with disabled testers complements but does not replace conformance audit.",
+      "assertions": [
+        "Walks the four audit options",
+        "Names the catch rate for each",
+        "Names the price range for each",
+        "Conditions full audit recommendation on revenue or litigation pressure",
+        "Notes user testing complements not replaces conformance audit",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Can we justify spending $20k on accessibility remediation?",
+      "expected_output": "Walks the accessibility ROI framework. Risk reduction of $20-100k typical settlement plus possible $200k-$2M class action. Conversion lift typically 1-3% from form and checkout accessibility. SEO benefit of 5-15% organic lift in some cases. Brand and CSR value. Pulls AOV and conversion data to size the lift in dollars. Payback typically under 12 months at $5M+ revenue.",
+      "assertions": [
+        "Walks the ROI framework",
+        "Names the litigation settlement avoidance",
+        "Names 1-3% conversion lift",
+        "Names SEO benefit",
+        "Pulls modern.sales.aov to size lift in dollars",
+        "Names typical payback period",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "We sell into the EU. Does accessibility law there matter?",
+      "expected_output": "Yes. The European Accessibility Act (EAA) enforces from 2025 across EU member states with teeth comparable to the US ADA. Walks the international parallel: ADA in US, AODA in Ontario, EAA in EU, Equality Act in UK. Conditions the remediation roadmap on the brand's market footprint. Recommends WCAG 2.2 AA as the global baseline since it satisfies all four regimes.",
+      "assertions": [
+        "Names the European Accessibility Act and 2025 enforcement",
+        "Walks the international parallel: ADA, AODA, EAA, UK Equality Act",
+        "Conditions remediation on market footprint",
+        "Recommends WCAG 2.2 AA as global baseline",
+        "Pulls channel mix to confirm international exposure",
+        "Output has Quick Wins, High-Impact, single next move"
+      ],
+      "files": []
+    }
+  ]
+}

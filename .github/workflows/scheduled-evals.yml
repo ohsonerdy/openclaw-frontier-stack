@@ -1,0 +1,267 @@
+name: Scheduled Modern Skills evals
+
+on:
+  schedule:
+    # 09:00 UTC daily = 05:00 ET / 04:00 CT — morning US East window
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Claude model id to evaluate against"
+        required: false
+        default: "claude-sonnet-4-6"
+        type: choice
+        options:
+          - claude-sonnet-4-6
+          - claude-opus-4-7
+          - claude-haiku-4-5-20251001
+      skill:
+        description: "Optional single skill to run (leave blank to run all)"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: scheduled-evals-${{ github.event.inputs.model || 'default' }}
+  cancel-in-progress: false
+
+jobs:
+  run-evals:
+    name: Run Modern Skills evals
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MODEL: ${{ github.event.inputs.model || 'claude-sonnet-4-6' }}
+      SKILL: ${{ github.event.inputs.skill || '' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install (no scripts)
+        run: npm install --ignore-scripts
+
+      - name: Validate eval-file shape (dry-run, fail fast)
+        run: npm run eval:dry
+
+      - name: Compute report metadata
+        id: meta
+        run: |
+          DATE_UTC="$(date -u +%Y-%m-%d)"
+          TIMESTAMP_UTC="$(date -u +%Y%m%dT%H%M%SZ)"
+          SAFE_MODEL="$(echo "${MODEL}" | tr -c '[:alnum:]._-' '-')"
+          REPORT_PATH="release-gate/reports/eval-report-${DATE_UTC}-${SAFE_MODEL}.json"
+          ARTIFACT_NAME="eval-report-${DATE_UTC}-${SAFE_MODEL}"
+          mkdir -p release-gate/reports
+          {
+            echo "date_utc=${DATE_UTC}"
+            echo "timestamp_utc=${TIMESTAMP_UTC}"
+            echo "safe_model=${SAFE_MODEL}"
+            echo "report_path=${REPORT_PATH}"
+            echo "artifact_name=${ARTIFACT_NAME}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run live evals
+        id: live
+        env:
+          # Anthropic auth: OAuth token is preferred (charges Pro/Max
+          # subscription). API key is opt-in fallback (per-token API billing).
+          # The runner picks OAuth automatically when ANTHROPIC_OAUTH_TOKEN is
+          # set; otherwise it uses ANTHROPIC_API_KEY. Configure either secret
+          # on the repo; if both are present, OAuth wins.
+          ANTHROPIC_OAUTH_TOKEN: ${{ secrets.ANTHROPIC_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Multi-backend support: set OPENCLAW_EVAL_ENDPOINT (repo var) to
+          # point at an OpenAI-compatible server (Ollama, vLLM, etc.).
+          # OPENCLAW_EVAL_API_FORMAT (repo var) overrides the auto-detected
+          # API format ("anthropic" or "openai"). OPENCLAW_EVAL_API_KEY (repo
+          # secret) authenticates against the OpenAI-compatible endpoint.
+          # Leave all three unset to use the default Anthropic backend.
+          OPENCLAW_EVAL_ENDPOINT: ${{ vars.OPENCLAW_EVAL_ENDPOINT }}
+          OPENCLAW_EVAL_API_FORMAT: ${{ vars.OPENCLAW_EVAL_API_FORMAT }}
+          OPENCLAW_EVAL_API_KEY: ${{ secrets.OPENCLAW_EVAL_API_KEY }}
+        run: |
+          set +e
+          ARGS="--live --model ${MODEL}"
+          if [ -n "${SKILL}" ]; then
+            ARGS="${ARGS} --skill ${SKILL}"
+          fi
+          node scripts/run-skill-evals.js ${ARGS} > "${{ steps.meta.outputs.report_path }}"
+          STATUS=$?
+          set -e
+          echo "exit_code=${STATUS}" >> "$GITHUB_OUTPUT"
+          if [ "${STATUS}" -ne 0 ] && [ "${STATUS}" -ne 1 ]; then
+            echo "Eval runner crashed (exit ${STATUS}); see report file." >&2
+            cat "${{ steps.meta.outputs.report_path }}" || true
+            exit "${STATUS}"
+          fi
+
+      - name: Upload eval report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.artifact_name }}
+          path: ${{ steps.meta.outputs.report_path }}
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Summarize report into job summary
+        if: always()
+        run: |
+          REPORT="${{ steps.meta.outputs.report_path }}"
+          if [ ! -s "${REPORT}" ]; then
+            echo "No report produced." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo "## Modern Skills eval run"
+            echo ""
+            echo "- Model: \`${MODEL}\`"
+            echo "- Skill filter: \`${SKILL:-(all)}\`"
+            echo "- Date (UTC): ${{ steps.meta.outputs.date_utc }}"
+            echo "- Report: \`${REPORT}\`"
+            echo ""
+            echo "### Per-skill summary"
+            echo ""
+            echo "| Skill | OK | Passed | Failed | Evals |"
+            echo "|---|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          node -e '
+            const fs = require("fs");
+            const r = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            for (const s of r.skills || []) {
+              const passed = s.passed != null ? s.passed : "-";
+              const failed = s.failed != null ? s.failed : "-";
+              const total = s.evalCount != null ? s.evalCount : "-";
+              const ok = s.ok ? "yes" : "no";
+              process.stdout.write(`| ${s.name} | ${ok} | ${passed} | ${failed} | ${total} |\n`);
+            }
+          ' "${REPORT}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Extract failing eval ids
+        if: steps.live.outputs.exit_code == '1'
+        id: fails
+        run: |
+          REPORT="${{ steps.meta.outputs.report_path }}"
+          FAIL_JSON="$(node -e '
+            const fs = require("fs");
+            const r = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            const fails = [];
+            for (const s of r.skills || []) {
+              if (s.ok) continue;
+              if (s.structuralErrors) {
+                fails.push({ skill: s.name, id: "structural", errors: s.structuralErrors });
+                continue;
+              }
+              if (s.error) {
+                fails.push({ skill: s.name, id: "missing", errors: [s.error] });
+                continue;
+              }
+              for (const e of s.evals || []) {
+                if (e.ok) continue;
+                fails.push({
+                  skill: s.name,
+                  id: e.id,
+                  passed: e.passedAssertions,
+                  total: e.totalAssertions,
+                  error: e.error || null
+                });
+              }
+            }
+            process.stdout.write(JSON.stringify(fails));
+          ' "${REPORT}")"
+          {
+            echo "fail_json<<FAIL_JSON_EOF"
+            echo "${FAIL_JSON}"
+            echo "FAIL_JSON_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open or update eval-regression issue
+        if: steps.live.outputs.exit_code == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FAIL_JSON: ${{ steps.fails.outputs.fail_json }}
+          ARTIFACT_NAME: ${{ steps.meta.outputs.artifact_name }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+        run: |
+          TITLE="Eval regression ${DATE_UTC} on ${MODEL}"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          ARTIFACT_LINK="${RUN_URL}#artifacts"
+
+          BODY_FILE="$(mktemp)"
+          {
+            echo "Modern Skills eval failures detected by the scheduled-evals workflow."
+            echo ""
+            echo "- Model: \`${MODEL}\`"
+            echo "- Skill filter: \`${SKILL:-(all)}\`"
+            echo "- Date (UTC): ${DATE_UTC}"
+            echo "- Workflow run: ${RUN_URL}"
+            echo "- Report artifact: \`${ARTIFACT_NAME}\` (download from ${ARTIFACT_LINK})"
+            echo ""
+            echo "### Failing evals"
+            echo ""
+            echo "| Skill | Eval id | Passed | Total | Notes |"
+            echo "|---|---|---|---|---|"
+            node -e '
+              const fails = JSON.parse(process.env.FAIL_JSON || "[]");
+              if (!fails.length) {
+                process.stdout.write("| (none parsed) | - | - | - | - |\n");
+                return;
+              }
+              for (const f of fails) {
+                const passed = f.passed != null ? f.passed : "-";
+                const total = f.total != null ? f.total : "-";
+                let note = "";
+                if (f.error) note = `error: ${String(f.error).slice(0, 120)}`;
+                else if (Array.isArray(f.errors)) note = f.errors.join("; ").slice(0, 120);
+                else note = "below assertion threshold";
+                process.stdout.write(`| ${f.skill} | ${f.id} | ${passed} | ${total} | ${note} |\n`);
+              }
+            '
+            echo ""
+            echo "Triage guide: see \`docs/skill-eval-telemetry.md\` — start by deciding whether the assertion is wrong, the skill text regressed, or the model shifted."
+          } > "${BODY_FILE}"
+
+          # Dedup strategy: one open issue per (label, date, model). Same-day reruns
+          # update the existing issue; a new day opens a fresh issue.
+          SEARCH="repo:${GITHUB_REPOSITORY} is:issue is:open label:eval-regression in:title \"${DATE_UTC}\" \"${MODEL}\""
+          EXISTING="$(gh issue list --repo "${GITHUB_REPOSITORY}" --label eval-regression --state open --search "${DATE_UTC} ${MODEL}" --json number,title --jq '.[0].number // empty')"
+
+          if [ -n "${EXISTING}" ]; then
+            echo "Updating existing issue #${EXISTING}"
+            gh issue comment "${EXISTING}" --repo "${GITHUB_REPOSITORY}" --body-file "${BODY_FILE}"
+          else
+            echo "Opening new eval-regression issue"
+            gh issue create \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "${TITLE}" \
+              --label eval-regression \
+              --body-file "${BODY_FILE}"
+          fi
+
+      - name: Post one-line success note to tracking issue (optional)
+        if: steps.live.outputs.exit_code == '0' && vars.EVAL_TRACKING_ISSUE != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DATE_UTC: ${{ steps.meta.outputs.date_utc }}
+          TRACKING_ISSUE: ${{ vars.EVAL_TRACKING_ISSUE }}
+        run: |
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          MSG="Nightly evals green on ${DATE_UTC} for model \`${MODEL}\` (skill filter: \`${SKILL:-all}\`). Run: ${RUN_URL}"
+          gh issue comment "${TRACKING_ISSUE}" --repo "${GITHUB_REPOSITORY}" --body "${MSG}"
+
+      - name: Fail the job if any eval failed
+        if: steps.live.outputs.exit_code == '1'
+        run: |
+          echo "One or more evals failed; an issue has been opened/updated under label \`eval-regression\`."
+          exit 1
